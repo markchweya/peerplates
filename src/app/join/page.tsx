@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { MotionDiv } from "../ui/motion";
 
 type Role = "consumer" | "vendor";
 
@@ -16,68 +17,87 @@ export default function JoinPage() {
 
   const [role, setRole] = useState<Role>(defaultRole);
 
+  const cardBase =
+    "rounded-2xl border p-5 text-left transition will-change-transform";
+  const selected = "border-[#fcb040] bg-[#fff7ed] shadow-sm";
+  const unselected = "border-slate-200 hover:bg-slate-50 hover:-translate-y-[2px]";
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto max-w-3xl px-6 py-12">
-        <div className="flex items-center justify-between">
+        <MotionDiv
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="flex items-center justify-between"
+        >
           <Link href="/" className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-[#fcb040]" />
-            <div className="font-semibold">PeerPlates</div>
+            <div className="text-lg font-semibold tracking-tight">PeerPlates</div>
           </Link>
           <div className="text-sm text-slate-500">Join waitlist</div>
-        </div>
+        </MotionDiv>
 
-        <div className="mt-10 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-extrabold tracking-tight">Choose your role</h1>
+        <MotionDiv
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.08 }}
+          className="mt-10 rounded-3xl border border-slate-200 bg-white p-7 shadow-sm"
+        >
+          <h1 className="text-3xl font-extrabold tracking-tight leading-tight">
+            Choose your role
+          </h1>
           <p className="mt-2 text-slate-600">
-            Consumers can move up by referrals. Vendors are reviewed via questionnaire.
+            Consumers move up by referrals. Vendors are reviewed via questionnaire.
           </p>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <button
-              onClick={() => setRole("consumer")}
-              className={`rounded-2xl border p-4 text-left font-extrabold ${
-                role === "consumer"
-                  ? "border-[#fcb040] bg-[#fff7ed]"
-                  : "border-slate-200 hover:bg-slate-50"
-              }`}
+          <div className="mt-7 grid gap-4 sm:grid-cols-2">
+            <MotionDiv
+              whileHover={{ scale: role === "consumer" ? 1.01 : 1.02 }}
+              whileTap={{ scale: 0.99 }}
             >
-              Consumer
-              <div className="mt-1 text-sm font-semibold text-slate-600">
-                Buy food • Refer friends • Move up the queue
-              </div>
-            </button>
+              <button
+                onClick={() => setRole("consumer")}
+                className={`${cardBase} ${role === "consumer" ? selected : unselected}`}
+              >
+                <div className="text-xl font-extrabold">Consumer</div>
+                <div className="mt-1 text-sm font-semibold text-slate-600">
+                  Buy food • Refer friends • Move up the queue
+                </div>
+              </button>
+            </MotionDiv>
 
-            <button
-              onClick={() => setRole("vendor")}
-              className={`rounded-2xl border p-4 text-left font-extrabold ${
-                role === "vendor"
-                  ? "border-[#fcb040] bg-[#fff7ed]"
-                  : "border-slate-200 hover:bg-slate-50"
-              }`}
+            <MotionDiv
+              whileHover={{ scale: role === "vendor" ? 1.01 : 1.02 }}
+              whileTap={{ scale: 0.99 }}
             >
-              Vendor
-              <div className="mt-1 text-sm font-semibold text-slate-600">
-                Sell food • Questionnaire review • Manual queue position
-              </div>
-            </button>
+              <button
+                onClick={() => setRole("vendor")}
+                className={`${cardBase} ${role === "vendor" ? selected : unselected}`}
+              >
+                <div className="text-xl font-extrabold">Vendor</div>
+                <div className="mt-1 text-sm font-semibold text-slate-600">
+                  Sell food • Questionnaire review • Manual queue position
+                </div>
+              </button>
+            </MotionDiv>
           </div>
 
           <div className="mt-8 flex gap-3">
             <Link
               href={`/join/${role}`}
-              className="rounded-2xl bg-[#fcb040] px-6 py-3 text-center font-extrabold text-slate-900 hover:opacity-95"
+              className="rounded-2xl bg-[#fcb040] px-6 py-3 text-center font-extrabold text-slate-900 transition hover:opacity-95 hover:-translate-y-[1px]"
             >
               Continue
             </Link>
             <Link
               href="/"
-              className="rounded-2xl border border-slate-200 px-6 py-3 text-center font-extrabold hover:bg-slate-50"
+              className="rounded-2xl border border-slate-200 px-6 py-3 text-center font-extrabold transition hover:bg-slate-50 hover:-translate-y-[1px]"
             >
               Back
             </Link>
           </div>
-        </div>
+        </MotionDiv>
       </div>
     </main>
   );
