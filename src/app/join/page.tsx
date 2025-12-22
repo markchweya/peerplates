@@ -1,15 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { MotionDiv } from "../ui/motion";
 
 type Role = "consumer" | "vendor";
 
 export default function JoinPage() {
+  const router = useRouter();
   const sp = useSearchParams();
-  const roleFromUrl = (sp.get("role") || "") as Role;
+
+  const roleFromUrl = (sp.get("role") || "").toLowerCase() as Role | "";
+
+  // ✅ If role exists in URL, skip this page entirely (no repetition)
+  useEffect(() => {
+    if (roleFromUrl === "consumer") router.replace("/join/consumer");
+    if (roleFromUrl === "vendor") router.replace("/join/vendor");
+  }, [roleFromUrl, router]);
 
   const defaultRole: Role = useMemo(() => {
     return roleFromUrl === "vendor" ? "vendor" : "consumer";
@@ -20,7 +28,8 @@ export default function JoinPage() {
   const cardBase =
     "rounded-2xl border p-5 text-left transition will-change-transform";
   const selected = "border-[#fcb040] bg-[#fff7ed] shadow-sm";
-  const unselected = "border-slate-200 hover:bg-slate-50 hover:-translate-y-[2px]";
+  const unselected =
+    "border-slate-200 hover:bg-slate-50 hover:-translate-y-[2px]";
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -57,8 +66,11 @@ export default function JoinPage() {
               whileTap={{ scale: 0.99 }}
             >
               <button
+                type="button"
                 onClick={() => setRole("consumer")}
-                className={`${cardBase} ${role === "consumer" ? selected : unselected}`}
+                className={`${cardBase} ${
+                  role === "consumer" ? selected : unselected
+                }`}
               >
                 <div className="text-xl font-extrabold">Consumer</div>
                 <div className="mt-1 text-sm font-semibold text-slate-600">
@@ -72,8 +84,11 @@ export default function JoinPage() {
               whileTap={{ scale: 0.99 }}
             >
               <button
+                type="button"
                 onClick={() => setRole("vendor")}
-                className={`${cardBase} ${role === "vendor" ? selected : unselected}`}
+                className={`${cardBase} ${
+                  role === "vendor" ? selected : unselected
+                }`}
               >
                 <div className="text-xl font-extrabold">Vendor</div>
                 <div className="mt-1 text-sm font-semibold text-slate-600">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MotionDiv, MotionP, MotionH1 } from "./ui/motion";
+import { MotionDiv, MotionP, MotionH1 } from "@/app/ui/motion";
 
 export default function Home() {
   return (
@@ -17,6 +17,7 @@ export default function Home() {
             <div className="text-lg font-semibold tracking-tight">PeerPlates</div>
           </div>
 
+          {/* Keep this as /join (fallback role picker) */}
           <Link
             href="/join"
             className="rounded-xl border border-slate-200 px-4 py-2 font-semibold hover:bg-slate-50 transition"
@@ -57,6 +58,7 @@ export default function Home() {
               queue by referring friends.
             </MotionP>
 
+            {/* IMPORTANT: direct to questionnaire routes (no repetition) */}
             <MotionDiv
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
@@ -64,14 +66,14 @@ export default function Home() {
               className="mt-8 flex flex-col gap-3 sm:flex-row"
             >
               <Link
-                href="/join?role=consumer"
+                href="/join/consumer"
                 className="group rounded-2xl bg-[#fcb040] px-6 py-3 text-center font-extrabold text-slate-900 shadow-sm transition hover:opacity-95 hover:-translate-y-[1px]"
               >
                 I’m a Consumer
               </Link>
 
               <Link
-                href="/join?role=vendor"
+                href="/join/vendor"
                 className="rounded-2xl border border-slate-200 px-6 py-3 text-center font-extrabold transition hover:bg-slate-50 hover:-translate-y-[1px]"
               >
                 I’m a Vendor
@@ -111,7 +113,7 @@ export default function Home() {
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
               <div className="text-sm font-semibold text-slate-700">Next</div>
               <div className="mt-1 text-slate-600">
-                We’ll build the join page + questionnaire next.
+                We’ll build the questionnaires next.
               </div>
             </div>
           </MotionDiv>
