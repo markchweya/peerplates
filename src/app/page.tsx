@@ -111,7 +111,7 @@ export default function Home() {
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
               <div className="text-sm font-semibold text-slate-700">Next</div>
               <div className="mt-1 text-slate-600">
-                We’ll build the questionnaires next.
+                Questionnaires are locked ✅ Next up: referrals + queue movement and admin review tools.
               </div>
             </div>
           </MotionDiv>
