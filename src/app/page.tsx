@@ -1,65 +1,126 @@
-import Image from "next/image";
+import Link from "next/link";
+import { MotionDiv, MotionP, MotionH1 } from "@/app/ui/motion";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="min-h-screen bg-white text-slate-900">
+      <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+        {/* Top bar */}
+        <MotionDiv
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-[#fcb040]" />
+            <div className="text-lg font-semibold tracking-tight">PeerPlates</div>
+          </div>
+
+          <Link
+            href="/join"
+            className="rounded-xl border border-slate-200 px-4 py-2 font-semibold hover:bg-slate-50 transition whitespace-nowrap"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Join waitlist
+          </Link>
+        </MotionDiv>
+
+        {/* Hero */}
+        <div className="mt-10 sm:mt-14 grid gap-10 lg:grid-cols-2 lg:items-center">
+          <div>
+            <MotionDiv
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.05 }}
+              className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700"
+            >
+              <span className="h-2 w-2 rounded-full bg-[#fcb040]" />
+              A peer-to-peer food platform
+            </MotionDiv>
+
+            <MotionH1
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.12 }}
+              className="mt-5 font-extrabold tracking-tight leading-[1.05] text-[clamp(2.1rem,4.8vw,3.6rem)]"
+            >
+              Discover great food from local vendors — and get early access.
+            </MotionH1>
+
+            <MotionP
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.2 }}
+              className="mt-4 max-w-xl text-base sm:text-lg text-slate-600"
+            >
+              Join the waitlist as a consumer or a vendor. Consumers can move up the
+              queue by referring friends.
+            </MotionP>
+
+            <MotionDiv
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.28 }}
+              className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
+            >
+              <Link
+                href="/join/consumer"
+                className="rounded-2xl bg-[#fcb040] px-6 py-3 text-center font-extrabold text-slate-900 shadow-sm transition hover:opacity-95 hover:-translate-y-[1px]"
+              >
+                I’m a Consumer
+              </Link>
+
+              <Link
+                href="/join/vendor"
+                className="rounded-2xl border border-slate-200 px-6 py-3 text-center font-extrabold transition hover:bg-slate-50 hover:-translate-y-[1px]"
+              >
+                I’m a Vendor
+              </Link>
+            </MotionDiv>
+          </div>
+
+          {/* Right card */}
+          <MotionDiv
+            initial={{ opacity: 0, x: 22 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.65, delay: 0.18 }}
+            className="rounded-3xl border border-slate-200 bg-slate-50 p-5 sm:p-6"
           >
-            Documentation
-          </a>
+            <div className="text-sm font-semibold text-slate-700">What you get</div>
+
+            <div className="mt-4 grid gap-3">
+              {[
+                "Early access to the app",
+                "A transparent queue position",
+                "Consumer referrals move you up",
+                "Vendors reviewed using questionnaire",
+              ].map((x, i) => (
+                <MotionDiv
+                  key={x}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.25 + i * 0.06 }}
+                  className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-sm"
+                >
+                  <div className="mt-1 h-3 w-3 rounded-full bg-[#fcb040]" />
+                  <div className="font-semibold text-slate-800">{x}</div>
+                </MotionDiv>
+              ))}
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="text-sm font-semibold text-slate-700">Next</div>
+              <div className="mt-1 text-slate-600">
+                We’ll build the questionnaires next.
+              </div>
+            </div>
+          </MotionDiv>
         </div>
-      </main>
-    </div>
+
+        <div className="mt-14 sm:mt-16 border-t border-slate-200 pt-6 text-sm text-slate-500">
+          © {new Date().getFullYear()} PeerPlates
+        </div>
+      </div>
+    </main>
   );
 }
