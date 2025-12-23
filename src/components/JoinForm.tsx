@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MotionDiv } from "@/app/ui/motion";
 import SelectField from "@/components/fields/SelectField";
@@ -17,7 +17,7 @@ type QuestionType =
   | "number"
   | "file";
 
-type Question = {
+export type Question = {
   key: string;
   label: string;
   required?: boolean;
@@ -25,9 +25,12 @@ type Question = {
   placeholder?: string;
   options?: string[];
 
-  // for file questions
+  // file questions
   accept?: string[];
   helpText?: string;
+
+  // backend upload field key override
+  uploadKey?: string;
 };
 
 type Props = {
@@ -40,6 +43,8 @@ type Props = {
 type AnswerValue = string | string[]; // checkbox groups use string[]
 type AnswersState = Record<string, AnswerValue>;
 
+const BRAND = "#fcb040";
+
 export default function JoinForm({ role, title, subtitle, questions }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -51,9 +56,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
 
   const initialAnswers = useMemo<AnswersState>(() => {
     const obj: AnswersState = {};
-    for (const q of questions) {
-      obj[q.key] = q.type === "checkboxes" ? [] : "";
-    }
+    for (const q of questions) obj[q.key] = q.type === "checkboxes" ? [] : "";
     return obj;
   }, [questions]);
 
@@ -65,12 +68,20 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>("");
 
+  // When switching consumer/vendor forms, reset state to match new question keys
+  useEffect(() => {
+    setAnswers(initialAnswers);
+    setFiles({});
+    setError("");
+    setSubmitting(false);
+  }, [initialAnswers]);
+
   const setAnswer = (key: string, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
   };
 
   const toggleCheckbox = (key: string, option: string, allOptions: string[]) => {
-    const current = (answers[key] as string[]) || [];
+    const current = Array.isArray(answers[key]) ? (answers[key] as string[]) : [];
     const hasNone = allOptions.includes("None of the above");
     const isNone = option === "None of the above";
 
@@ -78,13 +89,9 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
       ? current.filter((x) => x !== option)
       : [...current, option];
 
-    // Enforce "None of the above" behavior
     if (hasNone) {
-      if (isNone && next.includes("None of the above")) {
-        next = ["None of the above"];
-      } else if (!isNone) {
-        next = next.filter((x) => x !== "None of the above");
-      }
+      if (isNone && next.includes("None of the above")) next = ["None of the above"];
+      else if (!isNone) next = next.filter((x) => x !== "None of the above");
     }
 
     setAnswer(key, next);
@@ -103,8 +110,8 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
       if (!q.required) continue;
 
       if (q.type === "file") {
-        // Only validate if you ever set file fields to required (currently optional)
-        const f = files[q.key];
+        const uploadKey = q.uploadKey || q.key;
+        const f = files[uploadKey] || files[q.key];
         if (!f) return `Please upload: ${q.label}`;
         continue;
       }
@@ -127,10 +134,10 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
     }
 
     setSubmitting(true);
+
     try {
       const hasAnyFile = Object.values(files).some(Boolean);
 
-      // Convert answers to something easy to store (checkbox arrays -> array)
       const payload = {
         role,
         fullName: fullName.trim(),
@@ -143,7 +150,6 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
       let res: Response;
 
       if (hasAnyFile) {
-        // Use multipart for file uploads
         const fd = new FormData();
         fd.append("role", payload.role);
         fd.append("fullName", payload.fullName);
@@ -151,17 +157,15 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
         if (payload.phone) fd.append("phone", payload.phone);
         if (payload.ref) fd.append("ref", payload.ref);
 
-        // answers as JSON
         fd.append("answers", JSON.stringify(payload.answers));
 
-        // attach files
+        // Attach files using their stored key
         for (const [k, f] of Object.entries(files)) {
           if (f) fd.append(k, f);
         }
 
         res = await fetch("/api/signup", { method: "POST", body: fd });
       } else {
-        // JSON-only when no files
         res = await fetch("/api/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -170,11 +174,14 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
       }
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "Signup failed. Try again.");
+      if (!res.ok) throw new Error(data?.error || `Signup failed (${res.status})`);
 
+      // ✅ THIS is where it goes (right here, after success, before pushing)
       const qp = new URLSearchParams();
+      qp.set("role", role);
       if (data?.id) qp.set("id", data.id);
       if (data?.referral_code) qp.set("code", data.referral_code);
+
       router.push(`/thanks?${qp.toString()}`);
     } catch (err: any) {
       setError(err?.message || "Something went wrong.");
@@ -187,13 +194,11 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
     "h-12 w-full rounded-2xl border border-[#fcb040] bg-white px-4 font-semibold text-slate-900 outline-none focus:ring-4 focus:ring-[rgba(252,176,64,0.30)] placeholder:text-slate-500";
   const textareaBase =
     "w-full rounded-2xl border border-[#fcb040] bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:ring-4 focus:ring-[rgba(252,176,64,0.30)] placeholder:text-slate-500 min-h-[110px]";
-
-  const cardBase =
-    "rounded-2xl border border-[#fcb040] bg-white p-4 shadow-sm";
+  const cardBase = "rounded-2xl border border-[#fcb040] bg-white p-4 shadow-sm";
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12 pb-28">
         <MotionDiv
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -201,7 +206,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
           className="flex items-center justify-between gap-4"
         >
           <Link href="/" className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-[#fcb040]" />
+            <div className="h-10 w-10 rounded-xl" style={{ background: BRAND }} />
             <div className="text-lg font-semibold tracking-tight">PeerPlates</div>
           </Link>
 
@@ -229,7 +234,6 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
           ) : null}
 
           <form onSubmit={onSubmit} className="mt-6 grid gap-4">
-            {/* Basics */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
                 <label className="text-sm font-semibold">Full name *</label>
@@ -238,6 +242,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                   onChange={(e) => setFullName(e.target.value)}
                   className={inputBase}
                   placeholder="e.g. Christine Gesare"
+                  autoComplete="name"
                 />
               </div>
 
@@ -249,6 +254,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                   className={inputBase}
                   placeholder="you@email.com"
                   type="email"
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -261,10 +267,10 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                 className={inputBase}
                 placeholder="+254..."
                 type="tel"
+                autoComplete="tel"
               />
             </div>
 
-            {/* Questions */}
             <div className="mt-2 grid gap-4">
               {questions.map((q) => {
                 const t = q.type || "text";
@@ -312,22 +318,16 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                               <span
                                 className={[
                                   "inline-flex h-6 w-6 items-center justify-center rounded-full border",
-                                  checked
-                                    ? "border-slate-900 bg-white"
-                                    : "border-[#fcb040] bg-white",
+                                  checked ? "border-slate-900 bg-white" : "border-[#fcb040] bg-white",
                                 ].join(" ")}
                                 aria-hidden="true"
                               >
-                                {checked ? (
-                                  <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
-                                ) : null}
+                                {checked ? <span className="h-2.5 w-2.5 rounded-full bg-slate-900" /> : null}
                               </span>
                             </button>
                           );
                         })}
-                        <div className="text-xs text-slate-900/60">
-                          You can select multiple options.
-                        </div>
+                        <div className="text-xs text-slate-900/60">You can select multiple options.</div>
                       </div>
                     </div>
                   );
@@ -335,6 +335,8 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
 
                 if (t === "file") {
                   const accept = (q.accept || [".pdf", ".jpg", ".jpeg", ".png"]).join(",");
+                  const uploadKey = q.uploadKey || q.key;
+
                   return (
                     <div key={q.key} className="grid gap-2">
                       <label className="text-sm font-semibold">
@@ -348,15 +350,13 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                           className="block w-full rounded-2xl border border-[#fcb040] bg-white px-4 py-3 font-semibold text-slate-900 file:mr-4 file:rounded-xl file:border-0 file:bg-[#fcb040] file:px-4 file:py-2 file:font-extrabold file:text-slate-900"
                           onChange={(e) => {
                             const f = e.target.files?.[0] || null;
-                            setFiles((prev) => ({ ...prev, [q.key]: f }));
+                            setFiles((prev) => ({ ...prev, [uploadKey]: f }));
                           }}
                         />
-                        {q.helpText ? (
-                          <div className="text-xs text-slate-900/60">{q.helpText}</div>
-                        ) : null}
-                        {files[q.key] ? (
+                        {q.helpText ? <div className="text-xs text-slate-900/60">{q.helpText}</div> : null}
+                        {files[uploadKey] ? (
                           <div className="text-xs font-semibold">
-                            Selected: <span className="font-mono">{files[q.key]!.name}</span>
+                            Selected: <span className="font-mono">{files[uploadKey]!.name}</span>
                           </div>
                         ) : null}
                       </div>
@@ -364,7 +364,6 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                   );
                 }
 
-                // textarea
                 if (t === "textarea") {
                   return (
                     <div key={q.key} className="grid gap-2">
@@ -381,7 +380,6 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                   );
                 }
 
-                // number / text / email / tel
                 return (
                   <div key={q.key} className="grid gap-2">
                     <label className="text-sm font-semibold">
