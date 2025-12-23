@@ -1,6 +1,10 @@
 import JoinForm from "@/components/JoinForm";
 import { consumerQuestions } from "@/config/questions.consumer";
 
+export const metadata = {
+  title: "Consumer Waitlist | PeerPlates",
+};
+
 export default function ConsumerJoinPage() {
   return (
     <JoinForm

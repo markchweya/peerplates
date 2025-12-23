@@ -1,18 +1,33 @@
 "use client";
 
 import Link from "next/link";
+import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { MotionDiv } from "@/app/ui/motion";
 import SelectField from "@/components/fields/SelectField";
 
+type QuestionType =
+  | "text"
+  | "email"
+  | "tel"
+  | "textarea"
+  | "select"
+  | "checkboxes"
+  | "number"
+  | "file";
+
 type Question = {
   key: string;
   label: string;
   required?: boolean;
-  type?: "text" | "email" | "tel" | "textarea" | "select";
+  type?: QuestionType;
   placeholder?: string;
   options?: string[];
+
+  // for file questions
+  accept?: string[];
+  helpText?: string;
 };
 
 type Props = {
@@ -21,6 +36,9 @@ type Props = {
   subtitle: string;
   questions: Question[];
 };
+
+type AnswerValue = string | string[]; // checkbox groups use string[]
+type AnswersState = Record<string, AnswerValue>;
 
 export default function JoinForm({ role, title, subtitle, questions }: Props) {
   const router = useRouter();
@@ -31,18 +49,50 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
-  const initialAnswers = useMemo(() => {
-    const obj: Record<string, string> = {};
-    for (const q of questions) obj[q.key] = "";
+  const initialAnswers = useMemo<AnswersState>(() => {
+    const obj: AnswersState = {};
+    for (const q of questions) {
+      obj[q.key] = q.type === "checkboxes" ? [] : "";
+    }
     return obj;
   }, [questions]);
 
-  const [answers, setAnswers] = useState<Record<string, string>>(initialAnswers);
+  const [answers, setAnswers] = useState<AnswersState>(initialAnswers);
+
+  // Files are not stored in answers; keep separately
+  const [files, setFiles] = useState<Record<string, File | null>>({});
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>("");
 
-  const onChange = (key: string, value: string) => {
+  const setAnswer = (key: string, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const toggleCheckbox = (key: string, option: string, allOptions: string[]) => {
+    const current = (answers[key] as string[]) || [];
+    const hasNone = allOptions.includes("None of the above");
+    const isNone = option === "None of the above";
+
+    let next = current.includes(option)
+      ? current.filter((x) => x !== option)
+      : [...current, option];
+
+    // Enforce "None of the above" behavior
+    if (hasNone) {
+      if (isNone && next.includes("None of the above")) {
+        next = ["None of the above"];
+      } else if (!isNone) {
+        next = next.filter((x) => x !== "None of the above");
+      }
+    }
+
+    setAnswer(key, next);
+  };
+
+  const isEmpty = (v: AnswerValue) => {
+    if (Array.isArray(v)) return v.length === 0;
+    return !String(v ?? "").trim();
   };
 
   const validate = () => {
@@ -50,14 +100,23 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
     if (!email.trim()) return "Please enter your email.";
 
     for (const q of questions) {
-      if (q.required && !String(answers[q.key] ?? "").trim()) {
-        return `Please answer: ${q.label}`;
+      if (!q.required) continue;
+
+      if (q.type === "file") {
+        // Only validate if you ever set file fields to required (currently optional)
+        const f = files[q.key];
+        if (!f) return `Please upload: ${q.label}`;
+        continue;
       }
+
+      const v = answers[q.key];
+      if (isEmpty(v)) return `Please answer: ${q.label}`;
     }
+
     return "";
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -69,18 +128,46 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role,
-          fullName: fullName.trim(),
-          email: email.trim(),
-          phone: phone.trim() || null,
-          ref: ref || null,
-          answers,
-        }),
-      });
+      const hasAnyFile = Object.values(files).some(Boolean);
+
+      // Convert answers to something easy to store (checkbox arrays -> array)
+      const payload = {
+        role,
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim() || null,
+        ref: ref || null,
+        answers,
+      };
+
+      let res: Response;
+
+      if (hasAnyFile) {
+        // Use multipart for file uploads
+        const fd = new FormData();
+        fd.append("role", payload.role);
+        fd.append("fullName", payload.fullName);
+        fd.append("email", payload.email);
+        if (payload.phone) fd.append("phone", payload.phone);
+        if (payload.ref) fd.append("ref", payload.ref);
+
+        // answers as JSON
+        fd.append("answers", JSON.stringify(payload.answers));
+
+        // attach files
+        for (const [k, f] of Object.entries(files)) {
+          if (f) fd.append(k, f);
+        }
+
+        res = await fetch("/api/signup", { method: "POST", body: fd });
+      } else {
+        // JSON-only when no files
+        res = await fetch("/api/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      }
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Signup failed. Try again.");
@@ -101,6 +188,9 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
   const textareaBase =
     "w-full rounded-2xl border border-[#fcb040] bg-white px-4 py-3 font-semibold text-slate-900 outline-none focus:ring-4 focus:ring-[rgba(252,176,64,0.30)] placeholder:text-slate-500 min-h-[110px]";
 
+  const cardBase =
+    "rounded-2xl border border-[#fcb040] bg-white p-4 shadow-sm";
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
@@ -114,6 +204,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
             <div className="h-10 w-10 rounded-xl bg-[#fcb040]" />
             <div className="text-lg font-semibold tracking-tight">PeerPlates</div>
           </Link>
+
           <div className="text-sm text-slate-900 font-semibold whitespace-nowrap">
             {role === "consumer" ? "Consumer" : "Vendor"} waitlist
           </div>
@@ -176,43 +267,134 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
             {/* Questions */}
             <div className="mt-2 grid gap-4">
               {questions.map((q) => {
-                const val = answers[q.key] ?? "";
+                const t = q.type || "text";
+                const val = answers[q.key];
 
-                if (q.type === "select") {
+                if (t === "select") {
                   return (
                     <SelectField
                       key={q.key}
                       label={q.label}
                       required={q.required}
-                      value={val}
-                      onChange={(v) => onChange(q.key, v)}
+                      value={String(val ?? "")}
+                      onChange={(v) => setAnswer(q.key, v)}
                       options={q.options || []}
+                      placeholder={q.placeholder || "Select…"}
                     />
                   );
                 }
 
+                if (t === "checkboxes") {
+                  const arr = Array.isArray(val) ? val : [];
+                  const opts = q.options || [];
+                  return (
+                    <div key={q.key} className="grid gap-2">
+                      <label className="text-sm font-semibold">
+                        {q.label} {q.required ? "*" : ""}
+                      </label>
+
+                      <div className={`${cardBase} grid gap-2`}>
+                        {opts.map((opt) => {
+                          const checked = arr.includes(opt);
+                          return (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => toggleCheckbox(q.key, opt, opts)}
+                              className={[
+                                "flex items-center justify-between rounded-2xl border px-4 py-3 text-left font-semibold transition",
+                                checked
+                                  ? "border-[#fcb040] bg-[#fcb040] text-slate-900"
+                                  : "border-[#fcb040] bg-white text-slate-900 hover:-translate-y-[1px]",
+                              ].join(" ")}
+                            >
+                              <span className="pr-3">{opt}</span>
+                              <span
+                                className={[
+                                  "inline-flex h-6 w-6 items-center justify-center rounded-full border",
+                                  checked
+                                    ? "border-slate-900 bg-white"
+                                    : "border-[#fcb040] bg-white",
+                                ].join(" ")}
+                                aria-hidden="true"
+                              >
+                                {checked ? (
+                                  <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
+                                ) : null}
+                              </span>
+                            </button>
+                          );
+                        })}
+                        <div className="text-xs text-slate-900/60">
+                          You can select multiple options.
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (t === "file") {
+                  const accept = (q.accept || [".pdf", ".jpg", ".jpeg", ".png"]).join(",");
+                  return (
+                    <div key={q.key} className="grid gap-2">
+                      <label className="text-sm font-semibold">
+                        {q.label} {q.required ? "*" : ""}
+                      </label>
+
+                      <div className={`${cardBase} grid gap-2`}>
+                        <input
+                          type="file"
+                          accept={accept}
+                          className="block w-full rounded-2xl border border-[#fcb040] bg-white px-4 py-3 font-semibold text-slate-900 file:mr-4 file:rounded-xl file:border-0 file:bg-[#fcb040] file:px-4 file:py-2 file:font-extrabold file:text-slate-900"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0] || null;
+                            setFiles((prev) => ({ ...prev, [q.key]: f }));
+                          }}
+                        />
+                        {q.helpText ? (
+                          <div className="text-xs text-slate-900/60">{q.helpText}</div>
+                        ) : null}
+                        {files[q.key] ? (
+                          <div className="text-xs font-semibold">
+                            Selected: <span className="font-mono">{files[q.key]!.name}</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // textarea
+                if (t === "textarea") {
+                  return (
+                    <div key={q.key} className="grid gap-2">
+                      <label className="text-sm font-semibold">
+                        {q.label} {q.required ? "*" : ""}
+                      </label>
+                      <textarea
+                        value={String(val ?? "")}
+                        onChange={(e) => setAnswer(q.key, e.target.value)}
+                        className={textareaBase}
+                        placeholder={q.placeholder || ""}
+                      />
+                    </div>
+                  );
+                }
+
+                // number / text / email / tel
                 return (
                   <div key={q.key} className="grid gap-2">
                     <label className="text-sm font-semibold">
                       {q.label} {q.required ? "*" : ""}
                     </label>
-
-                    {q.type === "textarea" ? (
-                      <textarea
-                        value={val}
-                        onChange={(e) => onChange(q.key, e.target.value)}
-                        className={textareaBase}
-                        placeholder={q.placeholder || ""}
-                      />
-                    ) : (
-                      <input
-                        value={val}
-                        onChange={(e) => onChange(q.key, e.target.value)}
-                        className={inputBase}
-                        placeholder={q.placeholder || ""}
-                        type={q.type || "text"}
-                      />
-                    )}
+                    <input
+                      value={String(val ?? "")}
+                      onChange={(e) => setAnswer(q.key, e.target.value)}
+                      className={inputBase}
+                      placeholder={q.placeholder || ""}
+                      type={t === "number" ? "number" : t}
+                      inputMode={t === "number" ? "numeric" : undefined}
+                    />
                   </div>
                 );
               })}
