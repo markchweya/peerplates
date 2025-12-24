@@ -25,6 +25,9 @@ export type Question = {
   placeholder?: string;
   options?: string[];
 
+  // checkbox groups
+  maxSelections?: number; // e.g. 3 for “Top 3 cuisines”
+
   // file questions
   accept?: string[];
   helpText?: string;
@@ -40,10 +43,14 @@ type Props = {
   questions: Question[];
 };
 
-type AnswerValue = string | string[]; // checkbox groups use string[]
+type AnswerValue = string | string[];
 type AnswersState = Record<string, AnswerValue>;
 
 const BRAND = "#fcb040";
+
+// update these to your real pages later
+const PRIVACY_URL = "/privacy";
+const TERMS_URL = "/terms";
 
 export default function JoinForm({ role, title, subtitle, questions }: Props) {
   const router = useRouter();
@@ -53,6 +60,13 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+
+  // Consent
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+
+  // Bot protection (honeypot)
+  const [hp, setHp] = useState(""); // hidden input, must remain empty
 
   const initialAnswers = useMemo<AnswersState>(() => {
     const obj: AnswersState = {};
@@ -74,27 +88,32 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
     setFiles({});
     setError("");
     setSubmitting(false);
+    setAcceptedPrivacy(false);
+    setMarketingConsent(false);
+    setHp("");
   }, [initialAnswers]);
+
+  // --- Logic helpers ---
+  const isStudentYes = String(answers["is_student"] || "").toLowerCase() === "yes";
+
+  // Hide “university” unless student === Yes
+  const shouldHideQuestion = (q: Question) => {
+    if (q.key === "university") {
+      return !isStudentYes;
+    }
+    return false;
+  };
+
+  // If we hide university, also clear it so it doesn’t submit stale values
+  useEffect(() => {
+    if (!isStudentYes) {
+      setAnswers((prev) => ({ ...prev, university: "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStudentYes]);
 
   const setAnswer = (key: string, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const toggleCheckbox = (key: string, option: string, allOptions: string[]) => {
-    const current = Array.isArray(answers[key]) ? (answers[key] as string[]) : [];
-    const hasNone = allOptions.includes("None of the above");
-    const isNone = option === "None of the above";
-
-    let next = current.includes(option)
-      ? current.filter((x) => x !== option)
-      : [...current, option];
-
-    if (hasNone) {
-      if (isNone && next.includes("None of the above")) next = ["None of the above"];
-      else if (!isNone) next = next.filter((x) => x !== "None of the above");
-    }
-
-    setAnswer(key, next);
   };
 
   const isEmpty = (v: AnswerValue) => {
@@ -102,11 +121,50 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
     return !String(v ?? "").trim();
   };
 
+  const toggleCheckbox = (key: string, option: string, allOptions: string[], maxSelections?: number) => {
+    const current = Array.isArray(answers[key]) ? (answers[key] as string[]) : [];
+
+    const hasNone = allOptions.includes("None") || allOptions.includes("None of the above");
+    const isNone = option === "None" || option === "None of the above";
+
+    let next = current.includes(option)
+      ? current.filter((x) => x !== option)
+      : [...current, option];
+
+    // handle None / None of the above
+    if (hasNone) {
+      if (isNone && (next.includes("None") || next.includes("None of the above"))) {
+        next = [option];
+      } else if (!isNone) {
+        next = next.filter((x) => x !== "None" && x !== "None of the above");
+      }
+    }
+
+    // max selections (e.g. Top 3 cuisines)
+    if (typeof maxSelections === "number" && maxSelections > 0) {
+      const clean = next.filter((x) => x !== "None" && x !== "None of the above");
+      if (clean.length > maxSelections) {
+        // do not allow adding beyond max
+        return;
+      }
+    }
+
+    setAnswer(key, next);
+  };
+
   const validate = () => {
+    // bot
+    if (hp.trim()) return "Submission blocked (bot detected).";
+
     if (!fullName.trim()) return "Please enter your full name.";
     if (!email.trim()) return "Please enter your email.";
 
+    // privacy required
+    if (!acceptedPrivacy) return "Please accept the Privacy Policy / Terms to continue.";
+
+    // required questions (except hidden ones)
     for (const q of questions) {
+      if (shouldHideQuestion(q)) continue;
       if (!q.required) continue;
 
       if (q.type === "file") {
@@ -118,6 +176,22 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
 
       const v = answers[q.key];
       if (isEmpty(v)) return `Please answer: ${q.label}`;
+
+      // max selection enforcement (client-side)
+      if (q.type === "checkboxes" && typeof q.maxSelections === "number") {
+        const arr = Array.isArray(v) ? v : [];
+        const clean = arr.filter((x) => x !== "None" && x !== "None of the above");
+        if (clean.length > q.maxSelections) {
+          return `Please select up to ${q.maxSelections}: ${q.label}`;
+        }
+      }
+    }
+
+    // student/university consistency
+    if (!isStudentYes) {
+      // ensure university is empty if not student
+      // (we already clear it in an effect, this is just extra safety)
+      // no error here
     }
 
     return "";
@@ -145,6 +219,9 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
         phone: phone.trim() || null,
         ref: ref || null,
         answers,
+        accepted_privacy: acceptedPrivacy,
+        marketing_consent: marketingConsent,
+        hp, // honeypot
       };
 
       let res: Response;
@@ -157,9 +234,12 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
         if (payload.phone) fd.append("phone", payload.phone);
         if (payload.ref) fd.append("ref", payload.ref);
 
+        fd.append("accepted_privacy", String(payload.accepted_privacy));
+        fd.append("marketing_consent", String(payload.marketing_consent));
+        fd.append("hp", payload.hp);
+
         fd.append("answers", JSON.stringify(payload.answers));
 
-        // Attach files using their stored key
         for (const [k, f] of Object.entries(files)) {
           if (f) fd.append(k, f);
         }
@@ -176,7 +256,6 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || `Signup failed (${res.status})`);
 
-      // ✅ THIS is where it goes (right here, after success, before pushing)
       const qp = new URLSearchParams();
       qp.set("role", role);
       if (data?.id) qp.set("id", data.id);
@@ -234,6 +313,12 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
           ) : null}
 
           <form onSubmit={onSubmit} className="mt-6 grid gap-4">
+            {/* Honeypot field (hidden) */}
+            <div className="hidden" aria-hidden="true">
+              <label className="text-sm font-semibold">Website</label>
+              <input value={hp} onChange={(e) => setHp(e.target.value)} className={inputBase} />
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
                 <label className="text-sm font-semibold">Full name *</label>
@@ -265,7 +350,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className={inputBase}
-                placeholder="+254..."
+                placeholder="+44… / +254…"
                 type="tel"
                 autoComplete="tel"
               />
@@ -273,6 +358,8 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
 
             <div className="mt-2 grid gap-4">
               {questions.map((q) => {
+                if (shouldHideQuestion(q)) return null;
+
                 const t = q.type || "text";
                 const val = answers[q.key];
 
@@ -297,6 +384,11 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                     <div key={q.key} className="grid gap-2">
                       <label className="text-sm font-semibold">
                         {q.label} {q.required ? "*" : ""}
+                        {typeof q.maxSelections === "number" ? (
+                          <span className="ml-2 text-xs text-slate-500">
+                            (max {q.maxSelections})
+                          </span>
+                        ) : null}
                       </label>
 
                       <div className={`${cardBase} grid gap-2`}>
@@ -306,7 +398,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                             <button
                               key={opt}
                               type="button"
-                              onClick={() => toggleCheckbox(q.key, opt, opts)}
+                              onClick={() => toggleCheckbox(q.key, opt, opts, q.maxSelections)}
                               className={[
                                 "flex items-center justify-between rounded-2xl border px-4 py-3 text-left font-semibold transition",
                                 checked
@@ -327,7 +419,9 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                             </button>
                           );
                         })}
-                        <div className="text-xs text-slate-900/60">You can select multiple options.</div>
+                        <div className="text-xs text-slate-900/60">
+                          You can select multiple options.
+                        </div>
                       </div>
                     </div>
                   );
@@ -396,6 +490,41 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Privacy + consent */}
+            <div className="mt-2 grid gap-3 rounded-3xl border border-[#fcb040] bg-white p-4">
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={acceptedPrivacy}
+                  onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border border-slate-300"
+                />
+                <span className="text-slate-900">
+                  I agree to the{" "}
+                  <Link className="underline font-semibold" href={PRIVACY_URL} target="_blank">
+                    Privacy Policy
+                  </Link>{" "}
+                  and{" "}
+                  <Link className="underline font-semibold" href={TERMS_URL} target="_blank">
+                    Terms
+                  </Link>
+                  . <span className="font-extrabold">*</span>
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={marketingConsent}
+                  onChange={(e) => setMarketingConsent(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border border-slate-300"
+                />
+                <span className="text-slate-900/80">
+                  I’d like to receive product updates and early access emails (optional).
+                </span>
+              </label>
             </div>
 
             {error ? (

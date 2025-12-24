@@ -1,3 +1,4 @@
+// src/app/api/queue-position/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -16,7 +17,6 @@ function supabaseAdmin() {
 export async function GET(req: Request) {
   try {
     const sb = supabaseAdmin();
-
     const { searchParams } = new URL(req.url);
     const id = (searchParams.get("id") || "").trim();
 
@@ -24,10 +24,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
 
-    // Find the entry first (we need role + created_at)
+    // Confirm entry exists + role
     const { data: entry, error: entryErr } = await sb
       .from("waitlist_entries")
-      .select("id, role, created_at")
+      .select("id, role")
       .eq("id", id)
       .single();
 
@@ -35,25 +35,40 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    // Queue position = count of entries in same role with created_at <= this entry
-    // (simple MVP: order by created_at)
-    const { count, error: countErr } = await sb
-      .from("waitlist_entries")
-      .select("id", { count: "exact", head: true })
-      .eq("role", entry.role)
-      .lte("created_at", entry.created_at);
-
-    if (countErr) {
-      return NextResponse.json(
-        { error: countErr.message || "Count failed" },
-        { status: 500 }
-      );
+    // ✅ Vendors: no public queue position in TJ-005
+    if (entry.role === "vendor") {
+      return NextResponse.json({
+        id: entry.id,
+        role: entry.role,
+        position: null,
+      });
     }
+
+    // ✅ Consumers: order by referral_points DESC, then created_at ASC
+    const { data: consumers, error: cErr } = await sb
+      .from("waitlist_entries")
+      .select("id, referral_points, created_at")
+      .eq("role", "consumer");
+
+    if (cErr) {
+      return NextResponse.json({ error: cErr.message }, { status: 500 });
+    }
+
+    const list = (consumers || []).slice().sort((a: any, b: any) => {
+      const ap = Number(a.referral_points ?? 0);
+      const bp = Number(b.referral_points ?? 0);
+      if (ap !== bp) return bp - ap; // higher points first
+      return (
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      ); // earlier signup first
+    });
+
+    const idx = list.findIndex((x: any) => x.id === id);
 
     return NextResponse.json({
       id: entry.id,
-      role: entry.role,
-      position: count ?? null,
+      role: "consumer",
+      position: idx >= 0 ? idx + 1 : null,
     });
   } catch (e: any) {
     return NextResponse.json(
