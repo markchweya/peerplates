@@ -18,7 +18,10 @@ function supabaseAdmin() {
 }
 
 function requireAdmin(req: Request) {
+  // If you want dev-friendly behavior like your /list route, change this to:
+  // if (!ADMIN_SECRET) return null;
   if (!ADMIN_SECRET) throw new Error("Missing ADMIN_SECRET in .env.local");
+
   const incoming = (req.headers.get("x-admin-secret") || "").trim();
   if (incoming !== ADMIN_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -118,6 +121,7 @@ export async function PATCH(req: Request) {
       .eq("id", id)
       .select(
         [
+          // Base identity
           "id",
           "role",
           "full_name",
@@ -125,24 +129,39 @@ export async function PATCH(req: Request) {
           "phone",
           "is_student",
           "university",
+
+          // JSON answers still kept
           "answers",
 
+          // Referral fields
           "referral_code",
           "referred_by",
           "referrals_count",
           "referral_points",
 
+          // Vendor scoring/order fields
           "vendor_priority_score",
           "vendor_queue_override",
           "certificate_url",
 
-          "created_at",
-          "updated_at",
+          // Marketing consent fields (both supported)
+          "accepted_marketing",
+          "marketing_consent",
 
+          // ✅ “No more CSV cleaning” columns (these will exist after the SQL change)
+          "compliance_readiness",
+          "instagram_handle",
+          "bus_minutes",
+
+          // Review fields
           "review_status",
           "admin_notes",
           "reviewed_at",
           "reviewed_by",
+
+          // Timestamps
+          "created_at",
+          "updated_at",
         ].join(",")
       )
       .single();

@@ -26,12 +26,20 @@ type Entry = {
   vendor_priority_score: number;
   vendor_queue_override: number | null;
 
-  // TJ-005 referrals
+  // referrals
   referrals_count?: number | null;
   referral_points?: number | null;
 
   certificate_url: string | null;
   certificate_signed_url?: string | null;
+
+  // ✅ clean review columns (NEW)
+  city?: string | null;
+  neighborhood?: string | null;
+  cuisines?: string[] | null;
+  instagram_handle?: string | null;
+  bus_minutes?: number | null;
+  compliance_readiness?: string[] | null;
 
   created_at: string;
 
@@ -39,6 +47,9 @@ type Entry = {
   admin_notes: string | null;
   reviewed_at: string | null;
   reviewed_by: string | null;
+
+  // from API convenience field
+  score?: number;
 };
 
 const BRAND = "#fcb040";
@@ -56,10 +67,18 @@ function safeStr(v: any) {
   return String(v);
 }
 
-function csvEscape(v: any) {
-  const s = safeStr(v);
-  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
+function toBool(v: string): boolean | null {
+  const s = v.trim().toLowerCase();
+  if (!s) return null;
+  if (["true", "1", "yes", "on"].includes(s)) return true;
+  if (["false", "0", "no", "off"].includes(s)) return false;
+  return null;
+}
+
+function joinArr(v: any): string {
+  if (!v) return "";
+  if (Array.isArray(v)) return v.filter(Boolean).join(", ");
+  return String(v);
 }
 
 export default function AdminPage() {
@@ -71,6 +90,12 @@ export default function AdminPage() {
   const [role, setRole] = useState<RoleFilter>("all");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [q, setQ] = useState("");
+
+  // ✅ New review filters
+  const [city, setCity] = useState("");
+  const [maxBusMinutes, setMaxBusMinutes] = useState("");
+  const [hasInstagram, setHasInstagram] = useState<"" | "true" | "false">("");
+  const [compliance, setCompliance] = useState("");
 
   // Data
   const [rows, setRows] = useState<Entry[]>([]);
@@ -102,10 +127,19 @@ export default function AdminPage() {
     if (role !== "all") sp.set("role", role);
     if (status !== "all") sp.set("status", status);
     if (q.trim()) sp.set("q", q.trim());
+    if (city.trim()) sp.set("city", city.trim());
+
+    const mbm = maxBusMinutes.trim();
+    if (mbm) sp.set("max_bus_minutes", mbm);
+
+    if (hasInstagram) sp.set("has_instagram", hasInstagram);
+
+    if (compliance.trim()) sp.set("compliance", compliance.trim());
+
     sp.set("limit", String(limit));
     sp.set("offset", String(offset));
     return sp.toString();
-  }, [role, status, q, limit, offset]);
+  }, [role, status, q, city, maxBusMinutes, hasInstagram, compliance, limit, offset]);
 
   const fetchRows = async () => {
     setErr("");
@@ -236,67 +270,37 @@ export default function AdminPage() {
     }
   };
 
-  const exportCsv = () => {
-    const headers = [
-      "id",
-      "role",
-      "full_name",
-      "email",
-      "phone",
-      "is_student",
-      "university",
-      "review_status",
-      "admin_notes",
-      "reviewed_at",
-      "reviewed_by",
-      "vendor_priority_score",
-      "vendor_queue_override",
-      "referral_points",
-      "referrals_count",
-      "referral_code",
-      "referred_by",
-      "created_at",
-      "answers_json",
-    ];
+  // ✅ Use server export (clean columns) instead of client-side CSV
+  const exportCsv = async () => {
+    setErr("");
+    try {
+      const sp = new URLSearchParams();
+      if (role !== "all") sp.set("role", role);
 
-    const lines = [
-      headers.join(","),
-      ...rows.map((r) =>
-        [
-          r.id,
-          r.role,
-          r.full_name,
-          r.email,
-          r.phone ?? "",
-          r.is_student ?? "",
-          r.university ?? "",
-          r.review_status ?? "",
-          r.admin_notes ?? "",
-          r.reviewed_at ?? "",
-          r.reviewed_by ?? "",
-          r.vendor_priority_score ?? "",
-          r.vendor_queue_override ?? "",
-          r.referral_points ?? "",
-          r.referrals_count ?? "",
-          r.referral_code ?? "",
-          r.referred_by ?? "",
-          r.created_at ?? "",
-          JSON.stringify(r.answers ?? {}),
-        ]
-          .map(csvEscape)
-          .join(",")
-      ),
-    ];
+      const res = await fetch(`/api/admin/export?${sp.toString()}`, {
+        headers: { "x-admin-secret": adminSecret },
+      });
 
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `peerplates_waitlist_${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || `Export failed (${res.status})`);
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `peerplates_waitlist_${role === "all" ? "all" : role}_${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      setErr(e?.message || "Export failed");
+    }
   };
 
   const logout = () => {
@@ -420,7 +424,8 @@ export default function AdminPage() {
               <div className="text-sm text-slate-600 mt-1">{loading ? "Loading…" : `${total} total`}</div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-4 w-full md:max-w-3xl">
+            {/* Filters */}
+            <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-6 w-full md:max-w-6xl">
               <div className="grid gap-1">
                 <label className="text-xs font-semibold text-slate-600">Role</label>
                 <select
@@ -455,7 +460,63 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              <div className="grid gap-1 sm:col-span-2">
+              <div className="grid gap-1">
+                <label className="text-xs font-semibold text-slate-600">City</label>
+                <input
+                  value={city}
+                  onChange={(e) => {
+                    setOffset(0);
+                    setCity(e.target.value);
+                  }}
+                  placeholder="e.g. Nairobi"
+                  className="h-11 rounded-2xl border border-[#fcb040] bg-white px-4 font-semibold outline-none focus:ring-4 focus:ring-[rgba(252,176,64,0.30)]"
+                />
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-xs font-semibold text-slate-600">Max bus min</label>
+                <input
+                  value={maxBusMinutes}
+                  onChange={(e) => {
+                    setOffset(0);
+                    setMaxBusMinutes(e.target.value);
+                  }}
+                  placeholder="e.g. 30"
+                  inputMode="numeric"
+                  className="h-11 rounded-2xl border border-[#fcb040] bg-white px-4 font-semibold outline-none focus:ring-4 focus:ring-[rgba(252,176,64,0.30)]"
+                />
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-xs font-semibold text-slate-600">Has IG</label>
+                <select
+                  value={hasInstagram}
+                  onChange={(e) => {
+                    setOffset(0);
+                    setHasInstagram(e.target.value as any);
+                  }}
+                  className="h-11 rounded-2xl border border-[#fcb040] bg-white px-3 font-semibold outline-none"
+                >
+                  <option value="">All</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+
+              <div className="grid gap-1">
+                <label className="text-xs font-semibold text-slate-600">Compliance item</label>
+                <input
+                  value={compliance}
+                  onChange={(e) => {
+                    setOffset(0);
+                    setCompliance(e.target.value);
+                  }}
+                  placeholder="Exact label…"
+                  className="h-11 rounded-2xl border border-[#fcb040] bg-white px-4 font-semibold outline-none focus:ring-4 focus:ring-[rgba(252,176,64,0.30)]"
+                />
+              </div>
+
+              <div className="grid gap-1 sm:col-span-3 md:col-span-6">
                 <label className="text-xs font-semibold text-slate-600">Search</label>
                 <input
                   value={q}
@@ -483,6 +544,9 @@ export default function AdminPage() {
                   <th className="p-3 text-left">Role</th>
                   <th className="p-3 text-left">Name</th>
                   <th className="p-3 text-left">Email</th>
+                  <th className="p-3 text-left">City</th>
+                  <th className="p-3 text-left">Bus</th>
+                  <th className="p-3 text-left">IG</th>
                   <th className="p-3 text-left">Status</th>
                   <th className="p-3 text-left">Override</th>
                   <th className="p-3 text-left">Score</th>
@@ -497,11 +561,21 @@ export default function AdminPage() {
                   const points = r.referral_points ?? 0;
                   const count = r.referrals_count ?? 0;
 
+                  const ig = safeStr(r.instagram_handle || "");
+                  const hasIg = ig.trim().length > 0;
+
                   return (
                     <tr key={r.id} className="border-t border-slate-200">
                       <td className="p-3 font-semibold">{r.role}</td>
                       <td className="p-3 font-semibold">{r.full_name}</td>
                       <td className="p-3 text-slate-700">{r.email}</td>
+
+                      <td className="p-3 text-slate-700">{safeStr(r.city) || "—"}</td>
+                      <td className="p-3 text-slate-700">
+                        {typeof r.bus_minutes === "number" ? `${r.bus_minutes} min` : "—"}
+                      </td>
+                      <td className="p-3 text-slate-700">{hasIg ? "Yes" : "—"}</td>
+
                       <td className="p-3">
                         <span
                           className={`inline-flex rounded-full px-3 py-1 text-xs font-extrabold ${pillClass(
@@ -514,10 +588,10 @@ export default function AdminPage() {
 
                       <td className="p-3">{r.role === "vendor" ? r.vendor_queue_override ?? "—" : "—"}</td>
 
-                      {/* Score: vendors show vendor_priority_score; consumers show referral_points */}
-                      <td className="p-3 font-semibold">{r.role === "vendor" ? r.vendor_priority_score : points}</td>
+                      <td className="p-3 font-semibold">
+                        {r.role === "vendor" ? r.vendor_priority_score : points}
+                      </td>
 
-                      {/* Referrals: only meaningful for consumers */}
                       <td className="p-3 text-slate-700">
                         {r.role === "consumer" ? (
                           <span className="inline-flex items-center gap-2">
@@ -544,7 +618,7 @@ export default function AdminPage() {
 
                 {!loading && rows.length === 0 ? (
                   <tr>
-                    <td className="p-6 text-slate-500" colSpan={9}>
+                    <td className="p-6 text-slate-500" colSpan={12}>
                       No rows found.
                     </td>
                   </tr>
@@ -558,7 +632,10 @@ export default function AdminPage() {
             <div className="text-xs text-slate-500">
               {total === 0
                 ? "—"
-                : `Showing ${Math.min(total, offset + 1)}–${Math.min(total, offset + rows.length)} of ${total}`}
+                : `Showing ${Math.min(total, offset + 1)}–${Math.min(
+                    total,
+                    offset + rows.length
+                  )} of ${total}`}
             </div>
             <div className="flex gap-2">
               <button
@@ -602,6 +679,31 @@ export default function AdminPage() {
                   Close
                 </button>
               </div>
+
+              {/* Vendor quick summary from clean columns */}
+              {selected.role === "vendor" ? (
+                <div className="mt-5 grid gap-2 rounded-3xl border border-[#fcb040] bg-white p-4">
+                  <div className="text-sm font-extrabold">Vendor summary</div>
+                  <div className="text-sm text-slate-700">
+                    <span className="font-semibold">City:</span> {safeStr(selected.city) || "—"}{" "}
+                    <span className="text-slate-500">•</span>{" "}
+                    <span className="font-semibold">Bus:</span>{" "}
+                    {typeof selected.bus_minutes === "number" ? `${selected.bus_minutes} min` : "—"}
+                    <span className="text-slate-500">•</span>{" "}
+                    <span className="font-semibold">IG:</span>{" "}
+                    {safeStr(selected.instagram_handle).trim() ? safeStr(selected.instagram_handle) : "—"}
+                  </div>
+
+                  <div className="text-sm text-slate-700">
+                    <span className="font-semibold">Cuisines:</span> {joinArr(selected.cuisines) || "—"}
+                  </div>
+
+                  <div className="text-sm text-slate-700">
+                    <span className="font-semibold">Compliance:</span>{" "}
+                    {joinArr(selected.compliance_readiness) || "—"}
+                  </div>
+                </div>
+              ) : null}
 
               {/* Referral summary (consumers) */}
               {selected.role === "consumer" ? (
