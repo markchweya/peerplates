@@ -1,4 +1,3 @@
-// src/app/join/page.tsx
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MotionDiv } from "../ui/motion";
@@ -9,22 +8,28 @@ export const metadata = {
   title: "Join Waitlist | PeerPlates",
 };
 
-export default function JoinPage({
+export default async function JoinPage({
   searchParams,
 }: {
-  searchParams?: { role?: string };
+  searchParams?: Promise<{ role?: string; ref?: string }>;
 }) {
-  const roleParam = String(searchParams?.role || "").toLowerCase();
+  const sp = (await searchParams) || {};
+  const roleParam = String(sp.role || "").toLowerCase();
+  const ref = String(sp.ref || "").trim();
 
   // If a role is provided in the URL, redirect immediately on the server
   if (roleParam === "consumer" || roleParam === "vendor") {
-    redirect(`/join/${roleParam as Role}`);
+    const qs = ref ? `?ref=${encodeURIComponent(ref)}` : "";
+    redirect(`/join/${roleParam as Role}${qs}`);
   }
 
   const cardBase =
     "w-full rounded-2xl border p-5 text-left transition will-change-transform";
   const hover =
     "border-slate-200 hover:bg-slate-50 hover:-translate-y-[2px]";
+
+  const consumerHref = ref ? `/join/consumer?ref=${encodeURIComponent(ref)}` : "/join/consumer";
+  const vendorHref = ref ? `/join/vendor?ref=${encodeURIComponent(ref)}` : "/join/vendor";
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
@@ -58,14 +63,14 @@ export default function JoinPage({
           </p>
 
           <div className="mt-7 grid gap-4 sm:grid-cols-2">
-            <Link href="/join/consumer" className={`${cardBase} ${hover}`}>
+            <Link href={consumerHref} className={`${cardBase} ${hover}`}>
               <div className="text-lg sm:text-xl font-extrabold">Consumer</div>
               <div className="mt-1 text-sm font-semibold text-slate-600">
                 Buy food • Refer friends • Move up the queue
               </div>
             </Link>
 
-            <Link href="/join/vendor" className={`${cardBase} ${hover}`}>
+            <Link href={vendorHref} className={`${cardBase} ${hover}`}>
               <div className="text-lg sm:text-xl font-extrabold">Vendor</div>
               <div className="mt-1 text-sm font-semibold text-slate-600">
                 Sell food • Questionnaire review • Manual queue position

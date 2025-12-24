@@ -6,13 +6,21 @@ export const metadata = {
   title: "Vendor Waitlist | PeerPlates",
 };
 
-export default function VendorJoinPage() {
+export default async function VendorJoinPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ ref?: string }>;
+}) {
+  const sp = (await searchParams) || {};
+  const ref = String(sp.ref || "").trim();
+
   return (
-    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+    <Suspense fallback={<div className="p-6">Loading…</div>}>
       <JoinForm
+        key={`vendor-${ref}`}
         role="vendor"
         title="Join the Vendor waitlist"
-        subtitle="We review vendor onboarding using your questionnaire responses."
+        subtitle="Vendors are reviewed via questionnaire and compliance readiness."
         questions={vendorQuestions}
       />
     </Suspense>

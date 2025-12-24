@@ -1,54 +1,58 @@
 -- supabase/schema.sql
--- PeerPlates Waitlist: TJ-001..TJ-005 + admin review + referrals + vendor override
--- + privacy/consent + basic spam protection fields
--- Idempotent where possible.
+-- PeerPlates Waitlist (consumer/vendor) + referrals + admin review + consent + anti-dup email-per-role
+-- Safe + idempotent where possible.
 
+-- Needed for gen_random_uuid()
 create extension if not exists pgcrypto;
 
--- 1) Main table
+-- ------------------------------------------------------------
+-- 1) Main table (created only if missing)
+-- NOTE: If your table already exists, this won't overwrite anything.
+-- ------------------------------------------------------------
 create table if not exists public.waitlist_entries (
   id uuid primary key default gen_random_uuid(),
 
+  -- core
   role text not null check (role in ('consumer','vendor')),
   full_name text not null,
   email text not null,
   phone text,
-
   is_student boolean,
   university text,
-
   answers jsonb not null default '{}'::jsonb,
 
-  -- Referral identity
+  -- referral identity
   referral_code text unique,
   referred_by text,
 
-  -- Vendor-only score
+  -- vendor scoring
   vendor_priority_score int not null default 0,
   certificate_url text,
 
-  -- TJ-005: referral movement / stats
+  -- referral stats
   referral_points int not null default 0,
   referrals_count int not null default 0,
 
-  -- TJ-004: Admin review
+  -- admin review
   review_status text not null default 'pending',
   admin_notes text,
   reviewed_at timestamptz,
   reviewed_by text,
-
-  -- TJ-004: Manual vendor ordering (lower = earlier)
   vendor_queue_override integer,
 
-  -- Privacy + consent
+  -- consent / privacy
   accepted_privacy boolean not null default false,
+
+  -- IMPORTANT: keep BOTH names to avoid mismatches
+  marketing_consent boolean not null default false,
   accepted_marketing boolean not null default false,
+
   privacy_version text,
   consented_at timestamptz,
 
-  -- Tracking / spam protection (basic)
+  -- misc tracking (optional)
   signup_source text,
-  captcha_verified boolean not null default false,
+  captcha_verified boolean,
   request_ip text,
   user_agent text,
   flagged boolean not null default false,
@@ -58,7 +62,15 @@ create table if not exists public.waitlist_entries (
   updated_at timestamptz not null default now()
 );
 
+-- ------------------------------------------------------------
 -- 2) Add missing columns (if table existed already)
+-- ------------------------------------------------------------
+alter table public.waitlist_entries add column if not exists referral_code text;
+alter table public.waitlist_entries add column if not exists referred_by text;
+
+alter table public.waitlist_entries add column if not exists vendor_priority_score int not null default 0;
+alter table public.waitlist_entries add column if not exists certificate_url text;
+
 alter table public.waitlist_entries add column if not exists referral_points int not null default 0;
 alter table public.waitlist_entries add column if not exists referrals_count int not null default 0;
 
@@ -66,24 +78,41 @@ alter table public.waitlist_entries add column if not exists review_status text 
 alter table public.waitlist_entries add column if not exists admin_notes text;
 alter table public.waitlist_entries add column if not exists reviewed_at timestamptz;
 alter table public.waitlist_entries add column if not exists reviewed_by text;
-
 alter table public.waitlist_entries add column if not exists vendor_queue_override integer;
 
 alter table public.waitlist_entries add column if not exists accepted_privacy boolean not null default false;
+
+-- ✅ Fix for your error: ensure marketing_consent exists (you confirmed it does now, but this keeps it safe)
+alter table public.waitlist_entries add column if not exists marketing_consent boolean not null default false;
 alter table public.waitlist_entries add column if not exists accepted_marketing boolean not null default false;
+
 alter table public.waitlist_entries add column if not exists privacy_version text;
 alter table public.waitlist_entries add column if not exists consented_at timestamptz;
 
 alter table public.waitlist_entries add column if not exists signup_source text;
-alter table public.waitlist_entries add column if not exists captcha_verified boolean not null default false;
+alter table public.waitlist_entries add column if not exists captcha_verified boolean;
 alter table public.waitlist_entries add column if not exists request_ip text;
 alter table public.waitlist_entries add column if not exists user_agent text;
 alter table public.waitlist_entries add column if not exists flagged boolean not null default false;
 alter table public.waitlist_entries add column if not exists flagged_reason text;
 
+alter table public.waitlist_entries add column if not exists created_at timestamptz not null default now();
 alter table public.waitlist_entries add column if not exists updated_at timestamptz not null default now();
 
--- 3) Ensure review_status check constraint exists
+-- ------------------------------------------------------------
+-- 3) Keep consent columns consistent (because your DB has accepted_marketing)
+-- ------------------------------------------------------------
+update public.waitlist_entries
+set marketing_consent = accepted_marketing
+where marketing_consent = false and accepted_marketing = true;
+
+update public.waitlist_entries
+set accepted_marketing = marketing_consent
+where accepted_marketing = false and marketing_consent = true;
+
+-- ------------------------------------------------------------
+-- 4) Ensure review_status check constraint exists
+-- ------------------------------------------------------------
 do $$
 begin
   if not exists (
@@ -101,7 +130,9 @@ begin
   end if;
 end $$;
 
--- 4) updated_at trigger
+-- ------------------------------------------------------------
+-- 5) updated_at trigger
+-- ------------------------------------------------------------
 create or replace function public.set_updated_at()
 returns trigger as $$
 begin
@@ -111,12 +142,13 @@ end;
 $$ language plpgsql;
 
 drop trigger if exists trg_waitlist_set_updated_at on public.waitlist_entries;
-
 create trigger trg_waitlist_set_updated_at
 before update on public.waitlist_entries
 for each row execute function public.set_updated_at();
 
--- 5) Helpful indexes
+-- ------------------------------------------------------------
+-- 6) Helpful indexes
+-- ------------------------------------------------------------
 create index if not exists waitlist_entries_role_idx
   on public.waitlist_entries(role);
 
@@ -138,12 +170,32 @@ create index if not exists waitlist_entries_referral_code_idx
 create index if not exists waitlist_entries_consumer_sort_idx
   on public.waitlist_entries(role, referral_points, created_at);
 
--- 6) Unique email per role (basic anti-spam)
--- If this fails due to duplicates, you must remove duplicates first.
+-- ------------------------------------------------------------
+-- 7) BASIC SPAM PROTECTION: unique email per role (case-insensitive)
+--     If duplicates exist, keep newest and delete older.
+-- ------------------------------------------------------------
+with ranked as (
+  select
+    id,
+    role,
+    lower(email) as email_key,
+    row_number() over (
+      partition by role, lower(email)
+      order by created_at desc
+    ) as rn
+  from public.waitlist_entries
+)
+delete from public.waitlist_entries w
+using ranked r
+where w.id = r.id
+  and r.rn > 1;
+
 create unique index if not exists waitlist_entries_role_email_ux
   on public.waitlist_entries (role, lower(email));
 
--- 7) Referral RPC used by /api/signup
+-- ------------------------------------------------------------
+-- 8) Referral RPC used by /api/signup
+-- ------------------------------------------------------------
 create or replace function public.increment_referral_stats(
   p_referrer_id uuid,
   p_points int
@@ -155,12 +207,16 @@ as $$
 begin
   update public.waitlist_entries
   set
-    referral_points = referral_points + p_points,
+    referral_points = referral_points + greatest(p_points, 0),
     referrals_count = referrals_count + 1,
     updated_at = now()
   where id = p_referrer_id;
 end;
 $$;
 
--- 8) Force PostgREST to refresh schema cache
+grant execute on function public.increment_referral_stats(uuid, int) to anon, authenticated, service_role;
+
+-- ------------------------------------------------------------
+-- 9) Force PostgREST to refresh schema (fixes schema cache errors)
+-- ------------------------------------------------------------
 notify pgrst, 'reload schema';
