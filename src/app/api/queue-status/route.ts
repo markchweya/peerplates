@@ -1,11 +1,13 @@
 // src/app/api/queue-status/route.ts
-import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import type { NextRequest } from "next/server";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+// Used to craft referral links shown in the Queue page
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 type Role = "consumer" | "vendor";
 type ReviewStatus = "pending" | "reviewed" | "approved" | "rejected";
@@ -16,49 +18,37 @@ type WaitlistEntry = {
   role: Role;
   review_status: ReviewStatus;
   created_at: string;
-  referral_code: string | null;
   referral_points: number | null;
   vendor_priority_score: number | null;
   vendor_queue_override: number | null;
+  referral_code: string | null;
 };
-
-function supabaseAnon() {
-  if (!SUPABASE_URL || !ANON_KEY) {
-    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  }
-  return createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
-}
 
 function supabaseAdmin() {
   if (!SUPABASE_URL || !SERVICE_KEY) {
-    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY in .env.local");
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
   }
   return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 }
 
-function getBearer(req: Request) {
-  const h = (req.headers.get("authorization") || "").trim();
-  const m = h.match(/^Bearer\s+(.+)$/i);
-  return m?.[1]?.trim() || "";
+function cleanCode(v: string) {
+  return String(v || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const token = getBearer(req);
-    if (!token) return NextResponse.json({ error: "Missing Authorization token" }, { status: 401 });
+    const sb = supabaseAdmin();
+    const { searchParams } = new URL(req.url);
 
-    // 1) Validate session + read email
-    const sbAnon = supabaseAnon();
-    const { data: userData, error: userErr } = await sbAnon.auth.getUser(token);
-    if (userErr || !userData?.user) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    const queueCode = cleanCode(searchParams.get("code") || "");
+    if (!queueCode || queueCode.length < 6) {
+      return NextResponse.json({ error: "Missing or invalid code" }, { status: 400 });
     }
 
-    const email = String(userData.user.email || "").trim().toLowerCase();
-    if (!email) return NextResponse.json({ error: "No email on session" }, { status: 401 });
-
-    // 2) Read waitlist entry (service role)
-    const sb = supabaseAdmin();
+    // 1) Find entry by queue_code
     const { data: entry, error: eErr } = await sb
       .from("waitlist_entries")
       .select(
@@ -68,19 +58,19 @@ export async function GET(req: NextRequest) {
           "role",
           "review_status",
           "created_at",
-          "referral_code",
           "referral_points",
           "vendor_priority_score",
           "vendor_queue_override",
+          "referral_code",
         ].join(",")
       )
-      .eq("email", email)
+      .eq("queue_code", queueCode)
       .maybeSingle<WaitlistEntry>();
 
     if (eErr) return NextResponse.json({ error: eErr.message }, { status: 500 });
-    if (!entry) return NextResponse.json({ error: "Not found on waitlist" }, { status: 404 });
+    if (!entry) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // 3) Compute position
+    // 2) Compute position
     let position: number | null = null;
 
     if (entry.role === "consumer") {
@@ -135,14 +125,21 @@ export async function GET(req: NextRequest) {
         ? Number(entry.vendor_priority_score ?? 0)
         : Number(entry.referral_points ?? 0);
 
+    // ✅ Referral link should go to role-chooser page
+    const referral_code = entry.referral_code || null;
+    const referral_link = referral_code
+      ? `${SITE_URL}/join?ref=${encodeURIComponent(referral_code)}`
+      : null;
+
     return NextResponse.json({
-      email,
+      email: entry.email,
       role: entry.role,
       review_status: entry.review_status,
       position,
       score,
       created_at: entry.created_at,
-      referral_code: entry.referral_code, // ✅ for referral link on /queue
+      referral_code,
+      referral_link,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Unexpected server error" }, { status: 500 });
