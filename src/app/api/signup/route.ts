@@ -3,8 +3,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { vendorPriorityScoreFromAnswers } from "@/lib/vendorPriorityScore";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 type Role = "consumer" | "vendor";
 
@@ -13,7 +16,7 @@ const REFERRAL_POINTS_PER_SIGNUP = 10;
 function supabaseAdmin() {
   if (!SUPABASE_URL || !SERVICE_KEY) {
     throw new Error(
-      "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local"
+      "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel Environment Variables."
     );
   }
   return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
@@ -73,9 +76,7 @@ function enforceMax3Cuisines(answers: any) {
   const keys = ["top_cuisines", "cuisines", "sell_categories", "favourite_cuisine", "favorite_cuisine"];
   for (const k of keys) {
     const v = answers?.[k];
-    if (Array.isArray(v) && v.length > 3) {
-      throw new Error("Please select up to 3 cuisines.");
-    }
+    if (Array.isArray(v) && v.length > 3) throw new Error("Please select up to 3 cuisines.");
   }
 }
 
@@ -136,6 +137,7 @@ export async function POST(req: Request) {
       answers = body?.answers || {};
     }
 
+    // Honeypot
     const hp = String(hpRaw || "").trim();
     if (hp) return jsonError("Bot detected.", 400);
 
@@ -181,6 +183,7 @@ export async function POST(req: Request) {
 
     const vendor_priority_score = role === "vendor" ? vendorPriorityScoreFromAnswers(answers) : 0;
 
+    // Optional: certificate upload not wired yet
     let certificate_url: string | null = null;
     void certificateFile;
 
@@ -206,8 +209,16 @@ export async function POST(req: Request) {
       consented_at: new Date().toISOString(),
     };
 
-    insertPayload["marketing_consent"] = marketing_consent;
-    insertPayload["accepted_marketing"] = marketing_consent;
+    // Support both column names (your schema has both)
+    insertPayload.marketing_consent = marketing_consent;
+    insertPayload.accepted_marketing = marketing_consent;
+
+    // (optional extras)
+    insertPayload.request_ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      null;
+    insertPayload.user_agent = req.headers.get("user-agent") || null;
 
     const { data, error } = await sb
       .from("waitlist_entries")
@@ -217,7 +228,8 @@ export async function POST(req: Request) {
 
     if (error) {
       const msg = String(error.message || "");
-      if (msg.toLowerCase().includes("duplicate") || msg.includes("23505")) {
+      // Covers: unique index on lower(email) and other dupes
+      if (error.code === "23505" || msg.toLowerCase().includes("duplicate")) {
         return jsonError("This email is already on the waitlist.", 409);
       }
       return jsonError(msg || "Database insert failed.", 500);
@@ -232,9 +244,7 @@ export async function POST(req: Request) {
       if (rpcErr) console.error("Referral award failed:", rpcErr);
     }
 
-    // ✅ Codes-only: no Supabase Auth emails here.
-    // You can later email `data.queue_code` using Resend/Mailchimp/etc.
-
+    // ✅ Codes-only: do NOT send any Supabase Auth email here.
     return NextResponse.json({
       id: data.id,
       referral_code: data.referral_code,
