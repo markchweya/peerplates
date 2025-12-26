@@ -1,7 +1,7 @@
 // src/app/api/queue-status/route.ts
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import type { NextRequest } from "next/server";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -16,6 +16,7 @@ type WaitlistEntry = {
   role: Role;
   review_status: ReviewStatus;
   created_at: string;
+  referral_code: string | null;
   referral_points: number | null;
   vendor_priority_score: number | null;
   vendor_queue_override: number | null;
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
     const token = getBearer(req);
     if (!token) return NextResponse.json({ error: "Missing Authorization token" }, { status: 401 });
 
-    // 1) Validate token + read logged-in email
+    // 1) Validate session + read email
     const sbAnon = supabaseAnon();
     const { data: userData, error: userErr } = await sbAnon.auth.getUser(token);
     if (userErr || !userData?.user) {
@@ -56,7 +57,7 @@ export async function GET(req: NextRequest) {
     const email = String(userData.user.email || "").trim().toLowerCase();
     if (!email) return NextResponse.json({ error: "No email on session" }, { status: 401 });
 
-    // 2) Find this person in waitlist table
+    // 2) Read waitlist entry (service role)
     const sb = supabaseAdmin();
     const { data: entry, error: eErr } = await sb
       .from("waitlist_entries")
@@ -67,6 +68,7 @@ export async function GET(req: NextRequest) {
           "role",
           "review_status",
           "created_at",
+          "referral_code",
           "referral_points",
           "vendor_priority_score",
           "vendor_queue_override",
@@ -78,7 +80,7 @@ export async function GET(req: NextRequest) {
     if (eErr) return NextResponse.json({ error: eErr.message }, { status: 500 });
     if (!entry) return NextResponse.json({ error: "Not found on waitlist" }, { status: 404 });
 
-    // 3) Compute position within their role queue
+    // 3) Compute position
     let position: number | null = null;
 
     if (entry.role === "consumer") {
@@ -140,6 +142,7 @@ export async function GET(req: NextRequest) {
       position,
       score,
       created_at: entry.created_at,
+      referral_code: entry.referral_code, // ✅ for referral link on /queue
     });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || "Unexpected server error" }, { status: 500 });

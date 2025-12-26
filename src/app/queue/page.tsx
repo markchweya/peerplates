@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
+import { MotionDiv } from "@/app/ui/motion";
 
 const BRAND = "#fcb040";
 
@@ -11,13 +12,10 @@ type QueueResult = {
   role: "consumer" | "vendor";
   review_status: "pending" | "reviewed" | "approved" | "rejected";
   position: number | null;
-  score: number; // consumers: referral_points, vendors: vendor_priority_score
+  score: number;
   created_at: string;
+  referral_code?: string | null;
 };
-
-function cls(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(" ");
-}
 
 const inputBase =
   "h-12 w-full rounded-2xl border border-[#fcb040] bg-white px-4 font-semibold text-black outline-none " +
@@ -51,6 +49,14 @@ export default function QueuePage() {
   const [err, setErr] = useState("");
   const [result, setResult] = useState<QueueResult | null>(null);
 
+  const [toast, setToast] = useState<string>("");
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 1800);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const sendOtp = async () => {
     setErr("");
     const e = email.trim().toLowerCase();
@@ -61,13 +67,14 @@ export default function QueuePage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: e,
         options: {
-          // optional, but helpful in case Supabase wants a redirect URL
+          // keeps redirect sane if Supabase includes it
           emailRedirectTo: typeof window !== "undefined" ? window.location.origin + "/queue" : undefined,
         },
       });
       if (error) throw error;
 
       setStep("otp");
+      setToast("Code sent ✉️");
     } catch (e: any) {
       setErr(e?.message || "Failed to send code.");
     } finally {
@@ -79,8 +86,10 @@ export default function QueuePage() {
     setErr("");
     const e = email.trim().toLowerCase();
     const code = otp.trim();
+
     if (!e) return setErr("Missing email.");
     if (!code) return setErr("Enter the 6-digit code.");
+    if (code.length < 6) return setErr("Code should be 6 digits.");
 
     setLoading(true);
     try {
@@ -95,9 +104,7 @@ export default function QueuePage() {
       if (!accessToken) throw new Error("Login failed. Please request a new code.");
 
       const res = await fetch("/api/queue-status", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       const payload = await res.json().catch(() => ({}));
@@ -105,6 +112,7 @@ export default function QueuePage() {
 
       setResult(payload as QueueResult);
       setStep("result");
+      setToast("Welcome 👋");
     } catch (e: any) {
       setErr(e?.message || "Invalid code. Try again.");
     } finally {
@@ -123,10 +131,12 @@ export default function QueuePage() {
       const res = await fetch("/api/queue-status", {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(payload?.error || "Failed to refresh.");
 
       setResult(payload as QueueResult);
+      setToast("Updated ✅");
     } catch (e: any) {
       setErr(e?.message || "Failed to refresh.");
     } finally {
@@ -142,34 +152,65 @@ export default function QueuePage() {
       setResult(null);
       setOtp("");
       setStep("email");
+      setToast("Signed out");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const referralLink = (() => {
+    if (!result?.referral_code) return "";
+    if (typeof window === "undefined") return "";
+    return `${window.location.origin}/join?ref=${encodeURIComponent(result.referral_code)}`; // ✅ role chooser
+  })();
+
+  const copyReferral = async () => {
+    if (!referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setToast("Referral link copied ✨");
+    } catch {
+      setToast("Copy failed — please copy manually");
     }
   };
 
   return (
     <main className="min-h-screen bg-white text-black">
       <div className="mx-auto w-full max-w-xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4">
+        <MotionDiv
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="flex items-center justify-between gap-4"
+        >
           <Link href="/" className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl" style={{ background: BRAND }} />
             <div className="text-lg font-semibold tracking-tight">PeerPlates</div>
           </Link>
           <div className="text-sm text-black/60 whitespace-nowrap">Queue</div>
-        </div>
+        </MotionDiv>
 
-        {/* Card */}
-        <div className="mt-8 rounded-3xl border border-black/10 bg-white p-6 shadow-sm">
+        <MotionDiv
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.08 }}
+          className="mt-8 rounded-3xl border border-black/10 bg-white p-6 shadow-sm"
+        >
           <h1 className="text-xl font-extrabold tracking-tight font-heading">Check your queue status</h1>
           <p className="mt-2 text-sm text-black/60">
-            Enter your email. We’ll send a code so you can view your current status and position.
+            Enter your email. We’ll send a <span className="font-semibold">6‑digit code</span> so you can view your
+            current status and position.
           </p>
 
           {err ? (
-            <div className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-sm text-black">
+            <MotionDiv
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="mt-4 rounded-2xl border border-black/10 bg-black/5 p-3 text-sm text-black"
+            >
               {err}
-            </div>
+            </MotionDiv>
           ) : null}
 
           {step === "email" ? (
@@ -186,7 +227,7 @@ export default function QueuePage() {
               </div>
 
               <button className={buttonBase} onClick={sendOtp} disabled={loading}>
-                {loading ? "Sending…" : "Send code"}
+                {loading ? "Sending…" : "Send 6‑digit code"}
               </button>
             </div>
           ) : null}
@@ -226,7 +267,12 @@ export default function QueuePage() {
           ) : null}
 
           {step === "result" && result ? (
-            <div className="mt-6 grid gap-3">
+            <MotionDiv
+              initial={{ opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.35 }}
+              className="mt-6 grid gap-3"
+            >
               <div className="rounded-3xl border border-[#fcb040] bg-white p-4">
                 <div className="text-sm font-extrabold">Your status</div>
 
@@ -257,11 +303,30 @@ export default function QueuePage() {
                     <span className="font-extrabold">{result.score}</span>
                   </div>
 
-                  <div className="text-xs text-black/50">
-                    Joined: {new Date(result.created_at).toLocaleString()}
-                  </div>
+                  <div className="text-xs text-black/50">Joined: {new Date(result.created_at).toLocaleString()}</div>
                 </div>
               </div>
+
+              {/* ✅ Referral link + copy */}
+              {result.referral_code ? (
+                <div className="rounded-3xl border border-black/10 bg-white p-4">
+                  <div className="text-sm font-extrabold">Your referral link</div>
+                  <p className="mt-1 text-xs text-black/60">
+                    Share this link — your friend will choose Consumer or Vendor, and you’ll get credit.
+                  </p>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <input className={inputBase} value={referralLink} readOnly />
+                    <button
+                      type="button"
+                      onClick={copyReferral}
+                      className="rounded-2xl bg-black px-5 py-3 font-extrabold text-white transition hover:opacity-95"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="grid gap-2 sm:grid-cols-2">
                 <button className={buttonBase} onClick={refresh} disabled={loading}>
@@ -271,9 +336,22 @@ export default function QueuePage() {
                   Sign out
                 </button>
               </div>
-            </div>
+            </MotionDiv>
           ) : null}
-        </div>
+        </MotionDiv>
+
+        {/* ✅ Toast / popup */}
+        {toast ? (
+          <MotionDiv
+            initial={{ opacity: 0, y: 14, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold shadow-lg"
+          >
+            {toast}
+          </MotionDiv>
+        ) : null}
       </div>
     </main>
   );
