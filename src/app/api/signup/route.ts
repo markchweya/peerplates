@@ -5,11 +5,6 @@ import { vendorPriorityScoreFromAnswers } from "@/lib/vendorPriorityScore";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-// Used to craft the redirect link inside the Supabase auth email
-// Example: https://peerplates.com
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 type Role = "consumer" | "vendor";
 
@@ -21,21 +16,7 @@ function supabaseAdmin() {
       "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local"
     );
   }
-  return createClient(SUPABASE_URL, SERVICE_KEY, {
-    auth: { persistSession: false },
-  });
-}
-
-// This client is ONLY for sending Supabase Auth OTP/magic-link emails (no service role).
-function supabaseAuthMailer() {
-  if (!SUPABASE_URL || !ANON_KEY) {
-    throw new Error(
-      "Missing Supabase env vars. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
-    );
-  }
-  return createClient(SUPABASE_URL, ANON_KEY, {
-    auth: { persistSession: false },
-  });
+  return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 }
 
 function jsonError(message: string, status = 400) {
@@ -56,12 +37,7 @@ async function generateUniqueCode(
 ) {
   for (let i = 0; i < 10; i++) {
     const code = randomCode(len);
-    const { data, error } = await sb
-      .from("waitlist_entries")
-      .select("id")
-      .eq(column, code)
-      .maybeSingle();
-
+    const { data, error } = await sb.from("waitlist_entries").select("id").eq(column, code).maybeSingle();
     if (error) break;
     if (!data) return code;
   }
@@ -100,33 +76,6 @@ function enforceMax3Cuisines(answers: any) {
     if (Array.isArray(v) && v.length > 3) {
       throw new Error("Please select up to 3 cuisines.");
     }
-  }
-}
-
-/**
- * ✅ Send Supabase Auth OTP / magic-link email (NOT an invite).
- * User receives a “sign in” style email, and when they click it they land on /queue?code=...
- * No “Accept invite” wording.
- */
-async function sendSupabaseQueueLinkEmail(email: string, queueCode: string) {
-  try {
-    const auth = supabaseAuthMailer();
-
-    const emailRedirectTo = `${SITE_URL}/queue?code=${encodeURIComponent(queueCode)}`;
-
-    const { error } = await auth.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo,
-        // If you later add captcha, you can pass it here too
-      },
-    });
-
-    if (error) {
-      console.warn("Supabase OTP email failed:", error.message);
-    }
-  } catch (e: any) {
-    console.warn("Supabase OTP email threw:", e?.message || e);
   }
 }
 
@@ -232,7 +181,6 @@ export async function POST(req: Request) {
 
     const vendor_priority_score = role === "vendor" ? vendorPriorityScoreFromAnswers(answers) : 0;
 
-    // Optional: certificate upload still not used here
     let certificate_url: string | null = null;
     void certificateFile;
 
@@ -258,7 +206,6 @@ export async function POST(req: Request) {
       consented_at: new Date().toISOString(),
     };
 
-    // Support both column names
     insertPayload["marketing_consent"] = marketing_consent;
     insertPayload["accepted_marketing"] = marketing_consent;
 
@@ -285,8 +232,8 @@ export async function POST(req: Request) {
       if (rpcErr) console.error("Referral award failed:", rpcErr);
     }
 
-    // ✅ Send the “check queue” email via Supabase Auth OTP/magic link (NOT invite)
-    await sendSupabaseQueueLinkEmail(email, data.queue_code);
+    // ✅ Codes-only: no Supabase Auth emails here.
+    // You can later email `data.queue_code` using Resend/Mailchimp/etc.
 
     return NextResponse.json({
       id: data.id,
