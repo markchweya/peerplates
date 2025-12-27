@@ -14,7 +14,6 @@ export default function Home() {
           className="flex items-center justify-between gap-4"
         >
           <Link href="/" className="flex items-center">
-            {/* Fix: logo is now properly anchored (no big white box offset) */}
             <LogoCinematic size={64} wordScale={1} />
           </Link>
 
@@ -45,7 +44,7 @@ export default function Home() {
               className="inline-flex items-center gap-3 rounded-full bg-slate-50 px-5 py-2.5 text-sm font-semibold text-slate-700"
             >
               <span className="h-2 w-2 rounded-full bg-[#fcb040]" />
-              A community-driven marketplace for authentic home-cooked meals
+              Real home food • student-friendly prices
             </MotionDiv>
 
             <MotionH1
@@ -67,10 +66,10 @@ export default function Home() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, delay: 0.2 }}
-              className="mt-6 max-w-xl text-base sm:text-lg text-slate-600 leading-relaxed"
+              className="mt-6 max-w-lg text-base sm:text-lg text-slate-600 leading-relaxed"
             >
-              University life moves fast — PeerPlates makes it easy to find real food with real warmth
-              (not factory production) while helping local vendors grow.
+              Skip the takeaway. Get warm, home-cooked food from trusted local cooks — while helping
+              small vendors grow.
             </MotionP>
 
             <MotionDiv
@@ -105,16 +104,16 @@ export default function Home() {
             <div>
               <div className="text-xl font-extrabold">How it works</div>
               <div className="mt-2 text-slate-600 font-semibold">
-                Join fast. Get a code. Share your link. Move up.
+                Join in minutes. Get a code. Share. Move up the waitlist.
               </div>
             </div>
 
             <div className="mt-6 grid gap-4">
               {[
-                { n: "1", t: "Choose your role", d: "Join as a consumer or a vendor." },
-                { n: "2", t: "Complete the questionnaire", d: "Only complete entries count." },
-                { n: "3", t: "Get your referral link", d: "Share it to climb faster." },
-                { n: "4", t: "Food safety first", d: "Vendors meet clear UK standards." },
+                { n: "1", t: "Pick your role", d: "Consumer or vendor." },
+                { n: "2", t: "Answer a few questions", d: "Only complete entries count." },
+                { n: "3", t: "Get your link", d: "Share it to move up the waitlist." },
+                { n: "4", t: "Safety first", d: "Vendors follow UK hygiene rules." },
               ].map((s, i) => (
                 <MotionDiv
                   key={s.n}
