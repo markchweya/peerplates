@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MotionDiv } from "@/app/ui/motion";
 import LogoCinematic from "@/app/ui/LogoCinematic";
@@ -47,6 +47,51 @@ const subtleBtn =
   "hover:bg-black/5 hover:-translate-y-[1px] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0";
 
 export default function QueuePage() {
+  // ✅ Fix for Vercel prerender error: useSearchParams must be inside Suspense
+  return (
+    <Suspense fallback={<QueueFallback />}>
+      <QueueInner />
+    </Suspense>
+  );
+}
+
+function QueueFallback() {
+  return (
+    <main className="min-h-screen bg-white text-black">
+      {/* soft cinematic bg */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/60 to-white" />
+        <div
+          className="absolute -left-40 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-25"
+          style={{ background: "rgba(252,176,64,0.30)" }}
+        />
+        <div
+          className="absolute -right-44 bottom-[-120px] h-[560px] w-[560px] rounded-full blur-3xl opacity-25"
+          style={{ background: "rgba(138,107,67,0.18)" }}
+        />
+      </div>
+
+      <div className="mx-auto w-full max-w-xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+        <div className="flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center">
+            <LogoCinematic size={56} wordScale={1} />
+          </Link>
+          <div className="text-sm text-black/60 whitespace-nowrap">Queue</div>
+        </div>
+
+        <div
+          className="mt-8 rounded-3xl border border-black/10 bg-white/90 backdrop-blur p-6 shadow-sm"
+          style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.08)" }}
+        >
+          <div className="text-xl font-extrabold tracking-tight">Loading…</div>
+          <div className="mt-2 text-sm text-black/60">Preparing your queue checker.</div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function QueueInner() {
   const sp = useSearchParams();
   const codeFromUrl = cleanCode(sp.get("code") || "");
 
@@ -64,17 +109,16 @@ export default function QueuePage() {
     return c.length >= 6;
   }, [code]);
 
-  const fetchStatus = async () => {
+  const fetchStatus = async (overrideCode?: string) => {
     setErr("");
     setInfo("");
     setLoading(true);
     setResult(null);
 
     try {
-      const cleaned = cleanCode(code);
+      const cleaned = cleanCode(overrideCode ?? code);
       if (!cleaned || cleaned.length < 6) throw new Error("Please enter your 6‑digit code.");
 
-      // ✅ Uses your existing endpoint (code-based)
       const res = await fetch(`/api/queue-status?code=${encodeURIComponent(cleaned)}`);
       const payload = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(payload?.error || "Failed to fetch queue status.");
@@ -96,8 +140,7 @@ export default function QueuePage() {
       const em = String(email || "").trim();
       if (!em) throw new Error("Please enter your email to request a new code.");
 
-      // ⚠️ This endpoint name is a placeholder.
-      // If your project uses a different route, just rename it here.
+      // NOTE: make sure this route exists in your app
       const res = await fetch("/api/queue-send-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,9 +162,9 @@ export default function QueuePage() {
   useEffect(() => {
     if (codeFromUrl) {
       setCode(codeFromUrl);
-      fetchStatus();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      fetchStatus(codeFromUrl);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [codeFromUrl]);
 
   return (
@@ -214,7 +257,7 @@ export default function QueuePage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <button className={primaryBtn} onClick={fetchStatus} disabled={loading || !canVerify}>
+                <button className={primaryBtn} onClick={() => fetchStatus()} disabled={loading || !canVerify}>
                   {loading ? "Verifying…" : "Verify"}
                 </button>
 
@@ -260,14 +303,12 @@ export default function QueuePage() {
                     )}
                   </div>
 
-                  <div className="text-xs text-black/50">
-                    Joined: {new Date(result.created_at).toLocaleString()}
-                  </div>
+                  <div className="text-xs text-black/50">Joined: {new Date(result.created_at).toLocaleString()}</div>
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <button className={primaryBtn} onClick={fetchStatus} disabled={loading}>
+                <button className={primaryBtn} onClick={() => fetchStatus()} disabled={loading}>
                   {loading ? "Refreshing…" : "Refresh"}
                 </button>
 
