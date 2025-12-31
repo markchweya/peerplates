@@ -3,7 +3,13 @@
 
 import Link from "next/link";
 import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { motion, useInView, useScroll, useTransform, useMotionTemplate } from "framer-motion";
+import {
+  motion,
+  useInView,
+  useScroll,
+  useTransform,
+  useMotionTemplate,
+} from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import { MotionDiv } from "@/app/ui/motion";
@@ -65,7 +71,7 @@ function GlowPill({
   return (
     <div
       className={cn(
-        "relative inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-extrabold shadow-sm backdrop-blur",
+        "relative inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs sm:px-5 sm:py-2.5 sm:text-sm font-extrabold shadow-sm backdrop-blur",
         active
           ? "border-slate-200 bg-white/85 text-slate-900"
           : "border-slate-200/70 bg-white/60 text-slate-600"
@@ -209,6 +215,101 @@ function CinematicSection({
   );
 }
 
+/**
+ * ✅ NEW: Side nav that fades unless hovered OR pinned by click.
+ * - Default: low opacity (won’t block content visually)
+ * - Hover: smoothly fades to full
+ * - Click: pins (stays visible) until clicked again
+ * - Smaller on mobile; positioned bottom-right on small screens, right-center on desktop
+ */
+function SideFadeNav({
+  active,
+  onSelect,
+}: {
+  active: "mission" | "vision" | "safety";
+  onSelect: (v: "mission" | "vision" | "safety") => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const [pinned, setPinned] = useState(false);
+
+  const show = hovered || pinned;
+
+  return (
+    <motion.aside
+      aria-label="Mission navigation"
+      className={cn(
+        "fixed z-40",
+        "right-3 bottom-24 md:right-5 md:bottom-auto md:top-1/2 md:-translate-y-1/2"
+      )}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      initial={false}
+      animate={{
+        opacity: show ? 1 : 0.18,
+        scale: show ? 1 : 0.98,
+        filter: show ? "blur(0px)" : "blur(0.2px)",
+      }}
+      transition={{ duration: 0.28, ease: [0.2, 0.9, 0.2, 1] }}
+      style={{ willChange: "opacity, transform, filter" }}
+    >
+      <div
+        className={cn(
+          "rounded-2xl border border-slate-200 bg-white/70 backdrop-blur shadow-sm",
+          "px-2 py-2 md:px-3 md:py-3"
+        )}
+      >
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setPinned((p) => !p);
+              onSelect("mission");
+            }}
+            className="text-left"
+          >
+            <GlowPill active={active === "mission"}>Mission</GlowPill>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setPinned((p) => !p);
+              onSelect("vision");
+            }}
+            className="text-left"
+          >
+            <GlowPill active={active === "vision"}>Vision</GlowPill>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setPinned((p) => !p);
+              onSelect("safety");
+            }}
+            className="text-left"
+          >
+            <GlowPill active={active === "safety"}>Food safety</GlowPill>
+          </button>
+
+          <div className="mt-1 flex items-center justify-between px-1">
+            <div className="text-[10px] font-extrabold text-slate-400">
+              {pinned ? "Pinned" : "Hover / click"}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPinned((p) => !p)}
+              className="text-[10px] font-extrabold text-slate-500 hover:text-slate-800 transition"
+            >
+              {pinned ? "Unpin" : "Pin"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.aside>
+  );
+}
+
 export default function MissionPage() {
   const [active, setActive] = useState<"mission" | "vision" | "safety">("mission");
 
@@ -244,20 +345,8 @@ export default function MissionPage() {
         </MotionDiv>
       </div>
 
-      {/* Sticky “glow nav” (lights up as you scroll) */}
-      <div className="sticky top-3 z-40">
-        <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center">
-            <div className="flex flex-wrap items-center gap-3 rounded-full border border-slate-200 bg-white/70 px-3 py-3 shadow-sm backdrop-blur">
-              <GlowPill active={active === "mission"}>Mission</GlowPill>
-              <span className="text-slate-300 font-extrabold">•</span>
-              <GlowPill active={active === "vision"}>Vision</GlowPill>
-              <span className="text-slate-300 font-extrabold">•</span>
-              <GlowPill active={active === "safety"}>Food safety</GlowPill>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* ✅ Side nav (fade unless hovered/pinned) */}
+      <SideFadeNav active={active} onSelect={setActive} />
 
       {/* SECTION 1 */}
       <CinematicSection
@@ -322,7 +411,10 @@ export default function MissionPage() {
           <div className="grid gap-6 md:grid-cols-2">
             {/* Vendors */}
             <div className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm">
-              <div className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25" style={{ background: BRAND_ORANGE }} />
+              <div
+                className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25"
+                style={{ background: BRAND_ORANGE }}
+              />
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-2xl border border-slate-200 bg-white/80 flex items-center justify-center shadow-sm">
                   <VendorIcon className="h-7 w-7 text-slate-900" />
@@ -337,7 +429,10 @@ export default function MissionPage() {
 
             {/* Customers */}
             <div className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm">
-              <div className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20" style={{ background: BRAND_BROWN }} />
+              <div
+                className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20"
+                style={{ background: BRAND_BROWN }}
+              />
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-2xl border border-slate-200 bg-white/80 flex items-center justify-center shadow-sm">
                   <CustomerIcon className="h-7 w-7 text-slate-900" />

@@ -1,19 +1,20 @@
 "use client";
 
-import { ReactNode, useId, useMemo, useRef } from "react";
+import { ReactNode, useMemo, useRef } from "react";
 import {
   motion,
-  MotionValue,
   useMotionTemplate,
   useScroll,
   useTransform,
+  MotionValue,
 } from "framer-motion";
 
 const BRAND_ORANGE = "#fcb040";
+// pick a warm brown that matches your logo vibe (adjust if you want)
 const BRAND_BROWN = "#8b6a3d";
 
 export default function CinematicSection({
-  eyebrowItems,
+  eyebrowItems, // e.g. ["Mission", "Vision", "Food safety"] OR ["Our mission is two-sided"]
   title,
   highlight,
   body,
@@ -33,25 +34,29 @@ export default function CinematicSection({
 }) {
   const ref = useRef<HTMLElement | null>(null);
 
+  // Cinematic fade ONLY across this section.
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
   });
 
-  // Section cinematic behavior
+  /**
+   * SECTION BEHAVIOR:
+   * - Starts fully crisp
+   * - Holds
+   * - Then fades out near the end (cinematic)
+   */
   const opacity = useTransform(scrollYProgress, [0, 0.58, 0.9, 1], [1, 1, 0.18, 0]);
   const y = useTransform(scrollYProgress, [0, 0.85, 1], [0, -18, -42]);
   const blur = useTransform(scrollYProgress, [0, 0.8, 1], [0, 0, 12]);
   const scale = useTransform(scrollYProgress, [0, 0.78, 1], [1, 1, 0.985]);
+
   const filter = useMotionTemplate`blur(${blur}px)`;
 
-  // “Active glow” envelope (ramps in, holds, then fades)
-  const glow = useTransform(scrollYProgress, [0, 0.12, 0.82, 1], [0.15, 1, 1, 0]);
-  const steamOpacity = useTransform(scrollYProgress, [0, 0.25, 0.9, 1], [0, 0.85, 0.65, 0]);
+  // “Active glow” envelope: ramps in quickly, stays, then dims near exit.
+  const glow = useTransform(scrollYProgress, [0, 0.12, 0.82, 1], [0.15, 1, 1, 0.0]);
 
-  // Card shadow strength derived once (avoid creating transforms inline in JSX)
-  const cardShadowAlpha = useTransform(glow, [0, 1], [0, 0.1]);
-  const cardShadow = useMotionTemplate`0 18px 55px rgba(2,6,23, ${cardShadowAlpha})`;
+  const steamOpacity = useTransform(scrollYProgress, [0, 0.25, 0.9, 1], [0.0, 0.85, 0.65, 0.0]);
 
   const highlightStyle = useMemo(
     () => ({
@@ -65,6 +70,7 @@ export default function CinematicSection({
 
   return (
     <section ref={ref} className={`relative min-h-screen overflow-hidden ${className}`}>
+      {/* Cinematic background */}
       <CinematicFoodBG glow={glow} steamOpacity={steamOpacity} accentA={accentA} accentB={accentB} />
 
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -79,11 +85,13 @@ export default function CinematicSection({
             }}
             className="w-full"
           >
-            {/* Eyebrow pill */}
+            {/* Eyebrow (glowy dots + glossy pill) */}
             {eyebrowItems?.length ? (
               <div className="mb-7 flex justify-center">
                 <motion.div
-                  style={{ boxShadow: cardShadow }}
+                  style={{
+                    boxShadow: useMotionTemplate`0 18px 55px rgba(2,6,23, ${useTransform(glow, [0, 1], [0.0, 0.10])})`,
+                  }}
                   className="inline-flex items-center gap-3 rounded-full border border-slate-200/70 bg-white/80 backdrop-blur px-5 py-2.5 shadow-sm"
                 >
                   {eyebrowItems.map((txt, i) => (
@@ -102,7 +110,10 @@ export default function CinematicSection({
 
             {/* Title */}
             <h1 className="text-center font-extrabold tracking-tight leading-[0.93] text-[clamp(3.2rem,6.6vw,6.4rem)] text-slate-900">
-              {title} <span style={highlightStyle}>{highlight}</span>
+              {title}{" "}
+              <span style={highlightStyle}>
+                {highlight}
+              </span>
             </h1>
 
             {body ? (
@@ -116,6 +127,7 @@ export default function CinematicSection({
         </div>
       </div>
 
+      {/* subtle bottom fade */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white to-transparent" />
     </section>
   );
@@ -134,17 +146,14 @@ function EyebrowItem({
   accentB: string;
   showSeparator: boolean;
 }) {
+  // glossy “light up” behavior
   const dotScale = useTransform(glow, [0, 1], [0.85, 1.22]);
   const dotOpacity = useTransform(glow, [0, 1], [0.25, 1]);
 
-  const ringAlpha = useTransform(glow, [0, 1], [0.2, 0.55]);
-  const orangeGlow = useTransform(glow, [0, 1], [0, 0.7]);
-  const brownGlow = useTransform(glow, [0, 1], [0, 0.35]);
-
   const dotShadow = useMotionTemplate`
-    0 0 0 1px rgba(255,255,255, ${ringAlpha}),
-    0 0 18px rgba(252,176,64, ${orangeGlow}),
-    0 0 44px rgba(139,106,61, ${brownGlow})
+    0 0 0 1px rgba(255,255,255, ${useTransform(glow, [0, 1], [0.2, 0.55])}),
+    0 0 18px rgba(252,176,64, ${useTransform(glow, [0, 1], [0.0, 0.70])}),
+    0 0 44px rgba(139,106,61, ${useTransform(glow, [0, 1], [0.0, 0.35])})
   `;
 
   const dotBg = useMotionTemplate`linear-gradient(180deg, ${accentA}, ${accentB})`;
@@ -162,7 +171,9 @@ function EyebrowItem({
           willChange: "transform, opacity, box-shadow",
         }}
       />
-      <div className="text-sm font-extrabold text-slate-800 tracking-tight">{text}</div>
+      <div className="text-sm font-extrabold text-slate-800 tracking-tight">
+        {text}
+      </div>
       {showSeparator ? <div className="mx-1 text-slate-300">•</div> : null}
     </div>
   );
@@ -179,15 +190,16 @@ function CinematicFoodBG({
   accentA: string;
   accentB: string;
 }) {
-  const gradId = useId();
-
-  const blobAOpacity = useTransform(glow, [0, 1], [0, 0.35]);
-  const blobBOpacity = useTransform(glow, [0, 1], [0, 0.28]);
+  // background glow intensity that tracks section “active-ness”
+  const blobAOpacity = useTransform(glow, [0, 1], [0.0, 0.35]);
+  const blobBOpacity = useTransform(glow, [0, 1], [0.0, 0.28]);
 
   return (
     <div className="absolute inset-0 -z-10">
+      {/* base */}
       <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/60 to-white" />
 
+      {/* premium blobs */}
       <motion.div
         className="absolute -top-28 -left-28 h-[520px] w-[520px] rounded-full blur-3xl"
         style={{
@@ -203,7 +215,7 @@ function CinematicFoodBG({
         }}
       />
 
-      {/* steam */}
+      {/* “steam” (food symbolism) — subtle animated curves */}
       <motion.div className="absolute inset-0" style={{ opacity: steamOpacity }}>
         <motion.svg
           className="absolute left-1/2 top-[18%] -translate-x-1/2"
@@ -216,18 +228,21 @@ function CinematicFoodBG({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease: "easeOut" }}
         >
+          {/* ✅ FIX: define the gradient used by SteamPath */}
           <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stopColor={accentA} stopOpacity="0.9" />
-              <stop offset="1" stopColor={accentB} stopOpacity="0.9" />
+            <linearGradient id="steamGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={accentA} stopOpacity="0.95" />
+              <stop offset="100%" stopColor={accentB} stopOpacity="0.85" />
             </linearGradient>
           </defs>
 
-          <SteamPath d="M330 470 C 280 395, 360 330, 310 250 C 270 185, 300 140, 350 90" stroke={`url(#${gradId})`} />
-          <SteamPath d="M450 475 C 420 390, 520 340, 470 250 C 420 165, 450 125, 510 80" stroke={`url(#${gradId})`} />
-          <SteamPath d="M575 470 C 530 395, 610 330, 565 255 C 530 190, 560 140, 610 100" stroke={`url(#${gradId})`} />
+          {/* steam strokes */}
+          <SteamPath d="M330 470 C 280 395, 360 330, 310 250 C 270 185, 300 140, 350 90" />
+          <SteamPath d="M450 475 C 420 390, 520 340, 470 250 C 420 165, 450 125, 510 80" />
+          <SteamPath d="M575 470 C 530 395, 610 330, 565 255 C 530 190, 560 140, 610 100" />
         </motion.svg>
 
+        {/* floating particles */}
         <FloatingParticle x="22%" y="30%" delay={0.0} />
         <FloatingParticle x="68%" y="26%" delay={0.2} />
         <FloatingParticle x="52%" y="42%" delay={0.4} />
@@ -237,11 +252,11 @@ function CinematicFoodBG({
   );
 }
 
-function SteamPath({ d, stroke }: { d: string; stroke: string }) {
+function SteamPath({ d }: { d: string }) {
   return (
     <motion.path
       d={d}
-      stroke={stroke}
+      stroke="url(#steamGrad)"
       strokeWidth="5"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -252,15 +267,24 @@ function SteamPath({ d, stroke }: { d: string; stroke: string }) {
   );
 }
 
-function FloatingParticle({ x, y, delay }: { x: string; y: string; delay: number }) {
+// keep defs isolated so the gradient exists once
+// (React will include it per svg; that’s fine)
+function FloatingParticle({
+  x,
+  y,
+  delay,
+}: {
+  x: string;
+  y: string;
+  delay: number;
+}) {
   return (
     <motion.div
       className="absolute h-2.5 w-2.5 rounded-full"
       style={{
         left: x,
         top: y,
-        background:
-          "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(252,176,64,0.9))",
+        background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(252,176,64,0.9))`,
         boxShadow: "0 0 24px rgba(252,176,64,0.35)",
       }}
       animate={{ y: [-6, 6, -6], opacity: [0.2, 0.65, 0.2], scale: [0.95, 1.15, 0.95] }}
