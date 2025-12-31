@@ -612,7 +612,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
               </button>
 
               <Link
-                href="/"
+                href="/join"
                 className="rounded-2xl border border-[#fcb040] bg-white px-6 py-3 text-center font-extrabold text-slate-900 transition hover:-translate-y-[1px]"
               >
                 Back
