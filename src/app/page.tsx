@@ -9,12 +9,14 @@ import {
   useMotionTemplate,
   useMotionValue,
   useSpring,
+  useScroll,
+  useTransform,
 } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import ScrollShowcase from "@/app/ui/ScrollShowcase";
 import HeroFade from "@/app/ui/HeroFade";
-import { MotionDiv, MotionH1, MotionP } from "@/app/ui/motion";
+import { MotionDiv, MotionH1 } from "@/app/ui/motion";
 
 const BRAND_ORANGE = "#fcb040";
 const BRAND_BROWN = "#8a6b43";
@@ -27,12 +29,6 @@ function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
 }
 
-/**
- * Cinematic section fade that:
- * - fades IN quickly as the section enters
- * - holds while you're "in" the section
- * - fades OUT only when the section is actually leaving the viewport
- */
 function useCinematicSection(
   ref: React.RefObject<HTMLElement | null>,
   opts?: {
@@ -138,7 +134,6 @@ function useCinematicSection(
   return { opacity: o, y, filter };
 }
 
-/** Hamburger icon (3 lines) that animates into an X when open */
 function HamburgerIcon({ open }: { open: boolean }) {
   return (
     <svg
@@ -195,14 +190,6 @@ function ChevronDown({ open }: { open: boolean }) {
   );
 }
 
-/**
- * ✅ BIG hero carousel (glass, swipe on mobile, arrows on desktop).
- * FIXES:
- * - MUCH taller (not a strip)
- * - CENTER image uses object-contain (so it looks big + not cropped)
- * - Adds a premium backdrop so "contain" doesn't look empty
- * - Breakout-friendly (you'll wrap it with -mx-2 in hero)
- */
 function TopGlassCarousel({
   images,
 }: {
@@ -225,12 +212,11 @@ function TopGlassCarousel({
 
   const arrowBtn =
     "select-none inline-flex items-center justify-center " +
-    "h-12 w-12 rounded-full " +
-    "border border-white/55 bg-white/20 backdrop-blur-2xl " +
-    "shadow-[0_18px_60px_rgba(0,0,0,0.18)] " +
-    "transition active:scale-[0.98] hover:bg-white/30";
+    "h-14 w-14 rounded-full " +
+    "border border-white/60 bg-white/28 backdrop-blur-2xl " +
+    "shadow-[0_22px_70px_rgba(0,0,0,0.22)] " +
+    "transition active:scale-[0.98] hover:bg-white/36";
 
-  // Wheel/trackpad flips slides (desktop) — ONLY horizontal scroll (or Shift)
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
@@ -241,7 +227,6 @@ function TopGlassCarousel({
     const onWheel = (e: WheelEvent) => {
       const dx = Math.abs(e.deltaX);
       const dy = Math.abs(e.deltaY);
-
       const horizontalIntent = dx > dy || e.shiftKey;
       if (!horizontalIntent) return;
 
@@ -277,21 +262,20 @@ function TopGlassCarousel({
         if (e.key === "ArrowRight") safeSet(idx + 1, 1);
         if (e.key === "ArrowLeft") safeSet(idx - 1, -1);
       }}
-      initial={{ opacity: 0, y: 10, scale: 0.985 }}
+      initial={{ opacity: 0, y: 12, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.45, ease: [0.2, 0.9, 0.2, 1] }}
+      transition={{ duration: 0.52, ease: [0.2, 0.9, 0.2, 1] }}
       className="w-full outline-none"
       aria-label="Gallery carousel"
     >
       <div
         className={cn(
           "relative w-full overflow-hidden",
-          "rounded-[30px] border border-slate-200/70",
+          "rounded-[32px] border border-slate-200/70",
           "bg-white/60 backdrop-blur-xl",
           "shadow-[0_26px_90px_rgba(2,6,23,0.12)]"
         )}
       >
-        {/* brand glows */}
         <div
           className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full blur-3xl opacity-25"
           style={{ background: BRAND_ORANGE }}
@@ -301,9 +285,7 @@ function TopGlassCarousel({
           style={{ background: BRAND_BROWN }}
         />
 
-        {/* ✅ MUCH BIGGER HERO HEIGHT */}
         <div className="relative h-[360px] sm:h-[460px] md:h-[560px] lg:h-[620px] xl:h-[680px]">
-          {/* left peek (clickable) */}
           <button
             type="button"
             onClick={() => safeSet(idx - 1, -1)}
@@ -321,7 +303,6 @@ function TopGlassCarousel({
             </div>
           </button>
 
-          {/* right peek (clickable) */}
           <button
             type="button"
             onClick={() => safeSet(idx + 1, 1)}
@@ -339,12 +320,11 @@ function TopGlassCarousel({
             </div>
           </button>
 
-          {/* center slide (swipe/drag) */}
           <motion.div
             className="absolute inset-0 z-10 flex items-center justify-center cursor-grab active:cursor-grabbing"
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.10}
+            dragElastic={0.1}
             onDragEnd={(_, info) => {
               const t = info.offset.x;
               const v = info.velocity.x;
@@ -362,23 +342,12 @@ function TopGlassCarousel({
                 "shadow-[0_32px_110px_rgba(2,6,23,0.22)]"
               )}
             >
-              {/* premium backdrop so object-contain still looks full */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(252,176,64,0.18),rgba(255,255,255,0.9)_55%,rgba(255,255,255,1)_100%)]" />
-
-              {/* soft inner glass highlight */}
-              <div className="pointer-events-none absolute inset-0 opacity-65">
-                <div
-                  className="absolute -top-24 left-10 h-56 w-56 rounded-full blur-3xl"
-                  style={{ background: "rgba(255,255,255,0.35)" }}
-                />
-              </div>
-
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.img
                   key={cur.src}
                   src={cur.src}
                   alt={cur.alt}
-                  className="relative z-[1] h-full w-full object-contain"
+                  className="h-full w-full object-cover"
                   draggable={false}
                   initial={{
                     opacity: 0,
@@ -386,42 +355,29 @@ function TopGlassCarousel({
                     scale: 0.992,
                     filter: "blur(6px)",
                   }}
-                  animate={{
-                    opacity: 1,
-                    x: 0,
-                    scale: 1,
-                    filter: "blur(0px)",
-                  }}
+                  animate={{ opacity: 1, x: 0, scale: 1, filter: "blur(0px)" }}
                   exit={{
                     opacity: 0,
                     x: dir === 1 ? -56 : 56,
                     scale: 0.992,
                     filter: "blur(6px)",
                   }}
-                  transition={{
-                    duration: 0.42,
-                    ease: [0.2, 0.9, 0.2, 1],
-                  }}
+                  transition={{ duration: 0.44, ease: [0.2, 0.9, 0.2, 1] }}
                 />
               </AnimatePresence>
 
-              {/* subtle vignette (NO harsh line) */}
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0)_0%,rgba(0,0,0,0.10)_80%,rgba(0,0,0,0.16)_100%)]" />
             </div>
           </motion.div>
 
-          {/* desktop arrows (glass + brand ring) */}
           <div className="hidden md:block">
             <button
               type="button"
               onClick={() => safeSet(idx - 1, -1)}
-              className={cn(
-                arrowBtn,
-                "absolute left-6 top-1/2 -translate-y-1/2 z-20"
-              )}
+              className={cn(arrowBtn, "absolute left-6 top-1/2 -translate-y-1/2 z-20")}
               style={{
                 boxShadow:
-                  "0 18px 60px rgba(0,0,0,0.18), 0 0 0 2px rgba(252,176,64,0.25) inset",
+                  "0 22px 70px rgba(0,0,0,0.22), 0 0 0 2px rgba(252,176,64,0.26) inset",
               }}
               aria-label="Previous image"
             >
@@ -430,7 +386,7 @@ function TopGlassCarousel({
                 className="h-5 w-5"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.2"
+                strokeWidth="2.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
@@ -441,13 +397,10 @@ function TopGlassCarousel({
             <button
               type="button"
               onClick={() => safeSet(idx + 1, 1)}
-              className={cn(
-                arrowBtn,
-                "absolute right-6 top-1/2 -translate-y-1/2 z-20"
-              )}
+              className={cn(arrowBtn, "absolute right-6 top-1/2 -translate-y-1/2 z-20")}
               style={{
                 boxShadow:
-                  "0 18px 60px rgba(0,0,0,0.18), 0 0 0 2px rgba(252,176,64,0.25) inset",
+                  "0 22px 70px rgba(0,0,0,0.22), 0 0 0 2px rgba(252,176,64,0.26) inset",
               }}
               aria-label="Next image"
             >
@@ -456,7 +409,7 @@ function TopGlassCarousel({
                 className="h-5 w-5"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.2"
+                strokeWidth="2.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
@@ -466,7 +419,6 @@ function TopGlassCarousel({
           </div>
         </div>
 
-        {/* dots + hint */}
         <div className="px-5 pb-5 pt-4">
           <div className="flex items-center justify-center gap-2.5">
             {images.map((_, i) => (
@@ -476,14 +428,11 @@ function TopGlassCarousel({
                 onClick={() => safeSet(i, i > idx ? 1 : -1)}
                 className={cn(
                   "h-2.5 w-2.5 rounded-full transition",
-                  i === idx
-                    ? "scale-110"
-                    : "opacity-60 hover:opacity-95 hover:scale-105"
+                  i === idx ? "scale-110" : "opacity-60 hover:opacity-95 hover:scale-105"
                 )}
                 style={{
                   background: i === idx ? BRAND_ORANGE : "rgba(15,23,42,0.22)",
-                  boxShadow:
-                    i === idx ? "0 12px 26px rgba(252,176,64,0.35)" : "none",
+                  boxShadow: i === idx ? "0 12px 26px rgba(252,176,64,0.35)" : "none",
                 }}
                 aria-label={`Go to image ${i + 1}`}
               />
@@ -502,6 +451,19 @@ function TopGlassCarousel({
 export default function Home() {
   const heroRef = useRef<HTMLElement | null>(null);
   const showcaseRef = useRef<HTMLElement | null>(null);
+
+  const galleryWrapRef = useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress: galleryP } = useScroll({
+    target: galleryWrapRef,
+    offset: ["start start", "end start"],
+  });
+
+  // gallery fades as overlay becomes the focus
+  const galleryOpacity = useTransform(galleryP, [0, 0.25, 0.75, 1], [1, 0.92, 0.68, 0.42]);
+  const galleryBlur = useTransform(galleryP, [0, 1], [0, 3]);
+  const galleryScale = useTransform(galleryP, [0, 1], [1, 0.985]);
+  const galleryFilter = useMotionTemplate`blur(${galleryBlur}px)`;
+  const overlayY = useTransform(galleryP, [0, 0.6, 1], [0, -46, -96]);
 
   const heroFx = useCinematicSection(heroRef, {
     enterStart: 1.02,
@@ -539,7 +501,7 @@ export default function Home() {
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)"); // md
+    const mq = window.matchMedia("(min-width: 768px)");
     const apply = () => setIsDesktop(mq.matches);
     apply();
 
@@ -554,13 +516,11 @@ export default function Home() {
     }
   }, []);
 
-  // When desktop, close mobile menu. When mobile, close desktop dropdown.
   useEffect(() => {
     if (isDesktop) setMenuOpen(false);
     if (!isDesktop) setDesktopMenuOpen(false);
   }, [isDesktop]);
 
-  // lock scroll when mobile menu open
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -578,7 +538,6 @@ export default function Home() {
     };
   }, [menuOpen]);
 
-  // close desktop dropdown on click-away / escape
   useEffect(() => {
     if (!desktopMenuOpen) return;
 
@@ -629,7 +588,6 @@ export default function Home() {
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center gap-3 min-w-0">
-              {/* clamp logo on mobile */}
               <Link href="/" className="flex items-center min-w-0">
                 <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-hidden">
                   <span className="inline-flex shrink-0">
@@ -638,7 +596,6 @@ export default function Home() {
                 </span>
               </Link>
 
-              {/* Desktop: dropdown + primary */}
               <div className="hidden md:flex items-center gap-3 ml-auto">
                 <div className="relative" data-desktop-menu-root>
                   <button
@@ -659,10 +616,7 @@ export default function Home() {
                         initial={{ opacity: 0, y: 10, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                        transition={{
-                          duration: 0.16,
-                          ease: [0.2, 0.9, 0.2, 1],
-                        }}
+                        transition={{ duration: 0.16, ease: [0.2, 0.9, 0.2, 1] }}
                         className="absolute right-0 mt-3 w-[320px] origin-top-right"
                       >
                         <div
@@ -702,7 +656,6 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Mobile hamburger */}
               {!isDesktop ? (
                 <div className="ml-auto shrink-0 relative md:hidden">
                   <button
@@ -733,10 +686,7 @@ export default function Home() {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{
-                    duration: 0.22,
-                    ease: [0.2, 0.9, 0.2, 1],
-                  }}
+                  transition={{ duration: 0.22, ease: [0.2, 0.9, 0.2, 1] }}
                   className="md:hidden overflow-hidden"
                 >
                   <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
@@ -751,12 +701,7 @@ export default function Home() {
                               key={l.href}
                               href={l.href}
                               onClick={() => setMenuOpen(false)}
-                              className={cn(
-                                "w-full",
-                                btnBase,
-                                "px-5 py-3",
-                                btnGhost
-                              )}
+                              className={cn("w-full", btnBase, "px-5 py-3", btnGhost)}
                             >
                               {l.label}
                             </Link>
@@ -765,12 +710,7 @@ export default function Home() {
                           <Link
                             href="/join"
                             onClick={() => setMenuOpen(false)}
-                            className={cn(
-                              "w-full",
-                              btnBase,
-                              "px-5 py-3",
-                              btnPrimary
-                            )}
+                            className={cn("w-full", btnBase, "px-5 py-3", btnPrimary)}
                           >
                             Join waitlist
                           </Link>
@@ -789,7 +729,6 @@ export default function Home() {
         </div>
       </HeroFade>
 
-      {/* Spacer so content isn't under fixed header */}
       <div className="h-[92px] sm:h-[96px]" />
 
       {/* HERO */}
@@ -805,70 +744,95 @@ export default function Home() {
         <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
           <div className="mt-6 sm:mt-10 grid gap-10 lg:grid-cols-2 lg:items-start">
             <div className="pt-2">
-              <MotionDiv
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, delay: 0.05 }}
-                className="inline-flex items-center gap-3 rounded-full bg-slate-50 px-5 py-2.5 text-sm font-semibold text-slate-700"
-              >
-                <span className="h-2 w-2 rounded-full bg-[#fcb040]" />
-                Real home food • student-friendly prices
-              </MotionDiv>
+              <div ref={galleryWrapRef} className="relative">
+                {/* gallery (fades/blur as you scroll) */}
+                <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
+                  <div className="-mx-2 sm:mx-0">
+                    <TopGlassCarousel
+                      images={[
+                        { src: "/images/gallery/gallery11.png", alt: "Gallery 11" },
+                        { src: "/images/gallery/gallery12.png", alt: "Gallery 12" },
+                        { src: "/images/gallery/gallery13.png", alt: "Gallery 13" },
+                        { src: "/images/gallery/gallery14.png", alt: "Gallery 14" },
+                        { src: "/images/gallery/gallery15.png", alt: "Gallery 15" },
+                      ]}
+                    />
+                  </div>
+                </motion.div>
 
-              {/* ✅ BREAKOUT + BIG GLASS CAROUSEL BETWEEN BADGE + TITLE */}
-              <div className="mt-5 -mx-2 sm:mx-0">
-                <TopGlassCarousel
-                  images={[
-                    { src: "/images/gallery/gallery11.png", alt: "Gallery 11" },
-                    { src: "/images/gallery/gallery12.png", alt: "Gallery 12" },
-                    { src: "/images/gallery/gallery13.png", alt: "Gallery 13" },
-                    { src: "/images/gallery/gallery14.png", alt: "Gallery 14" },
-                    { src: "/images/gallery/gallery15.png", alt: "Gallery 15" },
-                  ]}
-                />
+                {/* overlay text + normal buttons (come over gallery) */}
+                <motion.div
+                  style={{ y: overlayY }}
+                  initial={{ opacity: 0, y: 16, scale: 0.985 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.55, ease: [0.2, 0.9, 0.2, 1], delay: 0.05 }}
+                  className={cn("relative z-30", "-mt-24 sm:-mt-28 md:-mt-32")}
+                >
+                  <div className="sticky top-[112px]">
+                    <div
+                      className={cn(
+                        "relative overflow-hidden",
+                        "rounded-[38px] border border-slate-200/70",
+                        "bg-white/92 backdrop-blur-xl",
+                        "shadow-[0_30px_110px_rgba(2,6,23,0.16)]",
+                        "p-7 sm:p-8"
+                      )}
+                    >
+                      {/* subtle warm back glow */}
+                      <div className="pointer-events-none absolute inset-0">
+                        <div
+                          className="absolute -top-28 -left-28 h-80 w-80 rounded-full blur-3xl opacity-25"
+                          style={{ background: "rgba(252,176,64,0.55)" }}
+                        />
+                        <div
+                          className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full blur-3xl opacity-18"
+                          style={{ background: "rgba(138,107,67,0.42)" }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/65 via-white/88 to-white" />
+                      </div>
+
+                      <MotionH1
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.1 }}
+                        className={cn(
+                          "relative font-extrabold tracking-tight leading-[0.96]",
+                          "text-slate-900",
+                          "text-[clamp(2.3rem,4.3vw,3.6rem)]"
+                        )}
+                      >
+                        Eat better and back local:
+                        <br />
+                        authentic home-cooked meals
+                        <br />
+                        from trusted cooks and bakers.
+                      </MotionH1>
+
+                      {/* ✅ NORMAL BUTTONS (your original simple ones) */}
+                      <MotionDiv
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.55, delay: 0.18 }}
+                        className="relative mt-7 flex flex-col gap-3 sm:flex-row sm:items-center"
+                      >
+                        <Link
+                          href="/join"
+                          className="rounded-2xl bg-[#fcb040] px-7 py-3 text-center font-extrabold text-slate-900 shadow-sm transition hover:opacity-95 hover:-translate-y-[1px]"
+                        >
+                          Join waitlist
+                        </Link>
+
+                        <Link
+                          href="/queue"
+                          className="rounded-2xl border border-slate-200 px-7 py-3 text-center font-extrabold transition hover:bg-slate-50 hover:-translate-y-[1px]"
+                        >
+                          Check queue
+                        </Link>
+                      </MotionDiv>
+                    </div>
+                  </div>
+                </motion.div>
               </div>
-
-              <MotionH1
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.12 }}
-                className="mt-6 font-extrabold tracking-tight leading-[0.98] text-[clamp(2.8rem,6vw,5.2rem)]"
-              >
-                Eat better and back local:
-                <br />
-                authentic home-cooked meals
-                <br />
-                from trusted cooks and bakers.
-                <br />
-              </MotionH1>
-
-              <MotionP
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, delay: 0.2 }}
-                className="mt-6 max-w-lg text-base sm:text-lg text-slate-600 leading-relaxed"
-              />
-
-              <MotionDiv
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, delay: 0.28 }}
-                className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
-              >
-                <Link
-                  href="/join"
-                  className="rounded-2xl bg-[#fcb040] px-7 py-3 text-center font-extrabold text-slate-900 shadow-sm transition hover:opacity-95 hover:-translate-y-[1px]"
-                >
-                  Join waitlist
-                </Link>
-
-                <Link
-                  href="/queue"
-                  className="rounded-2xl border border-slate-200 px-7 py-3 text-center font-extrabold transition hover:bg-slate-50 hover:-translate-y-[1px]"
-                >
-                  Check queue
-                </Link>
-              </MotionDiv>
             </div>
 
             {/* Right card */}
@@ -1006,7 +970,6 @@ export default function Home() {
           ]}
         />
 
-        {/* Mobile runway so last gallery becomes reachable */}
         <div className="md:hidden h-[28vh]" aria-hidden="true" />
       </motion.section>
 
