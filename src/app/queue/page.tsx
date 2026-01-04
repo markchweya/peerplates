@@ -26,32 +26,8 @@ function formatStatus(s: QueueResult["review_status"]) {
   return "Pending";
 }
 
-/** Spoon + plate icon (matches food brand) */
-function FoodIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {/* plate */}
-      <circle cx="13" cy="12" r="6.25" />
-      <path d="M4 19h18" />
-
-      {/* spoon */}
-      <path d="M6.5 4.5c1.7 0 3 1.4 3 3.1 0 1.1-.6 2.1-1.5 2.7v8.7" />
-      <path d="M6.5 4.5c-1.7 0-3 1.4-3 3.1 0 1.1.6 2.1 1.5 2.7v8.7" />
-    </svg>
-  );
-}
-
-/** Clean “X” for close */
-function CloseIcon() {
+/** Hamburger icon (3 lines) that animates into an X when open */
+function HamburgerIcon({ open }: { open: boolean }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -63,8 +39,26 @@ function CloseIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M6 6l12 12" />
-      <path d="M18 6l-12 12" />
+      <motion.path
+        d="M5 7h14"
+        initial={false}
+        animate={{ rotate: open ? 45 : 0, y: open ? 5 : 0 }}
+        transition={{ duration: 0.18, ease: "easeInOut" }}
+        style={{ originX: 0.5, originY: 0.5 }}
+      />
+      <motion.path
+        d="M5 12h14"
+        initial={false}
+        animate={{ opacity: open ? 0 : 1 }}
+        transition={{ duration: 0.12, ease: "easeInOut" }}
+      />
+      <motion.path
+        d="M5 17h14"
+        initial={false}
+        animate={{ rotate: open ? -45 : 0, y: open ? -5 : 0 }}
+        transition={{ duration: 0.18, ease: "easeInOut" }}
+        style={{ originX: 0.5, originY: 0.5 }}
+      />
     </svg>
   );
 }
@@ -106,11 +100,13 @@ export default function QueuePage() {
     if (isDesktop) setMenuOpen(false);
   }, [isDesktop]);
 
-  // ✅ Added Mission here (desktop + mobile)
+  // ✅ Updated menus (desktop + mobile)
   const navLinks = useMemo(
     () => [
       { href: "/", label: "Home", variant: "ghost" as const },
       { href: "/mission", label: "Mission", variant: "ghost" as const },
+      { href: "/vision", label: "Vision", variant: "ghost" as const },
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
       { href: "/faq", label: "FAQ", variant: "ghost" as const },
       { href: "/privacy", label: "Privacy", variant: "ghost" as const },
       { href: "/join", label: "Join waitlist", variant: "primary" as const },
@@ -330,7 +326,7 @@ export default function QueuePage() {
               ))}
             </div>
 
-            {/* Mobile menu button (icon only) */}
+            {/* Mobile menu button (hamburger only) */}
             {!isDesktop ? (
               <div className="ml-auto shrink-0 relative md:hidden">
                 <button
@@ -345,7 +341,7 @@ export default function QueuePage() {
                     "text-black",
                   ].join(" ")}
                 >
-                  {menuOpen ? <CloseIcon /> : <FoodIcon />}
+                  <HamburgerIcon open={menuOpen} />
                 </button>
               </div>
             ) : null}

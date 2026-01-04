@@ -2,15 +2,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  motion,
-  useInView,
-  useScroll,
-  useTransform,
-  useMotionTemplate,
-  AnimatePresence,
-} from "framer-motion";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useInView } from "framer-motion";
+
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import { MotionDiv } from "@/app/ui/motion";
 
@@ -21,29 +15,8 @@ function cn(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
 
-/* --------------------------- Header menu icons --------------------------- */
-
-function FoodIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="13" cy="12" r="6.25" />
-      <path d="M4 19h18" />
-      <path d="M6.5 4.5c1.7 0 3 1.4 3 3.1 0 1.1-.6 2.1-1.5 2.7v8.7" />
-      <path d="M6.5 4.5c-1.7 0-3 1.4-3 3.1 0 1.1.6 2.1 1.5 2.7v8.7" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
+/** Hamburger icon (3 lines) that animates into an X when open */
+function HamburgerIcon({ open }: { open: boolean }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -55,8 +28,26 @@ function CloseIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M6 6l12 12" />
-      <path d="M18 6l-12 12" />
+      <motion.path
+        d="M5 7h14"
+        initial={false}
+        animate={{ rotate: open ? 45 : 0, y: open ? 5 : 0 }}
+        transition={{ duration: 0.18, ease: "easeInOut" }}
+        style={{ originX: 0.5, originY: 0.5 }}
+      />
+      <motion.path
+        d="M5 12h14"
+        initial={false}
+        animate={{ opacity: open ? 0 : 1 }}
+        transition={{ duration: 0.12, ease: "easeInOut" }}
+      />
+      <motion.path
+        d="M5 17h14"
+        initial={false}
+        animate={{ rotate: open ? -45 : 0, y: open ? -5 : 0 }}
+        transition={{ duration: 0.18, ease: "easeInOut" }}
+        style={{ originX: 0.5, originY: 0.5 }}
+      />
     </svg>
   );
 }
@@ -73,27 +64,37 @@ function Section({
   children: React.ReactNode;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const inView = useInView(ref, { amount: 0.35, margin: "-10% 0px -20% 0px" });
+  const inView = useInView(ref, { amount: 0.32, margin: "-10% 0px -20% 0px" });
 
   return (
     <motion.section
       id={id}
       ref={ref}
-      initial={{ opacity: 0, y: 18 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 16 }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
       transition={{ duration: 0.55, ease: [0.2, 0.9, 0.2, 1] }}
       className="scroll-mt-28"
     >
-      <div className="rounded-[34px] border border-slate-200 bg-white/80 backdrop-blur p-6 sm:p-7 shadow-sm">
+      <div
+        className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/80 backdrop-blur p-6 sm:p-7 shadow-sm"
+        style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.08)" }}
+      >
+        {/* subtle glow */}
+        <div
+          className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full blur-3xl opacity-20"
+          style={{ background: `rgba(252,176,64,0.45)` }}
+        />
+        <div
+          className="pointer-events-none absolute -left-28 -bottom-28 h-60 w-60 rounded-full blur-3xl opacity-15"
+          style={{ background: `rgba(138,107,67,0.35)` }}
+        />
+
         <div className="flex items-center gap-3">
           <span className="h-2.5 w-2.5 rounded-full" style={{ background: BRAND_ORANGE }} />
-          <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900">
-            {title}
-          </h2>
+          <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900">{title}</h2>
         </div>
-        <div className="mt-4 text-slate-700 font-semibold leading-relaxed">
-          {children}
-        </div>
+
+        <div className="mt-4 text-slate-700 font-semibold leading-relaxed">{children}</div>
       </div>
     </motion.section>
   );
@@ -113,28 +114,6 @@ function BulletList({ items }: { items: string[] }) {
 }
 
 export default function PrivacyPage() {
-  /* --------------------------- hero scroll fx --------------------------- */
-  const heroRef = useRef<HTMLElement | null>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.65, 1], [1, 1, 0.06]);
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, -24]);
-  const blur = useTransform(scrollYProgress, [0, 0.85, 1], [0, 0, 10]);
-  const filter = useMotionTemplate`blur(${blur}px)`;
-
-  const gradientStyle = useMemo(
-    () => ({
-      backgroundImage: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})`,
-      WebkitBackgroundClip: "text",
-      backgroundClip: "text",
-      color: "transparent",
-    }),
-    []
-  );
-
   /* --------------------------- responsive menu --------------------------- */
   const [menuOpen, setMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -176,13 +155,15 @@ export default function PrivacyPage() {
     };
   }, [menuOpen]);
 
+  // ✅ Updated menus (desktop + mobile)
   const navLinks = useMemo(
     () => [
       { href: "/", label: "Home", variant: "ghost" as const },
       { href: "/mission", label: "Mission", variant: "ghost" as const },
-      { href: "/faq", label: "FAQ", variant: "ghost" as const },
-      { href: "/privacy", label: "Privacy", variant: "ghost" as const },
+      { href: "/vision", label: "Vision", variant: "ghost" as const },
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
+      { href: "/privacy", label: "Privacy", variant: "ghost" as const },
       { href: "/join", label: "Join waitlist", variant: "primary" as const },
     ],
     []
@@ -194,9 +175,37 @@ export default function PrivacyPage() {
     "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
+  const gradientStyle = useMemo(
+    () => ({
+      backgroundImage: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})`,
+      WebkitBackgroundClip: "text",
+      backgroundClip: "text",
+      color: "transparent",
+    }),
+    []
+  );
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* ✅ Fixed header with responsive menu (no stray circle on desktop) */}
+      {/* Cinematic background (light, consistent with mission/vision) */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/60 to-white" />
+
+        <motion.div
+          className="absolute -left-40 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-25"
+          style={{ background: `rgba(252,176,64,0.30)` }}
+          animate={{ x: [0, 60, 0], y: [0, 24, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -right-44 bottom-[-120px] h-[560px] w-[560px] rounded-full blur-3xl opacity-25"
+          style={{ background: `rgba(138,107,67,0.20)` }}
+          animate={{ x: [0, -64, 0], y: [0, -26, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
+      {/* ✅ Fixed header with responsive menu */}
       <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
@@ -225,7 +234,7 @@ export default function PrivacyPage() {
                 ))}
               </div>
 
-              {/* Mobile icon */}
+              {/* Mobile hamburger */}
               {!isDesktop ? (
                 <div className="ml-auto shrink-0 relative md:hidden">
                   <button
@@ -240,7 +249,7 @@ export default function PrivacyPage() {
                       "text-slate-900"
                     )}
                   >
-                    {menuOpen ? <CloseIcon /> : <FoodIcon />}
+                    <HamburgerIcon open={menuOpen} />
                   </button>
                 </div>
               ) : null}
@@ -299,87 +308,65 @@ export default function PrivacyPage() {
       {/* Spacer so content doesn't sit under fixed header */}
       <div className="h-[84px]" />
 
-      {/* Cinematic background */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/60 to-white" />
+      {/* Hero (simple, like mission/vision) */}
+      <section className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8 pt-8 pb-10">
+        <MotionDiv
+          initial={{ opacity: 0, y: 18, scale: 0.99 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.7, ease: [0.2, 0.9, 0.2, 1] }}
+          className="relative overflow-hidden rounded-[36px] border border-slate-200 bg-white/80 backdrop-blur p-7 sm:p-9 shadow-sm"
+          style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.08)" }}
+        >
+          <div
+            className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full blur-3xl opacity-20"
+            style={{ background: `rgba(252,176,64,0.55)` }}
+          />
+          <div
+            className="pointer-events-none absolute -left-28 -bottom-28 h-64 w-64 rounded-full blur-3xl opacity-15"
+            style={{ background: `rgba(138,107,67,0.45)` }}
+          />
 
-        <motion.div
-          className="absolute -left-40 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-25"
-          style={{ background: `rgba(252,176,64,0.35)` }}
-          animate={{ x: [0, 60, 0], y: [0, 24, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute -right-44 bottom-[-120px] h-[560px] w-[560px] rounded-full blur-3xl opacity-30"
-          style={{ background: `rgba(138,107,67,0.22)` }}
-          animate={{ x: [0, -64, 0], y: [0, -26, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-6 py-2.5 text-sm font-extrabold text-slate-700 shadow-sm">
+            <span className="h-2 w-2 rounded-full" style={{ background: BRAND_ORANGE }} />
+            Privacy Notice
+          </div>
 
-        <motion.div
-          className="absolute left-1/2 top-[12%] h-[520px] w-[520px] -translate-x-1/2 rounded-full blur-2xl opacity-[0.08]"
-          style={{
-            background:
-              "radial-gradient(circle at 30% 30%, rgba(252,176,64,0.7), transparent 55%), radial-gradient(circle at 65% 70%, rgba(138,107,67,0.6), transparent 55%)",
-          }}
-          animate={{ rotate: [0, 10, 0] }}
-          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
+          <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.1rem,4.8vw,3.6rem)] text-slate-900">
+            PeerPlates <span style={gradientStyle}>Privacy Notice</span>
+          </h1>
 
-      {/* Hero */}
-      <section ref={heroRef as any} className="relative">
-        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8 pb-10">
-          <motion.div
-            style={{ opacity: heroOpacity, y: heroY, filter }}
-            initial={{ opacity: 0, y: 22 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.2, 0.9, 0.2, 1] }}
-            className="rounded-[36px] border border-slate-200 bg-white/80 backdrop-blur p-7 sm:p-9 shadow-sm"
-          >
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-extrabold text-slate-700 shadow-sm">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: BRAND_ORANGE }} />
-              Privacy Notice
-            </div>
+          <p className="mt-4 max-w-3xl text-slate-600 font-semibold leading-relaxed">
+            Effective date: <span className="text-slate-900 font-extrabold">1 January 2026</span>. PeerPlates Ltd
+            (“PeerPlates”, “we”, “us”) is committed to protecting your personal data. This notice explains what we
+            collect, why we collect it, and your rights under UK data protection law.
+          </p>
 
-            <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.1rem,4.8vw,3.6rem)]">
-              PeerPlates <span style={gradientStyle}>Privacy Notice</span>{" "}
-              <span className="text-slate-900">for the Waitlist</span>
-            </h1>
-
-            <p className="mt-4 max-w-3xl text-slate-600 font-semibold leading-relaxed">
-              Effective date: <span className="text-slate-900 font-extrabold">1 January 2026</span>. PeerPlates Ltd
-              (“PeerPlates”, “we”, “us”) is committed to protecting your personal data. This notice explains what we
-              collect, why we collect it, and your rights under UK data protection law.
-            </p>
-
-            <div className="mt-7 flex flex-wrap gap-2">
-              {[
-                ["who", "Who we are"],
-                ["data", "What we collect"],
-                ["use", "How we use it"],
-                ["legal", "Legal bases"],
-                ["share", "Sharing"],
-                ["intl", "International transfers"],
-                ["retain", "Retention"],
-                ["rights", "Your rights"],
-                ["cookies", "Cookies"],
-                ["updates", "Updates"],
-              ].map(([id, label]) => (
-                <a
-                  key={id}
-                  href={`#${id}`}
-                  className={cn(
-                    "rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-700 shadow-sm backdrop-blur",
-                    "hover:bg-white transition"
-                  )}
-                >
-                  {label}
-                </a>
-              ))}
-            </div>
-          </motion.div>
-        </div>
+          <div className="mt-7 flex flex-wrap gap-2">
+            {[
+              ["who", "Who we are"],
+              ["data", "What we collect"],
+              ["use", "How we use it"],
+              ["legal", "Legal bases"],
+              ["share", "Sharing"],
+              ["intl", "International transfers"],
+              ["retain", "Retention"],
+              ["rights", "Your rights"],
+              ["cookies", "Cookies"],
+              ["updates", "Updates"],
+            ].map(([id, label]) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className={cn(
+                  "rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-xs sm:text-sm font-extrabold text-slate-700 shadow-sm backdrop-blur",
+                  "hover:bg-white transition"
+                )}
+              >
+                {label}
+              </a>
+            ))}
+          </div>
+        </MotionDiv>
       </section>
 
       {/* Content */}
@@ -474,12 +461,7 @@ export default function PrivacyPage() {
 
               <div>
                 <div className="text-sm font-extrabold text-slate-500">Keep things safe and lawful</div>
-                <BulletList
-                  items={[
-                    "Security, fraud prevention, and troubleshooting",
-                    "Comply with legal obligations",
-                  ]}
-                />
+                <BulletList items={["Security, fraud prevention, and troubleshooting", "Comply with legal obligations"]} />
               </div>
             </div>
           </Section>

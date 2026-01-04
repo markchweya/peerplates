@@ -20,21 +20,31 @@ function ConsumerIcon({ className = "" }: { className?: string }) {
   );
 }
 
-function VendorIcon({ className = "" }: { className?: string }) {
+/** ✅ Chef icon (neutral) to replace “female hair” vendor icon */
+function ChefIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      {/* hat */}
       <path
-        d="M7.4 9.2C7 6.7 8.9 5 11.5 5c2.7 0 4.5 1.7 4.1 4.2.5-.1 1-.1 1.5.1 1.1.5 1.6 1.8 1.1 2.9-.4 1-1.4 1.6-2.5 1.4H7.3c-1.1.2-2.1-.4-2.5-1.4-.5-1.1 0-2.4 1.1-2.9.5-.2 1-.2 1.5-.1Z"
+        d="M7.2 9.3c-1.8-.4-3.2-2-3.2-4 0-2.2 1.8-4 4-4 1.1 0 2.1.4 2.8 1.1.7-.7 1.7-1.1 2.8-1.1s2.1.4 2.8 1.1c.7-.7 1.7-1.1 2.8-1.1 2.2 0 4 1.8 4 4 0 2-1.4 3.6-3.2 4v2.2H7.2V9.3Z"
         fill="currentColor"
         opacity="0.95"
       />
+      {/* face */}
       <path
-        d="M12 14.1c-4.1 0-7.4 2.5-7.4 5.7V21h14.8v-1.2c0-3.2-3.3-5.7-7.4-5.7Z"
+        d="M8.2 13.1h7.6c.6 0 1 .4 1 1v.6c0 2.7-2.2 4.9-4.8 4.9S7.2 17.4 7.2 14.7v-.6c0-.6.4-1 1-1Z"
         fill="currentColor"
-        opacity="0.95"
+        opacity="0.28"
       />
+      {/* apron/body */}
       <path
-        d="M12 13.4c1.8 0 3.2-1.4 3.2-3.1S13.8 7.2 12 7.2 8.8 8.6 8.8 10.3s1.4 3.1 3.2 3.1Z"
+        d="M6.6 21c.1-2.9 2.6-5.2 5.4-5.2s5.3 2.3 5.4 5.2H6.6Z"
+        fill="currentColor"
+        opacity="0.9"
+      />
+      {/* apron knot */}
+      <path
+        d="M12 15.6c.9 0 1.6-.6 1.6-1.4 0-.8-.7-1.4-1.6-1.4s-1.6.6-1.6 1.4c0 .8.7 1.4 1.6 1.4Z"
         fill="currentColor"
       />
     </svg>
@@ -82,6 +92,8 @@ export default async function JoinPage({
   const navLinks = [
     { href: "/", label: "Home", variant: "ghost" as const },
     { href: "/mission", label: "Mission", variant: "ghost" as const },
+    { href: "/vision", label: "Vision", variant: "ghost" as const },
+    { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
     { href: "/faq", label: "FAQ", variant: "ghost" as const },
     { href: "/privacy", label: "Privacy", variant: "ghost" as const },
     { href: "/queue", label: "Check queue", variant: "ghost" as const },
@@ -139,7 +151,7 @@ export default async function JoinPage({
               <div className="pp-mobile-menu md:hidden ml-auto shrink-0">
                 <details className="relative">
                   <summary
-                    aria-label="Open menu"
+                    aria-label={menuOpenLabel()}
                     className={[
                       "list-none cursor-pointer select-none",
                       "inline-flex items-center justify-center",
@@ -149,7 +161,8 @@ export default async function JoinPage({
                     ].join(" ")}
                   >
                     <FoodIcon className="h-5 w-5" />
-                    <span className="sr-only">Menu</span>
+                    {/* ✅ ensure nothing shows visually */}
+                    <span className="sr-only">Open menu</span>
                   </summary>
 
                   <div className="absolute right-0 mt-3 w-[min(92vw,420px)] origin-top-right">
@@ -246,7 +259,8 @@ export default async function JoinPage({
             >
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-2xl border border-slate-200 bg-white flex items-center justify-center shadow-sm">
-                  <VendorIcon className="h-7 w-7 text-slate-900" />
+                  {/* ✅ chef icon */}
+                  <ChefIcon className="h-7 w-7 text-slate-900" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-xl font-extrabold">Vendor</div>
@@ -269,4 +283,13 @@ export default async function JoinPage({
       </div>
     </main>
   );
+}
+
+/**
+ * ✅ “menu reads Menu” fix:
+ * some browsers show the <summary> marker + label weirdly if aria-label is empty.
+ * keep a stable label but sr-only hides visible text.
+ */
+function menuOpenLabel() {
+  return "Open menu";
 }

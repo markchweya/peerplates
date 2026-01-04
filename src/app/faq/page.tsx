@@ -21,27 +21,8 @@ type FAQItem = {
   a: ReactNode;
 };
 
-function FoodIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="13" cy="12" r="6.25" />
-      <path d="M4 19h18" />
-      <path d="M6.5 4.5c1.7 0 3 1.4 3 3.1 0 1.1-.6 2.1-1.5 2.7v8.7" />
-      <path d="M6.5 4.5c-1.7 0-3 1.4-3 3.1 0 1.1.6 2.1 1.5 2.7v8.7" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
+/** Hamburger icon (3 lines) that animates into an X when open */
+function HamburgerIcon({ open }: { open: boolean }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -53,8 +34,26 @@ function CloseIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M6 6l12 12" />
-      <path d="M18 6l-12 12" />
+      <motion.path
+        d="M5 7h14"
+        initial={false}
+        animate={{ rotate: open ? 45 : 0, y: open ? 5 : 0 }}
+        transition={{ duration: 0.18, ease: "easeInOut" }}
+        style={{ originX: 0.5, originY: 0.5 }}
+      />
+      <motion.path
+        d="M5 12h14"
+        initial={false}
+        animate={{ opacity: open ? 0 : 1 }}
+        transition={{ duration: 0.12, ease: "easeInOut" }}
+      />
+      <motion.path
+        d="M5 17h14"
+        initial={false}
+        animate={{ rotate: open ? -45 : 0, y: open ? -5 : 0 }}
+        transition={{ duration: 0.18, ease: "easeInOut" }}
+        style={{ originX: 0.5, originY: 0.5 }}
+      />
     </svg>
   );
 }
@@ -101,11 +100,13 @@ export default function FAQPage() {
     };
   }, [menuOpen]);
 
-  // ✅ Added Mission link
+  // ✅ New menus (desktop + mobile)
   const navLinks = useMemo(
     () => [
       { href: "/", label: "Home", variant: "ghost" as const },
       { href: "/mission", label: "Mission", variant: "ghost" as const },
+      { href: "/vision", label: "Vision", variant: "ghost" as const },
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
       { href: "/privacy", label: "Privacy", variant: "ghost" as const },
       { href: "/join", label: "Join waitlist", variant: "primary" as const },
@@ -120,6 +121,23 @@ export default function FAQPage() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
+      {/* cinematic bg (subtle + consistent) */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/70 to-white" />
+        <motion.div
+          className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-25"
+          style={{ background: "rgba(252,176,64,0.32)" }}
+          animate={{ x: [0, 60, 0], y: [0, 22, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -right-52 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-25"
+          style={{ background: "rgba(138,107,67,0.18)" }}
+          animate={{ x: [0, -64, 0], y: [0, -24, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
       {/* Header with menu */}
       <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -149,12 +167,7 @@ export default function FAQPage() {
                 ))}
               </div>
 
-              {/* Page label */}
-              <div className="hidden sm:block md:hidden ml-auto text-sm text-slate-900/60 whitespace-nowrap">
-                FAQ
-              </div>
-
-              {/* Mobile icon button */}
+              {/* Mobile hamburger */}
               {!isDesktop ? (
                 <div className="ml-auto shrink-0 relative md:hidden">
                   <button
@@ -169,7 +182,7 @@ export default function FAQPage() {
                       "text-slate-900",
                     ].join(" ")}
                   >
-                    {menuOpen ? <CloseIcon /> : <FoodIcon />}
+                    <HamburgerIcon open={menuOpen} />
                   </button>
                 </div>
               ) : null}
@@ -230,6 +243,25 @@ export default function FAQPage() {
 
       <FAQSection />
     </main>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <motion.svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      animate={{ rotate: open ? 180 : 0 }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </motion.svg>
   );
 }
 
@@ -316,38 +348,22 @@ export function FAQSection({
   const [openIdx, setOpenIdx] = useState<number | null>(0);
 
   return (
-    <section className="relative py-16 sm:py-20">
-      {/* cinematic bg (subtle) */}
-      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/70 to-white" />
-        <motion.div
-          className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-25"
-          style={{ background: "rgba(252,176,64,0.32)" }}
-          animate={{ x: [0, 60, 0], y: [0, 22, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute -right-52 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-25"
-          style={{ background: "rgba(138,107,67,0.18)" }}
-          animate={{ x: [0, -64, 0], y: [0, -24, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
-
+    <section className="relative py-14 sm:py-18">
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Hero header */}
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, amount: 0.45 }}
-          transition={{ duration: 0.65, ease: [0.2, 0.9, 0.2, 1] }}
+          initial={{ opacity: 0, y: 18, scale: 0.99 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: false, amount: 0.5 }}
+          transition={{ duration: 0.7, ease: [0.2, 0.9, 0.2, 1] }}
           className="mx-auto max-w-3xl text-center"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/75 px-6 py-2.5 text-sm font-extrabold text-slate-700 shadow-sm backdrop-blur">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-6 py-2.5 text-sm font-extrabold text-slate-700 shadow-sm backdrop-blur">
             <span className="h-2 w-2 rounded-full" style={{ background: BRAND_ORANGE }} />
             {label}
           </div>
 
-          <h2 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.2rem,4.6vw,3.6rem)] text-slate-900">
+          <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.2rem,4.6vw,3.6rem)] text-slate-900">
             {title}{" "}
             <span
               className="bg-clip-text text-transparent"
@@ -355,14 +371,16 @@ export function FAQSection({
             >
               .
             </span>
-          </h2>
+          </h1>
 
           <p className="mt-4 text-slate-600 font-semibold leading-relaxed">{subtitle}</p>
         </motion.div>
 
+        {/* Cards */}
         <div className="mx-auto mt-10 sm:mt-12 max-w-3xl grid gap-4">
           {items.map((it, i) => {
             const open = openIdx === i;
+
             return (
               <motion.div
                 key={it.q}
@@ -371,37 +389,48 @@ export function FAQSection({
                 viewport={{ once: false, amount: 0.35 }}
                 transition={{ duration: 0.55, delay: i * 0.03 }}
                 className={cn(
-                  "rounded-[28px] border border-slate-200 bg-white/85 backdrop-blur shadow-sm overflow-hidden"
+                  "group relative overflow-hidden rounded-[28px] border bg-white/88 backdrop-blur shadow-sm",
+                  open ? "border-[rgba(252,176,64,0.38)]" : "border-slate-200"
                 )}
-                style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.07)" }}
+                style={{
+                  boxShadow: open
+                    ? "0 18px 60px rgba(2,6,23,0.07), 0 0 0 1px rgba(252,176,64,0.14)"
+                    : "0 18px 60px rgba(2,6,23,0.07)",
+                }}
               >
+                {/* subtle glow */}
+                <div
+                  className="pointer-events-none absolute -right-24 -top-24 h-56 w-56 rounded-full blur-3xl opacity-15"
+                  style={{ background: `rgba(252,176,64,0.55)` }}
+                />
+                <div
+                  className="pointer-events-none absolute -left-28 -bottom-28 h-60 w-60 rounded-full blur-3xl opacity-10"
+                  style={{ background: `rgba(138,107,67,0.45)` }}
+                />
+
                 <button
                   type="button"
                   onClick={() => setOpenIdx(open ? null : i)}
-                  className="w-full px-6 sm:px-7 py-5 flex items-start justify-between gap-4 text-left"
+                  className={cn(
+                    "w-full px-6 sm:px-7 py-5 flex items-center justify-between gap-4 text-left",
+                    "focus:outline-none focus-visible:ring-4 focus-visible:ring-[rgba(252,176,64,0.25)]"
+                  )}
                 >
                   <div className="min-w-0">
                     <div className="text-base sm:text-lg font-extrabold text-slate-900">{it.q}</div>
-                    <div className="mt-1 text-xs font-semibold text-slate-500">
-                      {open ? "Tap to close" : "Tap to open"}
-                    </div>
                   </div>
 
-                  <div className="shrink-0 mt-1">
+                  <div className="shrink-0">
                     <div
-                      className={cn("h-10 w-10 rounded-2xl border flex items-center justify-center transition")}
+                      className={cn(
+                        "h-10 w-10 rounded-2xl border flex items-center justify-center transition",
+                        open ? "bg-[rgba(252,176,64,0.10)]" : "bg-white/85"
+                      )}
                       style={{
                         borderColor: open ? "rgba(252,176,64,0.45)" : "rgba(226,232,240,1)",
-                        background: open ? "rgba(252,176,64,0.10)" : "rgba(255,255,255,0.8)",
                       }}
                     >
-                      <motion.span
-                        animate={{ rotate: open ? 45 : 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="text-2xl font-black leading-none text-slate-900"
-                      >
-                        +
-                      </motion.span>
+                      <ChevronIcon open={open} />
                     </div>
                   </div>
                 </button>
@@ -424,6 +453,11 @@ export function FAQSection({
               </motion.div>
             );
           })}
+        </div>
+
+        {/* Footer */}
+        <div className="mx-auto mt-10 max-w-3xl border-t border-slate-200 pt-8 text-sm text-slate-500">
+          © {new Date().getFullYear()} PeerPlates
         </div>
       </div>
     </section>
