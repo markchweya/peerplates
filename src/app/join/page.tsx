@@ -2,8 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
@@ -72,6 +72,7 @@ function ChevronDown({ className = "" }: { className?: string }) {
 }
 
 export default function JoinPage() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const ref = (searchParams?.get("ref") || "").trim();
 
@@ -94,7 +95,14 @@ export default function JoinPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
 
-  // ✅ lock scroll only when the menu is open
+  const desktopWrapRef = useRef<HTMLDivElement | null>(null);
+
+  const closeAllMenus = useCallback(() => {
+    setMobileMenuOpen(false);
+    setDesktopMenuOpen(false);
+  }, []);
+
+  // ✅ Lock scroll only while mobile menu is open
   useEffect(() => {
     const prev = document.body.style.overflow;
     if (mobileMenuOpen) document.body.style.overflow = "hidden";
@@ -102,6 +110,36 @@ export default function JoinPage() {
       document.body.style.overflow = prev;
     };
   }, [mobileMenuOpen]);
+
+  // ✅ Close menus on navigation (prevents “stuck” overlay)
+  useEffect(() => {
+    closeAllMenus();
+  }, [pathname, ref, closeAllMenus]);
+
+  // ✅ Close desktop dropdown on click-outside + ESC
+  useEffect(() => {
+    if (!desktopMenuOpen) return;
+
+    const onDown = (e: MouseEvent | TouchEvent) => {
+      const el = desktopWrapRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) setDesktopMenuOpen(false);
+    };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDesktopMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", onDown, { passive: true });
+    document.addEventListener("touchstart", onDown, { passive: true });
+    document.addEventListener("keydown", onKey);
+
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [desktopMenuOpen]);
 
   const btnBase =
     "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
@@ -113,8 +151,8 @@ export default function JoinPage() {
       <style>{`
         summary::-webkit-details-marker { display:none; }
         .pp-tap { -webkit-tap-highlight-color: transparent; user-select:none; }
-        details[open] .pp-chevron { transform: rotate(180deg); }
         .pp-chevron { transition: transform 180ms ease; }
+        .pp-chevron.pp-open { transform: rotate(180deg); }
 
         @media (min-width: 768px) { .pp-mobile-only { display:none !important; } }
         @media (max-width: 767px) { .pp-desktop-only { display:none !important; } }
@@ -138,37 +176,50 @@ export default function JoinPage() {
               </Link>
 
               {/* Desktop: dropdown + join */}
-              <div className="pp-desktop-only ml-auto hidden md:flex items-center gap-3">
-                <details
-                  className="relative"
-                  open={desktopMenuOpen}
-                  onToggle={(e) => setDesktopMenuOpen((e.target as HTMLDetailsElement).open)}
-                >
-                  <summary className={["pp-tap", btnBase, btnGhost, "gap-2 cursor-pointer"].join(" ")} aria-label="Open menu">
-                    Menu <ChevronDown className="pp-chevron h-5 w-5" />
-                  </summary>
+              <div className="pp-desktop-only ml-auto hidden md:flex items-center gap-3" ref={desktopWrapRef}>
+                <div className="relative">
+                  <button
+                    type="button"
+                    aria-label="Open menu"
+                    onClick={() => setDesktopMenuOpen((v) => !v)}
+                    className={["pp-tap", btnBase, btnGhost, "gap-2 cursor-pointer"].join(" ")}
+                  >
+                    Menu
+                    <ChevronDown className={["h-5 w-5 pp-chevron", desktopMenuOpen ? "pp-open" : ""].join(" ")} />
+                  </button>
 
-                  <div className="absolute right-0 mt-3 w-[320px] origin-top-right">
-                    <div
-                      className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm"
-                      style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
-                    >
-                      <div className="grid gap-2">
-                        {navLinks.map((l) => (
-                          <Link
-                            key={l.href}
-                            href={l.href}
-                            onClick={() => setDesktopMenuOpen(false)}
-                            className={["w-full", btnBase, "px-5 py-3", btnGhost, "justify-start"].join(" ")}
-                          >
-                            {l.label}
-                          </Link>
-                        ))}
-                      </div>
-                      <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
-                    </div>
-                  </div>
-                </details>
+                  <AnimatePresence>
+                    {desktopMenuOpen ? (
+                      <motion.div
+                        key="desk-menu"
+                        className="absolute right-0 mt-3 w-[320px] origin-top-right"
+                        initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                        transition={{ duration: 0.16, ease: "easeOut" }}
+                      >
+                        <div
+                          className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm"
+                          style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
+                        >
+                          <div className="grid gap-2">
+                            {navLinks.map((l) => (
+                              <Link
+                                key={l.href}
+                                href={l.href}
+                                onClick={() => setDesktopMenuOpen(false)}
+                                className={["w-full", btnBase, "px-5 py-3", btnGhost, "justify-start"].join(" ")}
+                              >
+                                {l.label}
+                              </Link>
+                            ))}
+                          </div>
+                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+                        </div>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
 
                 <Link href="/join" className={[btnBase, btnPrimary].join(" ")}>
                   Join waitlist
@@ -225,9 +276,9 @@ export default function JoinPage() {
                 <XIcon className="h-5 w-5" />
               </button>
 
-              {/* ✅ Icon on the LEFT (brand block) */}
+              {/* ✅ Icon on the LEFT */}
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-11 w-11 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center">
+                <div className="h-11 w-11 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center overflow-hidden">
                   <LogoCinematic size={34} wordScale={0.72} />
                 </div>
                 <div className="min-w-0">
@@ -290,13 +341,17 @@ export default function JoinPage() {
 
           <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.4rem,5vw,4.2rem)]">
             Eat better.{" "}
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(90deg, ${ORANGE}, ${BROWN})` }}>
+            <span
+              className="bg-clip-text text-transparent"
+              style={{ backgroundImage: `linear-gradient(90deg, ${ORANGE}, ${BROWN})` }}
+            >
               Join the waitlist.
             </span>
           </h1>
 
           <p className="mt-4 max-w-2xl text-slate-900/70 font-semibold leading-relaxed">
-            Consumers move up by referrals. Vendors are reviewed via questionnaire — built for safety, trust, and real home-cooked food.
+            Consumers move up by referrals. Vendors are reviewed via questionnaire — built for safety, trust, and real
+            home-cooked food.
           </p>
 
           {ref ? (
