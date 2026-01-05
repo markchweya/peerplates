@@ -165,13 +165,12 @@ function HamburgerIcon({ open }: { open: boolean }) {
       aria-hidden="true"
     >
       <motion.path
-  d="M5 7h14"
-  initial={false}
-  animate={{ rotate: open ? 45 : 0, y: open ? 5 : 0 }}
-  transition={{ duration: 0.18, ease: "easeInOut" }}
-  style={{ originX: 0.5, originY: 0.5 }}
-/>
-
+        d="M5 7h14"
+        initial={false}
+        animate={{ rotate: open ? 45 : 0, y: open ? 5 : 0 }}
+        transition={{ duration: 0.18, ease: "easeInOut" }}
+        style={{ originX: 0.5, originY: 0.5 }}
+      />
       <motion.path
         d="M5 12h14"
         initial={false}
@@ -563,7 +562,8 @@ export default function Home() {
   const overlayY = useTransform(galleryP, [0, 0.6, 1], [0, -46, -96]);
 
   // =========================================================
-  // ✅ Safari-like "pull to refresh" — FIXED (only after top + hard pull)
+  // ✅ Pull-to-refresh — FIXED: only works when TOP is settled
+  // (prevents "refresh" while just scrolling up)
   // =========================================================
   const pullRaw = useMotionValue(0);
   const pullY = useSpring(pullRaw, { stiffness: 260, damping: 26, mass: 0.7 });
@@ -579,13 +579,19 @@ export default function Home() {
 
   const wheelSettleTimer = useRef<number | null>(null);
 
-  // ✅ NEW: wheel must be "armed" once you reach top, then second pull triggers
+  // Wheel arming (two-stage) + "energy" gate to stop accidental trackpad triggers
   const wheelArmedRef = useRef(false);
   const wheelArmTimerRef = useRef<number | null>(null);
+  const wheelEnergyRef = useRef(0);
+
+  // TOP-settle tracking (must be at top for a tiny moment before arming)
+  const atTopRef = useRef(false);
+  const topSinceRef = useRef<number | null>(null);
 
   const PULL_MAX = 130;
-  const PULL_TRIGGER = 78;
-  const START_DRAG_PX = 10;
+  const PULL_TRIGGER = 92; // slightly higher to avoid accidental triggers
+  const START_DRAG_PX = 12;
+  const TOP_SETTLE_MS = 140;
 
   const setPull = (v: number) => {
     const vv = clamp(v, 0, PULL_MAX);
@@ -595,8 +601,15 @@ export default function Home() {
 
   const resetWheelArm = () => {
     wheelArmedRef.current = false;
+    wheelEnergyRef.current = 0;
     if (wheelArmTimerRef.current) window.clearTimeout(wheelArmTimerRef.current);
     wheelArmTimerRef.current = null;
+  };
+
+  const topSettled = () => {
+    if (!atTopRef.current) return false;
+    if (topSinceRef.current == null) return false;
+    return performance.now() - topSinceRef.current >= TOP_SETTLE_MS;
   };
 
   const triggerMagicRefresh = () => {
@@ -616,12 +629,36 @@ export default function Home() {
     }, 1700);
   };
 
+  // Track when we're "settled" at top
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY || 0;
+
+      if (y <= 1) {
+        if (!atTopRef.current) {
+          atTopRef.current = true;
+          topSinceRef.current = performance.now();
+        }
+      } else {
+        atTopRef.current = false;
+        topSinceRef.current = null;
+        resetWheelArm();
+        if (pullRaw.get() > 0) setPull(0);
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // MOBILE touch
   const onTouchStart = (e: React.TouchEvent) => {
     if (isInteractiveTarget(e.target)) return;
 
-    // ✅ only allow pull when already at the very top
-    if ((window.scrollY || 0) <= 1) {
+    // ✅ only allow pull when top is SETTLED
+    if (topSettled()) {
       armedRef.current = true;
       startYRef.current = e.touches[0]?.clientY ?? null;
     } else {
@@ -646,7 +683,7 @@ export default function Home() {
 
     e.preventDefault();
 
-    const elastic = Math.min(PULL_MAX, (dy - START_DRAG_PX) * 0.55);
+    const elastic = Math.min(PULL_MAX, (dy - START_DRAG_PX) * 0.5);
     setPull(elastic);
   };
 
@@ -668,8 +705,8 @@ export default function Home() {
     if (e.button !== 0) return;
     if (isInteractiveTarget(e.target)) return;
 
-    // ✅ only start if already at top
-    if ((window.scrollY || 0) > 1) return;
+    // ✅ only start if top is settled
+    if (!topSettled()) return;
 
     mouseDownRef.current = true;
     armedRef.current = true;
@@ -707,7 +744,7 @@ export default function Home() {
     }
 
     e.preventDefault();
-    const elastic = Math.min(PULL_MAX, (dy - START_DRAG_PX) * 0.6);
+    const elastic = Math.min(PULL_MAX, (dy - START_DRAG_PX) * 0.55);
     setPull(elastic);
   };
 
@@ -732,46 +769,57 @@ export default function Home() {
     setPull(0);
   };
 
-  // ✅ PC wheel/trackpad pull (NOW 2-STAGE: reach top -> arm -> hard pull triggers)
+  // ✅ PC wheel/trackpad pull (2-stage + energy gate, only when top is settled)
   const onWheel = (e: React.WheelEvent) => {
     if (isInteractiveTarget(e.target)) return;
 
     const y = window.scrollY || 0;
 
-    // if not at top, do normal scrolling + clear any arming
+    // Not at top => normal scrolling, clear any arming
     if (y > 1) {
       resetWheelArm();
       return;
     }
 
-    // at top:
+    // At top but not settled yet => do nothing (prevents "scroll-up refresh")
+    if (!topSettled()) return;
+
+    // User scrolls UP at the top
     if (e.deltaY < 0) {
-      // first upward attempt at top just ARMS (no refresh/pull)
+      // First "up" gesture arms only (no indicator jerk)
       if (!wheelArmedRef.current) {
         wheelArmedRef.current = true;
-        // auto-disarm shortly if user doesn't "hard pull"
+
         if (wheelArmTimerRef.current) window.clearTimeout(wheelArmTimerRef.current);
         wheelArmTimerRef.current = window.setTimeout(() => {
-          wheelArmedRef.current = false;
-          wheelArmTimerRef.current = null;
-        }, 650);
+          resetWheelArm();
+        }, 700);
+
         return;
       }
 
-      // second (hard) upward attempt while armed => start pulling
+      // Armed: now allow actual pulling, but require meaningful delta (trackpad noise filter)
+      const mag = Math.abs(e.deltaY);
+      if (mag < 10) return;
+
       e.preventDefault();
 
-      const add = Math.min(26, Math.abs(e.deltaY) * 0.45);
+      // accumulate "effort" so tiny nudges don't trigger
+      wheelEnergyRef.current += mag;
+
+      // gentler pull mapping
+      const add = Math.min(16, mag * 0.16);
       setPull(pullRaw.get() + add);
 
       if (wheelSettleTimer.current) window.clearTimeout(wheelSettleTimer.current);
       wheelSettleTimer.current = window.setTimeout(() => {
-        if (pullRaw.get() >= PULL_TRIGGER) triggerMagicRefresh();
+        const ok = pullRaw.get() >= PULL_TRIGGER && wheelEnergyRef.current >= 220;
+        if (ok) triggerMagicRefresh();
         setPull(0);
         resetWheelArm();
-      }, 110);
+      }, 140);
     } else {
-      // scrolling down at top cancels arm/pull
+      // Scrolling DOWN cancels
       resetWheelArm();
       if (pullRaw.get() > 0) setPull(0);
     }
@@ -790,7 +838,7 @@ export default function Home() {
   const pullFilter = useMotionTemplate`blur(${pullBlur}px)`;
 
   // =========================================================
-  // ✅ Landing animations
+  // ✅ Landing animations (snappier on phone)
   // =========================================================
   const easeOut = [0.2, 0.9, 0.2, 1] as any;
 
@@ -817,6 +865,14 @@ export default function Home() {
     hidden: { opacity: 0, x: 16, scale: 0.99, filter: "blur(10px)" },
     show: { opacity: 1, x: 0, scale: 1, filter: "blur(0px)", transition: { duration: 0.65, ease: easeOut } },
   };
+
+  // ✅ extra smooth section transitions on mobile
+  const sectionEnter = {
+    initial: { opacity: 0, y: 18, scale: 0.99, filter: "blur(10px)" },
+    whileInView: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
+    transition: { duration: 0.7, ease: easeOut },
+    viewport: { once: true, amount: 0.28 },
+  } as const;
 
   return (
     <main
@@ -1012,7 +1068,11 @@ export default function Home() {
               }}
             />
             <span className="text-xs font-extrabold text-slate-700">
-              {pullNow >= PULL_TRIGGER ? "Release to refresh" : wheelArmedRef.current ? "Pull again to refresh" : "Pull to refresh"}
+              {pullNow >= PULL_TRIGGER
+                ? "Release to refresh"
+                : wheelArmedRef.current
+                ? "Pull again to refresh"
+                : "Pull to refresh"}
             </span>
             <LoadingDots dotSize={4} />
           </div>
@@ -1057,15 +1117,15 @@ export default function Home() {
               willChange: "transform, opacity, filter",
             }}
           >
-            <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+            <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
               <motion.div
                 variants={landingWrap}
                 initial="hidden"
                 animate={landed ? "show" : "hidden"}
-                className="mt-6 sm:mt-10 grid gap-10 lg:grid-cols-2 lg:items-start"
+                className="mt-3 sm:mt-10 grid gap-8 lg:gap-10 lg:grid-cols-2 lg:items-start"
               >
                 {/* Left column */}
-                <motion.div variants={slideL} className="pt-2">
+                <motion.div variants={slideL} className="pt-1 sm:pt-2">
                   <div ref={galleryWrapRef} className="relative">
                     <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
                       <div className="-mx-2 sm:mx-0">
@@ -1081,21 +1141,21 @@ export default function Home() {
                       </div>
                     </motion.div>
 
+                    {/* ✅ Mobile: less “magazine” overlap + smoother entry */}
                     <motion.div
                       style={{ y: overlayY }}
-                      variants={pop}
-                      initial="hidden"
-                      animate={landed ? "show" : "hidden"}
-                      className={cn("relative z-30", "-mt-24 sm:-mt-28 md:-mt-32")}
+                      className={cn("relative z-30", "-mt-16 sm:-mt-28 md:-mt-32")}
+                      {...sectionEnter}
                     >
-                      <div className="sticky top-[112px]">
+                      {/* sticky only on sm+ (phone looks cleaner without sticky stacking) */}
+                      <div className="sm:sticky sm:top-[112px]">
                         <div
                           className={cn(
                             "relative overflow-hidden",
-                            "rounded-[38px] border border-slate-200/70",
+                            "rounded-[32px] sm:rounded-[38px] border border-slate-200/70",
                             "bg-white/92 backdrop-blur-xl",
-                            "shadow-[0_30px_110px_rgba(2,6,23,0.16)]",
-                            "p-7 sm:p-8"
+                            "shadow-[0_26px_90px_rgba(2,6,23,0.16)]",
+                            "p-6 sm:p-8"
                           )}
                         >
                           <div className="pointer-events-none absolute inset-0">
@@ -1115,9 +1175,10 @@ export default function Home() {
                             animate={landed ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
                             transition={{ duration: 0.6, ease: easeOut, delay: 0.05 }}
                             className={cn(
-                              "relative font-extrabold tracking-tight leading-[0.96]",
+                              "relative font-extrabold tracking-tight leading-[0.98]",
                               "text-slate-900",
-                              "text-[clamp(2.3rem,4.3vw,3.6rem)]"
+                             "text-[clamp(2.05rem,7.8vw,5.8rem)]"
+
                             )}
                           >
                             Eat better and back local:
@@ -1131,7 +1192,7 @@ export default function Home() {
                             initial={false}
                             animate={landed ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }}
                             transition={{ duration: 0.55, ease: easeOut, delay: 0.12 }}
-                            className="relative mt-7 flex flex-col gap-3 sm:flex-row sm:items-center"
+                            className="relative mt-6 sm:mt-7 flex flex-col gap-3 sm:flex-row sm:items-center"
                           >
                             <Link
                               href="/join"
@@ -1154,7 +1215,7 @@ export default function Home() {
                 </motion.div>
 
                 {/* Right column */}
-                <motion.div variants={slideR}>
+                <motion.div variants={slideR} {...sectionEnter}>
                   <MotionDiv
                     initial={false}
                     animate={landed ? { opacity: 1, x: 0 } : { opacity: 0, x: 18 }}
@@ -1177,9 +1238,10 @@ export default function Home() {
                       ].map((s, i) => (
                         <MotionDiv
                           key={s.n}
-                          initial={false}
-                          animate={landed ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 14, scale: 0.99 }}
-                          transition={{ duration: 0.55, ease: easeOut, delay: 0.14 + i * 0.07 }}
+                          initial={{ opacity: 0, y: 14, scale: 0.99, filter: "blur(10px)" }}
+                          whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+                          viewport={{ once: true, amount: 0.35 }}
+                          transition={{ duration: 0.55, ease: easeOut, delay: 0.02 + i * 0.06 }}
                           className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
                         >
                           <div className="flex items-start gap-4">
@@ -1210,8 +1272,13 @@ export default function Home() {
               willChange: "transform, opacity, filter",
             }}
           >
-            <motion.div variants={landingWrap} initial="hidden" animate={landed ? "show" : "hidden"} className="mx-auto w-full">
-              <motion.div variants={pop}>
+            <motion.div
+              variants={landingWrap}
+              initial="hidden"
+              animate={landed ? "show" : "hidden"}
+              className="mx-auto w-full"
+            >
+              <motion.div variants={pop} {...sectionEnter}>
                 <ScrollShowcase
                   heading="App Previews"
                   subheading="See how PeerPlates makes ordering and managing home-cooked food effortless."
@@ -1293,7 +1360,7 @@ export default function Home() {
                 />
               </motion.div>
 
-              <div className="md:hidden h-[28vh]" aria-hidden="true" />
+              <div className="md:hidden h-[20vh]" aria-hidden="true" />
             </motion.div>
           </motion.section>
 
