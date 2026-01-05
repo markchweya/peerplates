@@ -66,17 +66,10 @@ function PageShell({
 }) {
   return (
     <section className="relative">
-      {/* soft brand glow */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/60 to-white" />
-        <div
-          className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-20"
-          style={{ background: "rgba(252,176,64,0.35)" }}
-        />
-        <div
-          className="absolute -right-44 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-20"
-          style={{ background: "rgba(138,107,67,0.25)" }}
-        />
+        <div className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-20" style={{ background: "rgba(252,176,64,0.35)" }} />
+        <div className="absolute -right-44 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-20" style={{ background: "rgba(138,107,67,0.25)" }} />
       </div>
 
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
@@ -114,8 +107,7 @@ function PageShell({
   );
 }
 
-export default function MissionPage() {
-  // mobile menu (never shows on desktop)
+export default function FoodSafetyPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
@@ -179,12 +171,7 @@ export default function MissionPage() {
       <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
-            <MotionDiv
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="flex items-center gap-3 min-w-0"
-            >
+            <MotionDiv initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-center gap-3 min-w-0">
               <Link href="/" className="flex items-center min-w-0 overflow-hidden">
                 <span className="shrink-0">
                   <LogoCinematic size={64} wordScale={1} />
@@ -194,11 +181,7 @@ export default function MissionPage() {
               {/* Desktop nav */}
               <div className="hidden md:flex items-center gap-3 ml-auto">
                 {navLinks.map((l) => (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    className={[btnBase, l.variant === "primary" ? btnPrimary : btnGhost].join(" ")}
-                  >
+                  <Link key={l.href} href={l.href} className={[btnBase, l.variant === "primary" ? btnPrimary : btnGhost].join(" ")}>
                     {l.label}
                   </Link>
                 ))}
@@ -240,10 +223,7 @@ export default function MissionPage() {
                 >
                   <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
                     <div className="mx-auto w-full max-w-[420px]">
-                      <div
-                        className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
-                        style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
-                      >
+                      <div className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm" style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}>
                         <div className="grid gap-2">
                           {navLinks.map((l) => (
                             <Link
@@ -267,44 +247,54 @@ export default function MissionPage() {
         </div>
       </div>
 
-      {/* spacer */}
       <div className="h-[84px]" />
 
       <PageShell
-        kicker="Mission"
-        title="Why we started"
-        highlight="PeerPlates."
-        body="University life moves fast — and cooking proper meals consistently just wasn’t realistic. Takeaways were expensive, meal-prep often felt like poor value… and not the kind of food we actually craved."
+        kicker="Food safety"
+        title="Food safety comes"
+        highlight="first."
+        body="Food safety isn’t optional on PeerPlates — it’s the baseline. Customers can trust every order comes from a vendor who meets clear UK health & safety requirements."
       >
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.08 }}
-            className="rounded-3xl border border-slate-200 bg-white/75 backdrop-blur p-6 sm:p-7 shadow-sm"
+            className="rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm"
           >
-            <div className="text-sm font-extrabold text-slate-500">The moment it clicked</div>
-            <div className="mt-2 text-lg font-extrabold text-slate-900">
-              The solution already existed — it just wasn’t easy to access.
-            </div>
-            <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-              We ordered a big bowl of jollof rice from a local home cook — and realised: authentic, great-value food is
-              nearby… but discovery + ordering needed to feel effortless.
-            </div>
+            <div className="text-sm font-extrabold text-slate-500">Before selling on PeerPlates</div>
+            <div className="mt-2 text-lg font-extrabold text-slate-900">Every vendor must:</div>
+
+            <ul className="mt-4 space-y-3 text-slate-600 font-semibold">
+              {[
+                "Register their food business with their local council",
+                "Complete Level 2 Food Hygiene Certification",
+                "Have a Food Safety Management System in place (e.g., SFBB / HACCP-style plan)",
+              ].map((t) => (
+                <li key={t} className="flex items-start gap-3">
+                  <span className="mt-1.5 h-2.5 w-2.5 rounded-full shrink-0" style={{ background: BRAND_ORANGE }} />
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.14 }}
-            className="rounded-3xl border border-slate-200 bg-white/75 backdrop-blur p-6 sm:p-7 shadow-sm"
+            className="rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm"
           >
-            <div className="text-sm font-extrabold text-slate-500">What PeerPlates is</div>
-            <div className="mt-2 text-lg font-extrabold text-slate-900">
-              A community-driven marketplace for home cooks & bakers.
+            <div className="text-sm font-extrabold text-slate-500">Ongoing support & standards</div>
+            <div className="mt-2 text-lg font-extrabold text-slate-900">Standards stay high as vendors scale.</div>
+
+            <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
+              Our team works closely with vendors as they grow — with priority onboarding, practical guidance, and clear resources on best-practice food safety, so quality remains consistent as businesses expand.
             </div>
-            <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-              Independent vendors sell authentic, affordable meals to nearby customers — built for speed, clarity, and trust.
+
+            <div className="mt-6 flex items-center gap-3 text-sm font-extrabold text-slate-700">
+              <span className="h-2 w-2 rounded-full" style={{ background: BRAND_BROWN }} />
+              Safety checks built into onboarding
             </div>
           </motion.div>
         </div>
