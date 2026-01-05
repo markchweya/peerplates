@@ -193,20 +193,53 @@ function ChevronDown({ open }: { open: boolean }) {
   );
 }
 
-/**
- * INTRO OVERLAY HERO (CINEMATIC):
- * - NO logo above text
- * - Clean readable “PeerPlates”
- * - Removed the “box” between words
- * - Designed to fade out as the next section animates in (no user scrolling required)
- */
-function PeerPlatesCinematicHero({
-  headerOffsetPx = 96,
-  onSkip,
+/** ✅ Brand-colored cinematic three-dot loader */
+function LoadingDots({
+  className,
+  dotSize = 5,
 }: {
-  headerOffsetPx?: number;
-  onSkip?: () => void;
+  className?: string;
+  dotSize?: number;
 }) {
+  const mixed = `linear-gradient(135deg, ${BRAND_ORANGE} 0%, ${BRAND_BROWN} 100%)`;
+  const colors = [{ bg: BRAND_ORANGE }, { bg: mixed }, { bg: BRAND_BROWN }];
+
+  return (
+    <span className={cn("inline-flex items-end gap-2", className)} aria-hidden="true">
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="inline-block rounded-full"
+          style={{
+            width: dotSize,
+            height: dotSize,
+            background: colors[i]!.bg,
+            boxShadow:
+              i === 1
+                ? "0 8px 22px rgba(252,176,64,0.22), 0 8px 22px rgba(138,107,67,0.18)"
+                : "0 10px 26px rgba(2,6,23,0.10)",
+          }}
+          animate={{
+            y: [0, -6, 0],
+            opacity: [0.35, 1, 0.35],
+            scale: [0.96, 1.06, 0.96],
+          }}
+          transition={{
+            duration: 0.95,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: i * 0.16,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/**
+ * INTRO OVERLAY HERO (CINEMATIC)
+ */
+function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: number }) {
   const reduce = useReducedMotion();
 
   // subtle sweep highlight across “Plates”
@@ -240,14 +273,6 @@ function PeerPlatesCinematicHero({
       style={{
         height: `calc(100svh - ${headerOffsetPx}px)`,
         minHeight: 620,
-      }}
-      onClick={onSkip}
-      role={onSkip ? "button" : undefined}
-      aria-label={onSkip ? "Continue" : undefined}
-      tabIndex={onSkip ? 0 : undefined}
-      onKeyDown={(e) => {
-        if (!onSkip) return;
-        if (e.key === "Enter" || e.key === " ") onSkip();
       }}
     >
       {/* soft premium background */}
@@ -328,7 +353,7 @@ function PeerPlatesCinematicHero({
             }}
           >
             <span className="text-slate-900">Peer</span>
-            <span className="inline-block w-6" aria-hidden="true" />
+            <span className="inline-block w-3" aria-hidden="true" />
             <span
               className="relative inline-block"
               style={{
@@ -365,10 +390,9 @@ function PeerPlatesCinematicHero({
             />
           </div>
 
-          {/* tiny hint */}
-          <div className="mt-6 text-xs font-semibold text-slate-500">
-            Entering experience…
-            <span className="ml-2 opacity-70">(click to skip)</span>
+          <div className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+            <span>Entering experience…</span>
+            <LoadingDots />
           </div>
         </motion.div>
       </div>
@@ -380,11 +404,10 @@ export default function Home() {
   const heroRef = useRef<HTMLElement | null>(null);
   const showcaseRef = useRef<HTMLElement | null>(null);
 
-  // ✅ NEW: auto-reveal next section (no user scroll)
+  // ✅ Intro overlay
   const [introOpen, setIntroOpen] = useState(true);
 
   useEffect(() => {
-    // lock scroll during intro
     const prev = document.body.style.overflow;
     if (introOpen) document.body.style.overflow = "hidden";
     return () => {
@@ -394,10 +417,11 @@ export default function Home() {
 
   useEffect(() => {
     if (!introOpen) return;
-    const t = window.setTimeout(() => setIntroOpen(false), 1700);
+    const t = window.setTimeout(() => setIntroOpen(false), 2100);
     return () => window.clearTimeout(t);
   }, [introOpen]);
 
+  // ✅ Cinematic fades
   const heroFx = useCinematicSection(heroRef, {
     enterStart: 1.02,
     enterEnd: 0.88,
@@ -426,11 +450,11 @@ export default function Home() {
     mass: 0.58,
   });
 
-  // Mobile menu (hamburger)
+  // ✅ Mobile menu (hamburger)
   const [menuOpen, setMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
-  // Desktop dropdown menu
+  // ✅ Desktop dropdown menu
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -510,7 +534,7 @@ export default function Home() {
   const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
-  // Hero overlay scroll effect (gallery fades, text/card floats)
+  // ✅ Hero overlay scroll effect (gallery fades, text/card floats)
   const galleryWrapRef = useRef<HTMLDivElement | null>(null);
   const { scrollYProgress: galleryP } = useScroll({
     target: galleryWrapRef,
@@ -523,8 +547,105 @@ export default function Home() {
   const galleryFilter = useMotionTemplate`blur(${galleryBlur}px)`;
   const overlayY = useTransform(galleryP, [0, 0.6, 1], [0, -46, -96]);
 
+  // =========================================================
+  // ✅ Safari-like "pull to refresh" magical reveal
+  // =========================================================
+  const pullRaw = useMotionValue(0);
+  const pullY = useSpring(pullRaw, { stiffness: 260, damping: 26, mass: 0.7 });
+
+  const startYRef = useRef<number | null>(null);
+  const armedRef = useRef(false);
+  const triggeredRef = useRef(false);
+
+  // indicator derived values
+  const pullOpacity = useTransform(pullY, [0, 18, 60], [0, 0.85, 1]);
+  const pullScale = useTransform(pullY, [0, 60], [0.98, 1]);
+  const pullBlur = useTransform(pullY, [0, 70], [10, 0]);
+  const pullFilter = useMotionTemplate`blur(${pullBlur}px)`;
+
+  const PULL_MAX = 130;
+  const PULL_TRIGGER = 78;
+
+  const triggerMagicRefresh = () => {
+    if (triggeredRef.current) return;
+    triggeredRef.current = true;
+
+    // snap scroll to top to mimic refresh
+    try {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      window.scrollTo(0, 0);
+    }
+
+    // show the intro overlay again
+    setIntroOpen(true);
+
+    // allow future triggers after a moment
+    window.setTimeout(() => {
+      triggeredRef.current = false;
+    }, 1800);
+  };
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    // only arm when you're basically at the top
+    if ((window.scrollY || 0) <= 1) {
+      armedRef.current = true;
+      startYRef.current = e.touches[0]?.clientY ?? null;
+    } else {
+      armedRef.current = false;
+      startYRef.current = null;
+    }
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!armedRef.current) return;
+    if (startYRef.current == null) return;
+
+    const yNow = e.touches[0]?.clientY ?? startYRef.current;
+    const dy = yNow - startYRef.current;
+
+    // only when pulling DOWN
+    if (dy <= 0) {
+      pullRaw.set(0);
+      return;
+    }
+
+    // prevent the browser from doing its own bounce
+    // (we want our "magical reveal" motion instead)
+    e.preventDefault();
+
+    // elastic feel
+    const elastic = Math.min(PULL_MAX, dy * 0.55);
+    pullRaw.set(elastic);
+  };
+
+  const onTouchEnd = () => {
+    if (!armedRef.current) return;
+
+    const v = pullRaw.get();
+    if (v >= PULL_TRIGGER) {
+      triggerMagicRefresh();
+    }
+
+    pullRaw.set(0);
+    armedRef.current = false;
+    startYRef.current = null;
+  };
+
+  const onTouchCancel = onTouchEnd;
+
+  // =========================================================
+
   return (
-    <main className="min-h-screen bg-white text-slate-900">
+    <main
+      className="min-h-screen bg-white text-slate-900"
+      // ✅ important: allow us to call preventDefault on touchmove
+      style={{ touchAction: "pan-x pan-y" }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchCancel}
+    >
       {/* Header */}
       <HeroFade directionDelta={7} className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -661,6 +782,42 @@ export default function Home() {
       {/* Spacer for fixed header */}
       <div className="h-[92px] sm:h-[96px]" />
 
+      {/* ✅ Pull-to-refresh indicator (under header, appears on pull) */}
+      <motion.div
+        className="fixed left-0 right-0 z-[90] pointer-events-none"
+        style={{
+          top: 96,
+          opacity: pullOpacity,
+          scale: pullScale,
+          filter: pullFilter,
+          transformOrigin: "50% 0%",
+        }}
+        aria-hidden="true"
+      >
+        <div className="mx-auto max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div
+            className={cn(
+              "mt-3 inline-flex items-center gap-2 rounded-2xl",
+              "border border-slate-200 bg-white/90 backdrop-blur-xl",
+              "px-4 py-2 shadow-sm"
+            )}
+            style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
+          >
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{
+                background: `linear-gradient(135deg, ${BRAND_ORANGE}, ${BRAND_BROWN})`,
+                boxShadow: "0 10px 24px rgba(252,176,64,0.18), 0 10px 24px rgba(138,107,67,0.12)",
+              }}
+            />
+            <span className="text-xs font-extrabold text-slate-700">
+              {pullRaw.get() >= PULL_TRIGGER ? "Release to refresh ✨" : "Pull to refresh"}
+            </span>
+            <LoadingDots dotSize={4} />
+          </div>
+        </div>
+      </motion.div>
+
       {/* ✅ INTRO OVERLAY that fades away automatically */}
       <AnimatePresence initial={false}>
         {introOpen ? (
@@ -668,7 +825,7 @@ export default function Home() {
             key="intro-overlay"
             className="fixed left-0 right-0 z-[80] bg-white"
             style={{
-              top: 96, // below header
+              top: 96,
               height: "calc(100svh - 96px)",
             }}
             initial={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -676,268 +833,263 @@ export default function Home() {
             exit={{ opacity: 0, y: -28, filter: "blur(8px)" }}
             transition={{ duration: 0.85, ease: [0.2, 0.9, 0.2, 1] }}
           >
-            <PeerPlatesCinematicHero
-              headerOffsetPx={0}
-              onSkip={() => {
-                setIntroOpen(false);
-              }}
-            />
+            <PeerPlatesCinematicHero headerOffsetPx={0} />
           </motion.div>
         ) : null}
       </AnimatePresence>
 
-      {/* ✅ Rest of page animates IN (comes up) once intro fades */}
-      <motion.div
-        initial={{ opacity: 0, y: 34 }}
-        animate={introOpen ? { opacity: 0, y: 34 } : { opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, ease: [0.2, 0.9, 0.2, 1], delay: introOpen ? 0 : 0.05 }}
-      >
-        {/* HERO CONTENT */}
-        <motion.section
-          id="hero-content"
-          ref={heroRef}
-          style={{
-            opacity: heroFx.opacity,
-            y: heroFx.y,
-            filter: heroFx.filter,
-            willChange: "transform, opacity, filter",
-          }}
+      {/* ✅ Whole page content gets pulled down on "refresh pull" */}
+      <motion.div style={{ y: pullY }}>
+        {/* ✅ Rest of page animates IN once intro fades */}
+        <motion.div
+          initial={{ opacity: 0, y: 34 }}
+          animate={introOpen ? { opacity: 0, y: 34 } : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: [0.2, 0.9, 0.2, 1], delay: introOpen ? 0 : 0.05 }}
         >
-          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-            <div className="mt-6 sm:mt-10 grid gap-10 lg:grid-cols-2 lg:items-start">
-              <div className="pt-2">
-                <div ref={galleryWrapRef} className="relative">
-                  {/* gallery fades on scroll */}
-                  <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
-                    <div className="-mx-2 sm:mx-0">
-                      <TopGallery
-                        images={[
-                          { name: "gallery11.png", alt: "Gallery 11" },
-                          { name: "gallery12.png", alt: "Gallery 12" },
-                          { name: "gallery13.png", alt: "Gallery 13" },
-                          { name: "gallery14.png", alt: "Gallery 14" },
-                          { name: "gallery15.png", alt: "Gallery 15" },
-                        ]}
-                      />
-                    </div>
-                  </motion.div>
+          {/* HERO CONTENT */}
+          <motion.section
+            id="hero-content"
+            ref={heroRef}
+            style={{
+              opacity: heroFx.opacity,
+              y: heroFx.y,
+              filter: heroFx.filter,
+              willChange: "transform, opacity, filter",
+            }}
+          >
+            <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+              <div className="mt-6 sm:mt-10 grid gap-10 lg:grid-cols-2 lg:items-start">
+                <div className="pt-2">
+                  <div ref={galleryWrapRef} className="relative">
+                    <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
+                      <div className="-mx-2 sm:mx-0">
+                        <TopGallery
+                          images={[
+                            { name: "gallery11.png", alt: "Gallery 11" },
+                            { name: "gallery12.png", alt: "Gallery 12" },
+                            { name: "gallery13.png", alt: "Gallery 13" },
+                            { name: "gallery14.png", alt: "Gallery 14" },
+                            { name: "gallery15.png", alt: "Gallery 15" },
+                          ]}
+                        />
+                      </div>
+                    </motion.div>
 
-                  {/* overlay text + buttons */}
-                  <motion.div
-                    style={{ y: overlayY }}
-                    initial={{ opacity: 0, y: 16, scale: 0.985 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.55, ease: [0.2, 0.9, 0.2, 1], delay: 0.05 }}
-                    className={cn("relative z-30", "-mt-24 sm:-mt-28 md:-mt-32")}
-                  >
-                    <div className="sticky top-[112px]">
-                      <div
-                        className={cn(
-                          "relative overflow-hidden",
-                          "rounded-[38px] border border-slate-200/70",
-                          "bg-white/92 backdrop-blur-xl",
-                          "shadow-[0_30px_110px_rgba(2,6,23,0.16)]",
-                          "p-7 sm:p-8"
-                        )}
-                      >
-                        <div className="pointer-events-none absolute inset-0">
-                          <div
-                            className="absolute -top-28 -left-28 h-80 w-80 rounded-full blur-3xl opacity-25"
-                            style={{ background: "rgba(252,176,64,0.55)" }}
-                          />
-                          <div
-                            className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full blur-3xl opacity-18"
-                            style={{ background: "rgba(138,107,67,0.42)" }}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-tr from-white/65 via-white/88 to-white" />
-                        </div>
-
-                        <MotionH1
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.6, delay: 0.1 }}
+                    <motion.div
+                      style={{ y: overlayY }}
+                      initial={{ opacity: 0, y: 16, scale: 0.985 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.55, ease: [0.2, 0.9, 0.2, 1], delay: 0.05 }}
+                      className={cn("relative z-30", "-mt-24 sm:-mt-28 md:-mt-32")}
+                    >
+                      <div className="sticky top-[112px]">
+                        <div
                           className={cn(
-                            "relative font-extrabold tracking-tight leading-[0.96]",
-                            "text-slate-900",
-                            "text-[clamp(2.3rem,4.3vw,3.6rem)]"
+                            "relative overflow-hidden",
+                            "rounded-[38px] border border-slate-200/70",
+                            "bg-white/92 backdrop-blur-xl",
+                            "shadow-[0_30px_110px_rgba(2,6,23,0.16)]",
+                            "p-7 sm:p-8"
                           )}
                         >
-                          Eat better and back local:
-                          <br />
-                          authentic home-cooked meals
-                          <br />
-                          from trusted cooks and bakers.
-                        </MotionH1>
+                          <div className="pointer-events-none absolute inset-0">
+                            <div
+                              className="absolute -top-28 -left-28 h-80 w-80 rounded-full blur-3xl opacity-25"
+                              style={{ background: "rgba(252,176,64,0.55)" }}
+                            />
+                            <div
+                              className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full blur-3xl opacity-18"
+                              style={{ background: "rgba(138,107,67,0.42)" }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-tr from-white/65 via-white/88 to-white" />
+                          </div>
 
-                        <MotionDiv
-                          initial={{ opacity: 0, y: 14 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.55, delay: 0.18 }}
-                          className="relative mt-7 flex flex-col gap-3 sm:flex-row sm:items-center"
-                        >
-                          <Link
-                            href="/join"
-                            className="rounded-2xl bg-[#fcb040] px-7 py-3 text-center font-extrabold text-slate-900 shadow-sm transition hover:opacity-95 hover:-translate-y-[1px]"
+                          <MotionH1
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.1 }}
+                            className={cn(
+                              "relative font-extrabold tracking-tight leading-[0.96]",
+                              "text-slate-900",
+                              "text-[clamp(2.3rem,4.3vw,3.6rem)]"
+                            )}
                           >
-                            Join waitlist
-                          </Link>
+                            Eat better and back local:
+                            <br />
+                            authentic home-cooked meals
+                            <br />
+                            from trusted cooks and bakers.
+                          </MotionH1>
 
-                          <Link
-                            href="/queue"
-                            className="rounded-2xl border border-slate-200 px-7 py-3 text-center font-extrabold transition hover:bg-slate-50 hover:-translate-y-[1px]"
+                          <MotionDiv
+                            initial={{ opacity: 0, y: 14 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.55, delay: 0.18 }}
+                            className="relative mt-7 flex flex-col gap-3 sm:flex-row sm:items-center"
                           >
-                            Check queue
-                          </Link>
-                        </MotionDiv>
+                            <Link
+                              href="/join"
+                              className="rounded-2xl bg-[#fcb040] px-7 py-3 text-center font-extrabold text-slate-900 shadow-sm transition hover:opacity-95 hover:-translate-y-[1px]"
+                            >
+                              Join waitlist
+                            </Link>
+
+                            <Link
+                              href="/queue"
+                              className="rounded-2xl border border-slate-200 px-7 py-3 text-center font-extrabold transition hover:bg-slate-50 hover:-translate-y-[1px]"
+                            >
+                              Check queue
+                            </Link>
+                          </MotionDiv>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-
-              {/* Right card */}
-              <MotionDiv
-                initial={{ opacity: 0, x: 22 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.65, delay: 0.18 }}
-                className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm"
-              >
-                <div>
-                  <div className="text-xl font-extrabold">How it works</div>
-                  <div className="mt-2 text-slate-600 font-semibold">
-                    Join in minutes. Get a code. Share. Move up the waitlist.
+                    </motion.div>
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-4">
-                  {[
-                    { n: "1", t: "Pick your role", d: "Consumer or vendor." },
-                    { n: "2", t: "Answer a few questions", d: "Only complete entries count." },
-                    { n: "3", t: "Get your link", d: "Share it to move up the waitlist." },
-                    { n: "4", t: "Safety first", d: "Vendors follow UK hygiene rules." },
-                  ].map((s, i) => (
-                    <MotionDiv
-                      key={s.n}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.45, delay: 0.22 + i * 0.06 }}
-                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fcb040] text-slate-900 font-extrabold">
-                          {s.n}
+                <MotionDiv
+                  initial={{ opacity: 0, x: 22 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.65, delay: 0.18 }}
+                  className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm"
+                >
+                  <div>
+                    <div className="text-xl font-extrabold">How it works</div>
+                    <div className="mt-2 text-slate-600 font-semibold">
+                      Join in minutes. Get a code. Share. Move up the waitlist.
+                    </div>
+                  </div>
+
+                  <div className="mt-6 grid gap-4">
+                    {[
+                      { n: "1", t: "Pick your role", d: "Consumer or vendor." },
+                      { n: "2", t: "Answer a few questions", d: "Only complete entries count." },
+                      { n: "3", t: "Get your link", d: "Share it to move up the waitlist." },
+                      { n: "4", t: "Safety first", d: "Vendors follow UK hygiene rules." },
+                    ].map((s, i) => (
+                      <MotionDiv
+                        key={s.n}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.45, delay: 0.22 + i * 0.06 }}
+                        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fcb040] text-slate-900 font-extrabold">
+                            {s.n}
+                          </div>
+                          <div>
+                            <div className="font-extrabold text-slate-900 text-lg">{s.t}</div>
+                            <div className="mt-1 text-slate-600 font-semibold">{s.d}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-extrabold text-slate-900 text-lg">{s.t}</div>
-                          <div className="mt-1 text-slate-600 font-semibold">{s.d}</div>
-                        </div>
-                      </div>
-                    </MotionDiv>
-                  ))}
-                </div>
-              </MotionDiv>
+                      </MotionDiv>
+                    ))}
+                  </div>
+                </MotionDiv>
+              </div>
+            </div>
+          </motion.section>
+
+          {/* SHOWCASE */}
+          <motion.section
+            ref={showcaseRef}
+            style={{
+              opacity: showcaseFx.opacity,
+              y: showcaseFx.y,
+              filter: showcaseFx.filter,
+              willChange: "transform, opacity, filter",
+            }}
+          >
+            <ScrollShowcase
+              heading="App Previews"
+              subheading="See how PeerPlates makes ordering and managing home-cooked food effortless."
+              direction="ltr"
+              snap={true}
+              tilt={false}
+              nav={[
+                { label: "Ordering", index: 0 },
+                { label: "Storefront", index: 2 },
+                { label: "Vendor", index: 3 },
+                { label: "Analytics", index: 4 },
+                { label: "Operations", index: 6 },
+              ]}
+              items={[
+                {
+                  image: "/images/gallery/gallery1.jpeg",
+                  kicker: "Scroll-first menu",
+                  title: "TikTok-style scroll experience, built for ordering.",
+                  subtitle: "Scroll. Crave. Add to cart.",
+                  desc: 'Discover home-cooked meals in short, shoppable videos — tap “Add to cart” straight from the video.',
+                },
+                {
+                  image: "/images/gallery/gallery2.jpeg",
+                  kicker: "Quick picks",
+                  title: "Highlights that make choosing effortless.",
+                  subtitle: "See it. Want it. Order fast.",
+                  desc: "Short, snackable previews that help you decide in seconds — perfect for busy students.",
+                },
+                {
+                  image: "/images/gallery/gallery3.jpeg",
+                  kicker: "Storefront",
+                  title: "No back-and-forth. Just orders.",
+                  subtitle: "Browse. Prices upfront. Checkout in seconds.",
+                  desc: "A proper storefront for home-cooked meals: browse categories, see prices upfront, and checkout in seconds.",
+                },
+                {
+                  image: "/images/gallery/gallery4.jpeg",
+                  kicker: "Vendor profiles",
+                  title: "Grow your community.",
+                  subtitle: "Your profile. Your followers. Your drops.",
+                  desc: "Build a loyal following with your own vendor profile — customers can follow, view your posts, and stay updated on your collection days and latest drops.",
+                },
+                {
+                  image: "/images/gallery/gallery5.jpeg",
+                  kicker: "Analytics",
+                  title: "Eliminate the guesswork — PeerPlates tracks it for you.",
+                  subtitle: "Orders, earnings, and what’s trending.",
+                  desc: "Orders, revenue, customer activity, peak times — all in one clean dashboard.",
+                },
+                {
+                  image: "/images/gallery/gallery6.png",
+                  kicker: "Insights",
+                  title: "Make smarter decisions with live performance stats.",
+                  subtitle: "See your top sellers — fast.",
+                  desc: "Know what’s working. See what’s moving fastest — and double down on the dishes that drive revenue.",
+                },
+                {
+                  image: "/images/gallery/gallery7.jpeg",
+                  kicker: "Vendor control",
+                  title: "Set a cutoff. Stay in control.",
+                  subtitle: "Orders close when you say so.",
+                  desc: "Choose how far in advance customers must order — so you’ve got time to prep and don’t get overloaded.",
+                },
+                {
+                  image: "/images/gallery/gallery9.png",
+                  kicker: "Your kitchen. Your rules.",
+                  title: "Set slots. Cap orders. Keep control.",
+                  subtitle: "You decide when you’re taking orders and when you’re not.",
+                  desc: "PeerPlates fits around your life — not the other way round.",
+                },
+                {
+                  image: "/images/gallery/gallery10.png",
+                  kicker: "Order management",
+                  title: "Stay organised. Avoid mix-ups.",
+                  subtitle: "Filter by pickup date — today, this week, or any day.",
+                  desc: "Filter orders by pickup date so you can track what’s due today, this week, or a specific day — and make sure each order goes to the right customer.",
+                },
+              ]}
+            />
+
+            <div className="md:hidden h-[28vh]" aria-hidden="true" />
+          </motion.section>
+
+          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mt-10 sm:mt-12 border-t border-slate-200 pt-6 pb-10 text-sm text-slate-500">
+              © {new Date().getFullYear()} PeerPlates
             </div>
           </div>
-        </motion.section>
-
-        {/* SHOWCASE */}
-        <motion.section
-          ref={showcaseRef}
-          style={{
-            opacity: showcaseFx.opacity,
-            y: showcaseFx.y,
-            filter: showcaseFx.filter,
-            willChange: "transform, opacity, filter",
-          }}
-        >
-          <ScrollShowcase
-            heading="App Previews"
-            subheading="See how PeerPlates makes ordering and managing home-cooked food effortless."
-            direction="ltr"
-            snap={true}
-            tilt={false}
-            nav={[
-              { label: "Ordering", index: 0 },
-              { label: "Storefront", index: 2 },
-              { label: "Vendor", index: 3 },
-              { label: "Analytics", index: 4 },
-              { label: "Operations", index: 6 },
-            ]}
-            items={[
-              {
-                image: "/images/gallery/gallery1.jpeg",
-                kicker: "Scroll-first menu",
-                title: "TikTok-style scroll experience, built for ordering.",
-                subtitle: "Scroll. Crave. Add to cart.",
-                desc: 'Discover home-cooked meals in short, shoppable videos — tap “Add to cart” straight from the video.',
-              },
-              {
-                image: "/images/gallery/gallery2.jpeg",
-                kicker: "Quick picks",
-                title: "Highlights that make choosing effortless.",
-                subtitle: "See it. Want it. Order fast.",
-                desc: "Short, snackable previews that help you decide in seconds — perfect for busy students.",
-              },
-              {
-                image: "/images/gallery/gallery3.jpeg",
-                kicker: "Storefront",
-                title: "No back-and-forth. Just orders.",
-                subtitle: "Browse. Prices upfront. Checkout in seconds.",
-                desc: "A proper storefront for home-cooked meals: browse categories, see prices upfront, and checkout in seconds.",
-              },
-              {
-                image: "/images/gallery/gallery4.jpeg",
-                kicker: "Vendor profiles",
-                title: "Grow your community.",
-                subtitle: "Your profile. Your followers. Your drops.",
-                desc: "Build a loyal following with your own vendor profile — customers can follow, view your posts, and stay updated on your collection days and latest drops.",
-              },
-              {
-                image: "/images/gallery/gallery5.jpeg",
-                kicker: "Analytics",
-                title: "Eliminate the guesswork — PeerPlates tracks it for you.",
-                subtitle: "Orders, earnings, and what’s trending.",
-                desc: "Orders, revenue, customer activity, peak times — all in one clean dashboard.",
-              },
-              {
-                image: "/images/gallery/gallery6.png",
-                kicker: "Insights",
-                title: "Make smarter decisions with live performance stats.",
-                subtitle: "See your top sellers — fast.",
-                desc: "Know what’s working. See what’s moving fastest — and double down on the dishes that drive revenue.",
-              },
-              {
-                image: "/images/gallery/gallery7.jpeg",
-                kicker: "Vendor control",
-                title: "Set a cutoff. Stay in control.",
-                subtitle: "Orders close when you say so.",
-                desc: "Choose how far in advance customers must order — so you’ve got time to prep and don’t get overloaded.",
-              },
-              {
-                image: "/images/gallery/gallery9.png",
-                kicker: "Your kitchen. Your rules.",
-                title: "Set slots. Cap orders. Keep control.",
-                subtitle: "You decide when you’re taking orders and when you’re not.",
-                desc: "PeerPlates fits around your life — not the other way round.",
-              },
-              {
-                image: "/images/gallery/gallery10.png",
-                kicker: "Order management",
-                title: "Stay organised. Avoid mix-ups.",
-                subtitle: "Filter by pickup date — today, this week, or any day.",
-                desc: "Filter orders by pickup date so you can track what’s due today, this week, or a specific day — and make sure each order goes to the right customer.",
-              },
-            ]}
-          />
-
-          <div className="md:hidden h-[28vh]" aria-hidden="true" />
-        </motion.section>
-
-        <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mt-10 sm:mt-12 border-t border-slate-200 pt-6 pb-10 text-sm text-slate-500">
-            © {new Date().getFullYear()} PeerPlates
-          </div>
-        </div>
+        </motion.div>
       </motion.div>
     </main>
   );
