@@ -8,14 +8,16 @@ import {
   motion,
   useMotionTemplate,
   useMotionValue,
-  useSpring,
+  useReducedMotion,
   useScroll,
+  useSpring,
   useTransform,
 } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import ScrollShowcase from "@/app/ui/ScrollShowcase";
 import HeroFade from "@/app/ui/HeroFade";
+import TopGallery from "@/app/ui/TopGallery";
 import { MotionDiv, MotionH1 } from "@/app/ui/motion";
 
 const BRAND_ORANGE = "#fcb040";
@@ -29,6 +31,12 @@ function clamp01(n: number) {
   return Math.max(0, Math.min(1, n));
 }
 
+/**
+ * Cinematic section fade:
+ * - fades IN quickly as section enters
+ * - holds while you're "in" the section
+ * - fades OUT only when leaving viewport
+ */
 function useCinematicSection(
   ref: React.RefObject<HTMLElement | null>,
   opts?: {
@@ -65,6 +73,7 @@ function useCinematicSection(
   const yRaw = useMotionValue(0);
   const bRaw = useMotionValue(0);
 
+  // ✅ FIX: useSpring is a hook (not motion.useSpring)
   const o = useSpring(oRaw, { stiffness, damping, mass });
   const y = useSpring(yRaw, { stiffness, damping, mass });
   const b = useSpring(bRaw, { stiffness, damping, mass });
@@ -89,7 +98,6 @@ function useCinematicSection(
       const exitT = clamp01((exitStart * vh - rect.bottom) / exitDen);
 
       const opacity = enterT * (1 - exitT);
-
       const yVal = (1 - enterT) * yEnter + exitT * yExit;
       const blurVal = (1 - enterT) * blurEnter + exitT * blurExit;
 
@@ -103,12 +111,8 @@ function useCinematicSection(
       raf = window.requestAnimationFrame(update);
     };
 
-    document.addEventListener("scroll", schedule, {
-      capture: true,
-      passive: true,
-    });
+    document.addEventListener("scroll", schedule, { capture: true, passive: true });
     window.addEventListener("resize", schedule, { passive: true });
-
     schedule();
 
     return () => {
@@ -134,6 +138,7 @@ function useCinematicSection(
   return { opacity: o, y, filter };
 }
 
+/** Hamburger icon animates into X */
 function HamburgerIcon({ open }: { open: boolean }) {
   return (
     <svg
@@ -190,280 +195,239 @@ function ChevronDown({ open }: { open: boolean }) {
   );
 }
 
-function TopGlassCarousel({
-  images,
+/**
+ * FULL-VIEWPORT INTRO HERO (CINEMATIC)
+ * - removes the “Authentic …” line
+ * - moves logo ABOVE the PeerPlates wordmark
+ * - gives room + fade-in feel for the logo
+ * - keeps the reflective shimmer on “Plates”
+ */
+function PeerPlatesCinematicHero({
+  nextId = "hero-content",
+  headerOffsetPx = 96,
 }: {
-  images: Array<{ src: string; alt: string }>;
+  nextId?: string;
+  headerOffsetPx?: number;
 }) {
-  const [idx, setIdx] = useState(0);
-  const [dir, setDir] = useState<1 | -1>(1);
-  const rootRef = useRef<HTMLDivElement | null>(null);
+  const reduce = useReducedMotion();
 
-  const safeSet = (n: number, nextDir?: 1 | -1) => {
-    const len = images.length;
-    const v = ((n % len) + len) % len;
-    if (typeof nextDir === "number") setDir(nextDir);
-    setIdx(v);
+  const scrollToNext = () => {
+    const el = document.getElementById(nextId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const prev = images[(idx - 1 + images.length) % images.length];
-  const cur = images[idx];
-  const next = images[(idx + 1) % images.length];
-
-  const arrowBtn =
-    "select-none inline-flex items-center justify-center " +
-    "h-14 w-14 rounded-full " +
-    "border border-white/60 bg-white/28 backdrop-blur-2xl " +
-    "shadow-[0_22px_70px_rgba(0,0,0,0.22)] " +
-    "transition active:scale-[0.98] hover:bg-white/36";
+  // shimmer sweep only for “Plates”
+  const shimmerX = useMotionValue(-40);
+  const s2 = useTransform(shimmerX, (v) => Math.min(110, v + 18));
+  const s3 = useTransform(shimmerX, (v) => Math.min(120, v + 38));
+  const shimmer = useMotionTemplate`linear-gradient(90deg,
+    rgba(15,23,42,0.95) 0%,
+    rgba(15,23,42,0.95) ${shimmerX}%,
+    rgba(252,176,64,0.98) ${s2}%,
+    rgba(15,23,42,0.95) ${s3}%,
+    rgba(15,23,42,0.95) 100%
+  )`;
 
   useEffect(() => {
-    const el = rootRef.current;
-    if (!el) return;
-
-    let acc = 0;
-    let last = 0;
-
-    const onWheel = (e: WheelEvent) => {
-      const dx = Math.abs(e.deltaX);
-      const dy = Math.abs(e.deltaY);
-      const horizontalIntent = dx > dy || e.shiftKey;
-      if (!horizontalIntent) return;
-
-      const primary = dx > dy ? e.deltaX : e.deltaY;
-      if (Math.abs(primary) < 3) return;
-
-      e.preventDefault();
-
-      const now = performance.now();
-      if (now - last > 240) acc = 0;
-      last = now;
-
-      acc += primary;
-
-      if (acc > 60) {
-        acc = 0;
-        safeSet(idx + 1, 1);
-      } else if (acc < -60) {
-        acc = 0;
-        safeSet(idx - 1, -1);
-      }
+    if (reduce) return;
+    let raf = 0;
+    const tick = () => {
+      const v = shimmerX.get();
+      shimmerX.set(v >= 140 ? -40 : v + 1.6);
+      raf = window.requestAnimationFrame(tick);
     };
-
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel as any);
-  }, [idx, images.length]);
+    raf = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(raf);
+  }, [reduce, shimmerX]);
 
   return (
-    <motion.div
-      ref={rootRef}
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "ArrowRight") safeSet(idx + 1, 1);
-        if (e.key === "ArrowLeft") safeSet(idx - 1, -1);
+    <section
+      className="relative overflow-hidden bg-white"
+      style={{
+        height: `calc(100svh - ${headerOffsetPx}px)`,
+        minHeight: 620,
       }}
-      initial={{ opacity: 0, y: 12, scale: 0.985 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.52, ease: [0.2, 0.9, 0.2, 1] }}
-      className="w-full outline-none"
-      aria-label="Gallery carousel"
     >
+      {/* cinematic background layers */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div
+          className="absolute left-1/2 top-[52%] -translate-x-1/2 -translate-y-1/2 h-[140vmin] w-[140vmin] rounded-full blur-3xl opacity-[0.12]"
+          style={{
+            background: `radial-gradient(circle at 48% 46%, ${BRAND_ORANGE}, transparent 62%)`,
+          }}
+        />
+        <div
+          className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 h-[160vmin] w-[160vmin] rounded-full blur-3xl opacity-[0.09]"
+          style={{
+            background: `radial-gradient(circle at 54% 56%, ${BRAND_BROWN}, transparent 64%)`,
+          }}
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0)_0%,rgba(255,255,255,0)_52%,rgba(2,6,23,0.08)_100%)]" />
+        <div className="absolute inset-0 opacity-[0.07] mix-blend-multiply [background-image:repeating-linear-gradient(0deg,rgba(2,6,23,0.12),rgba(2,6,23,0.12)_1px,transparent_1px,transparent_3px)]" />
+      </div>
+
+      {/* plate + spoon watermark */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <motion.div
+          className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2"
+          initial={reduce ? false : { opacity: 0, scale: 0.985 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.9, ease: [0.2, 0.9, 0.2, 1] }}
+          style={{ opacity: 0.45 }}
+        >
+          <motion.svg
+            viewBox="0 0 520 520"
+            className="block w-[104vmin] max-w-[980px] h-[104vmin] max-h-[980px]"
+            animate={reduce ? {} : { rotate: 360 }}
+            transition={reduce ? undefined : { duration: 84, ease: "linear", repeat: Infinity }}
+          >
+            <defs>
+              <linearGradient id="pp-ring-cine" x1="80" y1="80" x2="440" y2="440" gradientUnits="userSpaceOnUse">
+                <stop stopColor={BRAND_ORANGE} stopOpacity="0.92" />
+                <stop offset="0.55" stopColor="#e9e9e9" stopOpacity="0.52" />
+                <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="0.42" />
+              </linearGradient>
+            </defs>
+
+            <circle cx="260" cy="260" r="206" fill="none" stroke="url(#pp-ring-cine)" strokeWidth="30" />
+            <circle cx="260" cy="260" r="164" fill="none" stroke="#e7e7e7" strokeOpacity="0.9" strokeWidth="11" />
+            <path
+              d="M140 262 A160 160 0 0 1 262 140"
+              fill="none"
+              stroke="#fff"
+              strokeOpacity="0.62"
+              strokeWidth="12"
+              strokeLinecap="round"
+            />
+          </motion.svg>
+        </motion.div>
+
+        <motion.div
+          className="absolute left-1/2 top-[58%]"
+          style={{ transform: "translate(calc(-50% + 40vmin), calc(-50% - 6vmin))" }}
+          animate={reduce ? {} : { rotate: [0, 8, -6, 0], y: [0, -5, 3, 0] }}
+          transition={reduce ? undefined : { duration: 6.8, ease: [0.2, 0.9, 0.2, 1], repeat: Infinity }}
+        >
+          <svg viewBox="0 0 240 240" className="w-[38vmin] max-w-[320px] h-[38vmin] max-h-[320px] opacity-[0.75]">
+            <defs>
+              <linearGradient id="pp-spoon-cine" x1="0" y1="0" x2="1" y2="1">
+                <stop stopColor="#ffffff" stopOpacity="0.95" />
+                <stop offset="1" stopColor="#d7d7d7" stopOpacity="0.95" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M165 78c0 19-19 36-44 36s-44-17-44-36 19-31 44-31 44 12 44 31Z"
+              fill="url(#pp-spoon-cine)"
+            />
+            <path
+              d="M121 114c-11 22-31 68-24 97 3 13 19 15 29 4 25-27 49-57 62-74 7-10-6-19-15-11-17 14-36 22-52 22Z"
+              fill="url(#pp-spoon-cine)"
+            />
+            <circle cx="176" cy="72" r="4" fill={BRAND_ORANGE} opacity="0.55" />
+          </svg>
+        </motion.div>
+
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-white/40 to-white" />
+      </div>
+
+      {/* centered content */}
       <div
-        className={cn(
-          "relative w-full overflow-hidden",
-          "rounded-[32px] border border-slate-200/70",
-          "bg-white/60 backdrop-blur-xl",
-          "shadow-[0_26px_90px_rgba(2,6,23,0.12)]"
-        )}
+        className="relative mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8"
+        style={{ height: `calc(100svh - ${headerOffsetPx}px)` }}
       >
-        <div
-          className="pointer-events-none absolute -top-24 -left-24 h-64 w-64 rounded-full blur-3xl opacity-25"
-          style={{ background: BRAND_ORANGE }}
-        />
-        <div
-          className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full blur-3xl opacity-20"
-          style={{ background: BRAND_BROWN }}
-        />
-
-        <div className="relative h-[360px] sm:h-[460px] md:h-[560px] lg:h-[620px] xl:h-[680px]">
-          <button
-            type="button"
-            onClick={() => safeSet(idx - 1, -1)}
-            className="absolute left-4 top-1/2 z-0 hidden md:block h-[88%] w-[34%] -translate-y-1/2 cursor-pointer"
-            aria-label="Previous (peek)"
-          >
-            <div className="relative h-full w-full overflow-hidden rounded-[26px] border border-white/40 bg-white/10 shadow-[0_18px_60px_rgba(2,6,23,0.18)]">
-              <img
-                src={prev.src}
-                alt={prev.alt}
-                className="h-full w-full object-cover opacity-75"
-                draggable={false}
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-white/5 to-transparent" />
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => safeSet(idx + 1, 1)}
-            className="absolute right-4 top-1/2 z-0 hidden md:block h-[88%] w-[34%] -translate-y-1/2 cursor-pointer"
-            aria-label="Next (peek)"
-          >
-            <div className="relative h-full w-full overflow-hidden rounded-[26px] border border-white/40 bg-white/10 shadow-[0_18px_60px_rgba(2,6,23,0.18)]">
-              <img
-                src={next.src}
-                alt={next.alt}
-                className="h-full w-full object-cover opacity-75"
-                draggable={false}
-              />
-              <div className="absolute inset-0 bg-gradient-to-l from-white/30 via-white/5 to-transparent" />
-            </div>
-          </button>
-
+        <div className="flex h-full flex-col items-center justify-center text-center">
+          {/* Logo ABOVE wordmark */}
           <motion.div
-            className="absolute inset-0 z-10 flex items-center justify-center cursor-grab active:cursor-grabbing"
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.1}
-            onDragEnd={(_, info) => {
-              const t = info.offset.x;
-              const v = info.velocity.x;
-              if (t < -110 || v < -900) safeSet(idx + 1, 1);
-              else if (t > 110 || v > 900) safeSet(idx - 1, -1);
-            }}
-            style={{ touchAction: "pan-y" }}
+            initial={reduce ? false : { opacity: 0, y: 14, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.75, ease: [0.2, 0.9, 0.2, 1], delay: 0.06 }}
+            className="mb-4 sm:mb-5"
           >
             <div
-              className={cn(
-                "relative h-[94%] w-[99%]",
-                "md:h-[93%] md:w-[90%]",
-                "overflow-hidden rounded-[30px]",
-                "border border-white/55 bg-white/10 backdrop-blur-2xl",
-                "shadow-[0_32px_110px_rgba(2,6,23,0.22)]"
-              )}
+              className="rounded-[22px] border border-slate-200 bg-white/75 backdrop-blur px-3 py-3 shadow-sm"
+              style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.08)" }}
             >
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.img
-                  key={cur.src}
-                  src={cur.src}
-                  alt={cur.alt}
-                  className="h-full w-full object-cover"
-                  draggable={false}
-                  initial={{
-                    opacity: 0,
-                    x: dir === 1 ? 56 : -56,
-                    scale: 0.992,
-                    filter: "blur(6px)",
-                  }}
-                  animate={{ opacity: 1, x: 0, scale: 1, filter: "blur(0px)" }}
-                  exit={{
-                    opacity: 0,
-                    x: dir === 1 ? -56 : 56,
-                    scale: 0.992,
-                    filter: "blur(6px)",
-                  }}
-                  transition={{ duration: 0.44, ease: [0.2, 0.9, 0.2, 1] }}
-                />
-              </AnimatePresence>
-
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0)_0%,rgba(0,0,0,0.10)_80%,rgba(0,0,0,0.16)_100%)]" />
+              <LogoCinematic size={72} wordScale={1} />
             </div>
           </motion.div>
 
-          <div className="hidden md:block">
-            <button
-              type="button"
-              onClick={() => safeSet(idx - 1, -1)}
-              className={cn(arrowBtn, "absolute left-6 top-1/2 -translate-y-1/2 z-20")}
-              style={{
-                boxShadow:
-                  "0 22px 70px rgba(0,0,0,0.22), 0 0 0 2px rgba(252,176,64,0.26) inset",
-              }}
-              aria-label="Previous image"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
+          {/* Wordmark with reveal wipe */}
+          <motion.div
+            initial={reduce ? false : { opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.75, ease: [0.2, 0.9, 0.2, 1] }}
+            className="relative inline-flex items-center justify-center"
+            style={{
+              transform: `translateY(${Math.max(8, headerOffsetPx * 0.06)}px)`,
+            }}
+          >
+            <motion.div
+              aria-hidden="true"
+              initial={reduce ? false : { scaleX: 1 }}
+              animate={{ scaleX: 0 }}
+              transition={{ duration: 1.05, ease: [0.2, 0.9, 0.2, 1], delay: 0.08 }}
+              className="absolute inset-0 origin-left rounded-2xl bg-white"
+            />
 
-            <button
-              type="button"
-              onClick={() => safeSet(idx + 1, 1)}
-              className={cn(arrowBtn, "absolute right-6 top-1/2 -translate-y-1/2 z-20")}
+            <motion.h1
+              initial={reduce ? false : { letterSpacing: "0.08em", scale: 0.992 }}
+              animate={{ letterSpacing: "-0.02em", scale: 1 }}
+              transition={{ duration: 1.05, ease: [0.2, 0.9, 0.2, 1], delay: 0.04 }}
+              className="leading-[0.9] font-extrabold"
               style={{
-                boxShadow:
-                  "0 22px 70px rgba(0,0,0,0.22), 0 0 0 2px rgba(252,176,64,0.26) inset",
+                fontFamily: "var(--font-logo, ui-sans-serif, system-ui)",
+                fontSize: "clamp(2.4rem, 6.4vw, 4.8rem)",
+                maxWidth: "92vw",
+                whiteSpace: "nowrap",
               }}
-              aria-label="Next image"
             >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 6l6 6-6 6" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="px-5 pb-5 pt-4">
-          <div className="flex items-center justify-center gap-2.5">
-            {images.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => safeSet(i, i > idx ? 1 : -1)}
-                className={cn(
-                  "h-2.5 w-2.5 rounded-full transition",
-                  i === idx ? "scale-110" : "opacity-60 hover:opacity-95 hover:scale-105"
-                )}
+              <span className="text-slate-900">Peer</span>{" "}
+              <motion.span
                 style={{
-                  background: i === idx ? BRAND_ORANGE : "rgba(15,23,42,0.22)",
-                  boxShadow: i === idx ? "0 12px 26px rgba(252,176,64,0.35)" : "none",
+                  backgroundImage: shimmer,
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  color: BRAND_ORANGE,
                 }}
-                aria-label={`Go to image ${i + 1}`}
-              />
-            ))}
-          </div>
+              >
+                Plates
+              </motion.span>
+            </motion.h1>
+          </motion.div>
 
-          <div className="mt-2 text-center text-[11px] font-semibold text-slate-500">
-            Swipe ↔ • Drag • ← → • Shift + scroll
-          </div>
+          {/* ✅ Removed the “Authentic …” paragraph entirely */}
         </div>
       </div>
-    </motion.div>
+
+      {/* scroll button */}
+      <button
+        type="button"
+        onClick={scrollToNext}
+        className="absolute left-1/2 -translate-x-1/2 rounded-full border border-slate-200 bg-white/88 backdrop-blur px-6 py-3 text-xs font-extrabold text-slate-700 shadow-sm transition hover:-translate-y-[2px]"
+        style={{ bottom: "max(18px, env(safe-area-inset-bottom))" }}
+        aria-label="Scroll to content"
+      >
+        <span className="inline-flex items-center gap-2">
+          Scroll
+          <motion.span
+            aria-hidden="true"
+            animate={reduce ? {} : { y: [0, 5, 0] }}
+            transition={reduce ? undefined : { duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+            className="inline-block"
+          >
+            ↓
+          </motion.span>
+        </span>
+      </button>
+    </section>
   );
 }
 
 export default function Home() {
   const heroRef = useRef<HTMLElement | null>(null);
   const showcaseRef = useRef<HTMLElement | null>(null);
-
-  const galleryWrapRef = useRef<HTMLDivElement | null>(null);
-  const { scrollYProgress: galleryP } = useScroll({
-    target: galleryWrapRef,
-    offset: ["start start", "end start"],
-  });
-
-  // gallery fades as overlay becomes the focus
-  const galleryOpacity = useTransform(galleryP, [0, 0.25, 0.75, 1], [1, 0.92, 0.68, 0.42]);
-  const galleryBlur = useTransform(galleryP, [0, 1], [0, 3]);
-  const galleryScale = useTransform(galleryP, [0, 1], [1, 0.985]);
-  const galleryFilter = useMotionTemplate`blur(${galleryBlur}px)`;
-  const overlayY = useTransform(galleryP, [0, 0.6, 1], [0, -46, -96]);
 
   const heroFx = useCinematicSection(heroRef, {
     enterStart: 1.02,
@@ -574,28 +538,34 @@ export default function Home() {
 
   const btnBase =
     "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
-  const btnGhost =
-    "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
+  const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
+
+  // Hero overlay scroll effect (gallery fades, text/card floats)
+  const galleryWrapRef = useRef<HTMLDivElement | null>(null);
+  const { scrollYProgress: galleryP } = useScroll({
+    target: galleryWrapRef,
+    offset: ["start start", "end start"],
+  });
+
+  const galleryOpacity = useTransform(galleryP, [0, 0.25, 0.75, 1], [1, 0.92, 0.68, 0.42]);
+  const galleryBlur = useTransform(galleryP, [0, 1], [0, 3]);
+  const galleryScale = useTransform(galleryP, [0, 1], [1, 0.985]);
+  const galleryFilter = useMotionTemplate`blur(${galleryBlur}px)`;
+  const overlayY = useTransform(galleryP, [0, 0.6, 1], [0, -46, -96]);
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
       {/* Header */}
-      <HeroFade
-        directionDelta={7}
-        className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto"
-      >
+      <HeroFade directionDelta={7} className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center gap-3 min-w-0">
-              <Link href="/" className="flex items-center min-w-0">
-                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-hidden">
-                  <span className="inline-flex shrink-0">
-                    <LogoCinematic size={56} wordScale={1} />
-                  </span>
-                </span>
-              </Link>
+              {/* ✅ Removed logo from top-left.
+                  Keep a tiny invisible spacer so layout stays clean. */}
+              <div className="h-[56px] w-[56px] shrink-0" aria-hidden="true" />
 
+              {/* Desktop */}
               <div className="hidden md:flex items-center gap-3 ml-auto">
                 <div className="relative" data-desktop-menu-root>
                   <button
@@ -629,22 +599,13 @@ export default function Home() {
                                 key={l.href}
                                 href={l.href}
                                 onClick={() => setDesktopMenuOpen(false)}
-                                className={cn(
-                                  "w-full",
-                                  btnBase,
-                                  "px-5 py-3",
-                                  btnGhost,
-                                  "justify-start"
-                                )}
+                                className={cn("w-full", btnBase, "px-5 py-3", btnGhost, "justify-start")}
                               >
                                 {l.label}
                               </Link>
                             ))}
                           </div>
-
-                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">
-                            Taste. Tap. Order.
-                          </div>
+                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
                         </div>
                       </motion.div>
                     ) : null}
@@ -656,6 +617,7 @@ export default function Home() {
                 </Link>
               </div>
 
+              {/* Mobile hamburger */}
               {!isDesktop ? (
                 <div className="ml-auto shrink-0 relative md:hidden">
                   <button
@@ -716,9 +678,7 @@ export default function Home() {
                           </Link>
                         </div>
 
-                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">
-                          Taste. Tap. Order.
-                        </div>
+                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
                       </div>
                     </div>
                   </div>
@@ -729,10 +689,15 @@ export default function Home() {
         </div>
       </HeroFade>
 
+      {/* Spacer for fixed header */}
       <div className="h-[92px] sm:h-[96px]" />
 
-      {/* HERO */}
+      {/* CINEMATIC INTRO HERO */}
+      <PeerPlatesCinematicHero nextId="hero-content" headerOffsetPx={96} />
+
+      {/* HERO CONTENT */}
       <motion.section
+        id="hero-content"
         ref={heroRef}
         style={{
           opacity: heroFx.opacity,
@@ -745,22 +710,20 @@ export default function Home() {
           <div className="mt-6 sm:mt-10 grid gap-10 lg:grid-cols-2 lg:items-start">
             <div className="pt-2">
               <div ref={galleryWrapRef} className="relative">
-                {/* gallery (fades/blur as you scroll) */}
                 <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
                   <div className="-mx-2 sm:mx-0">
-                    <TopGlassCarousel
+                    <TopGallery
                       images={[
-                        { src: "/images/gallery/gallery11.png", alt: "Gallery 11" },
-                        { src: "/images/gallery/gallery12.png", alt: "Gallery 12" },
-                        { src: "/images/gallery/gallery13.png", alt: "Gallery 13" },
-                        { src: "/images/gallery/gallery14.png", alt: "Gallery 14" },
-                        { src: "/images/gallery/gallery15.png", alt: "Gallery 15" },
+                        { name: "gallery11.png", alt: "Gallery 11" },
+                        { name: "gallery12.png", alt: "Gallery 12" },
+                        { name: "gallery13.png", alt: "Gallery 13" },
+                        { name: "gallery14.png", alt: "Gallery 14" },
+                        { name: "gallery15.png", alt: "Gallery 15" },
                       ]}
                     />
                   </div>
                 </motion.div>
 
-                {/* overlay text + normal buttons (come over gallery) */}
                 <motion.div
                   style={{ y: overlayY }}
                   initial={{ opacity: 0, y: 16, scale: 0.985 }}
@@ -778,7 +741,6 @@ export default function Home() {
                         "p-7 sm:p-8"
                       )}
                     >
-                      {/* subtle warm back glow */}
                       <div className="pointer-events-none absolute inset-0">
                         <div
                           className="absolute -top-28 -left-28 h-80 w-80 rounded-full blur-3xl opacity-25"
@@ -808,7 +770,6 @@ export default function Home() {
                         from trusted cooks and bakers.
                       </MotionH1>
 
-                      {/* ✅ NORMAL BUTTONS (your original simple ones) */}
                       <MotionDiv
                         initial={{ opacity: 0, y: 14 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -835,7 +796,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right card */}
             <MotionDiv
               initial={{ opacity: 0, x: 22 }}
               animate={{ opacity: 1, x: 0 }}
