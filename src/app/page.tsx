@@ -12,8 +12,8 @@ import {
   useScroll,
   useTransform,
   useSpring,
+  type MotionValue,
 } from "framer-motion";
-
 
 import ScrollShowcase from "@/app/ui/ScrollShowcase";
 import HeroFade from "@/app/ui/HeroFade";
@@ -40,7 +40,9 @@ function isInteractiveTarget(target: EventTarget | null) {
   const el = target as HTMLElement | null;
   if (!el) return false;
   return Boolean(
-    el.closest('a,button,input,textarea,select,option,label,[role="button"],[role="link"],[data-no-pull]')
+    el.closest(
+      'a,button,input,textarea,select,option,label,[role="button"],[role="link"],[data-no-pull]'
+    )
   );
 }
 
@@ -93,7 +95,7 @@ function useCinematicSection(
   const filter = useMotionTemplate`blur(${b}px)`;
 
   useEffect(() => {
-    let raf: ReturnType<typeof requestAnimationFrame> | null = null;
+    let raf: number | null = null;
 
     const update = () => {
       raf = null;
@@ -101,7 +103,7 @@ function useCinematicSection(
       if (!el) return;
 
       const rect = el.getBoundingClientRect();
-      const vh = Math.max(1, innerHeight);
+      const vh = Math.max(1, globalThis.innerHeight);
 
       const enterDen = Math.max(0.0001, (enterStart - enterEnd) * vh);
       const enterT = clamp01((enterStart * vh - rect.top) / enterDen);
@@ -120,17 +122,17 @@ function useCinematicSection(
 
     const schedule = () => {
       if (raf != null) return;
-      raf = requestAnimationFrame(update);
+      raf = globalThis.requestAnimationFrame(update);
     };
 
     document.addEventListener("scroll", schedule, { capture: true, passive: true });
-    addEventListener("resize", schedule, { passive: true });
+    globalThis.addEventListener("resize", schedule, { passive: true });
     schedule();
 
     return () => {
       document.removeEventListener("scroll", schedule, true);
-      removeEventListener("resize", schedule);
-      if (raf != null) cancelAnimationFrame(raf);
+      globalThis.removeEventListener("resize", schedule);
+      if (raf != null) globalThis.cancelAnimationFrame(raf);
     };
   }, [ref, enterStart, enterEnd, exitStart, exitEnd, yEnter, yExit, blurEnter, blurExit, oRaw, yRaw, bRaw]);
 
@@ -214,8 +216,17 @@ function LoadingDots({ className, dotSize = 5 }: { className?: string; dotSize?:
                 ? "0 8px 22px rgba(252,176,64,0.22), 0 8px 22px rgba(138,107,67,0.18)"
                 : "0 10px 26px rgba(2,6,23,0.10)",
           }}
-          animate={{ y: [0, -6, 0], opacity: [0.35, 1, 0.35], scale: [0.96, 1.06, 0.96] }}
-          transition={{ duration: 0.95, repeat: Infinity, ease: "easeInOut", delay: i * 0.16 }}
+          animate={{
+            y: [0, -6, 0],
+            opacity: [0.35, 1, 0.35],
+            scale: [0.96, 1.06, 0.96],
+          }}
+          transition={{
+            duration: 0.95,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: i * 0.16,
+          }}
         />
       ))}
     </span>
@@ -242,19 +253,19 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
 
   useEffect(() => {
     if (reduce) return;
-    let raf: ReturnType<typeof requestAnimationFrame> | null = null;
+    let raf = 0;
 
     const tick = () => {
       const v = shimmerX.get();
       shimmerX.set(v >= 140 ? -40 : v + 1.3);
-      raf = requestAnimationFrame(tick);
+      raf = globalThis.requestAnimationFrame(tick);
     };
 
-    raf = requestAnimationFrame(tick);
-    return () => {
-      if (raf != null) cancelAnimationFrame(raf);
-    };
+    raf = globalThis.requestAnimationFrame(tick);
+    return () => globalThis.cancelAnimationFrame(raf);
   }, [reduce, shimmerX]);
+
+  const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
 
   return (
     <section
@@ -285,7 +296,7 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
           className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2"
           initial={reduce ? false : { opacity: 0, scale: 0.985 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.9, ease: [0.2, 0.9, 0.2, 1] }}
+          transition={{ duration: 0.9, ease: easeOut }}
           style={{ opacity: 0.26 }}
         >
           <motion.svg
@@ -314,7 +325,7 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 12, scale: 0.99 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.85, ease: [0.2, 0.9, 0.2, 1], delay: 0.06 }}
+          transition={{ duration: 0.85, ease: easeOut, delay: 0.06 }}
           className="relative text-center"
         >
           <div
@@ -349,8 +360,7 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
               }}
             >
               Plates
-              {/* ✅ make it motion.span so MotionValue<string> is allowed WITHOUT any */}
-              <motion.span
+              <span
                 aria-hidden="true"
                 className="absolute inset-0 pointer-events-none"
                 style={{
@@ -407,10 +417,10 @@ export default function Home() {
       ro.observe(el);
     }
 
-    addEventListener("resize", read);
+    globalThis.addEventListener("resize", read);
     return () => {
       ro?.disconnect();
-      removeEventListener("resize", read);
+      globalThis.removeEventListener("resize", read);
     };
   }, []);
 
@@ -427,8 +437,8 @@ export default function Home() {
 
   useEffect(() => {
     if (!introOpen) return;
-    const t = setTimeout(() => setIntroOpen(false), 2100);
-    return () => clearTimeout(t);
+    const t = globalThis.setTimeout(() => setIntroOpen(false), 2100);
+    return () => globalThis.clearTimeout(t);
   }, [introOpen]);
 
   const landed = !introOpen;
@@ -478,7 +488,7 @@ export default function Home() {
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    const mq = matchMedia("(min-width: 768px)");
+    const mq = globalThis.matchMedia("(min-width: 768px)");
     const apply = () => setIsDesktop(mq.matches);
     apply();
 
@@ -486,9 +496,10 @@ export default function Home() {
       mq.addEventListener("change", apply);
       return () => mq.removeEventListener("change", apply);
     } else {
-      // @ts-ignore (older Safari)
+      // legacy Safari
+      // @ts-expect-error legacy
       mq.addListener(apply);
-      // @ts-ignore (older Safari)
+      // @ts-expect-error legacy
       return () => mq.removeListener(apply);
     }
   }, []);
@@ -508,10 +519,10 @@ export default function Home() {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    addEventListener("keydown", onKey);
+    globalThis.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
-      removeEventListener("keydown", onKey);
+      globalThis.removeEventListener("keydown", onKey);
     };
   }, [menuOpen]);
 
@@ -529,11 +540,11 @@ export default function Home() {
       setDesktopMenuOpen(false);
     };
 
-    addEventListener("keydown", onKey);
-    addEventListener("mousedown", onDown);
+    globalThis.addEventListener("keydown", onKey);
+    globalThis.addEventListener("mousedown", onDown);
     return () => {
-      removeEventListener("keydown", onKey);
-      removeEventListener("mousedown", onDown);
+      globalThis.removeEventListener("keydown", onKey);
+      globalThis.removeEventListener("mousedown", onDown);
     };
   }, [desktopMenuOpen]);
 
@@ -564,7 +575,7 @@ export default function Home() {
   const galleryOpacityMV = useTransform(galleryP, [0, 0.25, 0.75, 1], [1, 0.92, 0.68, 0.42]);
   const galleryBlurMV = useTransform(galleryP, [0, 1], [0, 3]);
   const galleryScaleMV = useTransform(galleryP, [0, 1], [1, 0.985]);
-  const galleryFilterMV = useMotionTemplate`blur(${galleryBlurMV}px)`;
+  const galleryFilterMV = useMotionTemplate`blur(${galleryBlurMV}px)`; // MotionValue<string>
   const overlayYMV = useTransform(galleryP, [0, 0.35, 1], [0, -28, -96]);
 
   // =========================================================
@@ -583,11 +594,10 @@ export default function Home() {
   const pointerIdRef = useRef<number | null>(null);
   const capturedRef = useRef(false);
 
-  // ✅ IMPORTANT: type timers as ReturnType<typeof setTimeout> (fixes your screenshot error)
-  const wheelSettleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wheelSettleTimer = useRef<number | null>(null);
 
   const wheelArmedRef = useRef(false);
-  const wheelArmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wheelArmTimerRef = useRef<number | null>(null);
   const wheelEnergyRef = useRef(0);
 
   const atTopRef = useRef(false);
@@ -608,7 +618,7 @@ export default function Home() {
   const resetWheelArm = () => {
     wheelArmedRef.current = false;
     wheelEnergyRef.current = 0;
-    if (wheelArmTimerRef.current) clearTimeout(wheelArmTimerRef.current);
+    if (wheelArmTimerRef.current) globalThis.clearTimeout(wheelArmTimerRef.current);
     wheelArmTimerRef.current = null;
   };
 
@@ -623,14 +633,14 @@ export default function Home() {
     triggeredRef.current = true;
 
     try {
-      scrollTo({ top: 0, behavior: "smooth" });
+      globalThis.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      scrollTo(0, 0);
+      globalThis.scrollTo(0, 0);
     }
 
     setIntroOpen(true);
 
-    setTimeout(() => {
+    globalThis.setTimeout(() => {
       triggeredRef.current = false;
     }, 1700);
   };
@@ -638,7 +648,7 @@ export default function Home() {
   // Track when we're "settled" at top
   useEffect(() => {
     const onScroll = () => {
-      const y = (typeof scrollY === "number" ? scrollY : 0) || 0;
+      const y = globalThis.scrollY || 0;
 
       if (y <= 1) {
         if (!atTopRef.current) {
@@ -653,9 +663,9 @@ export default function Home() {
       }
     };
 
-    addEventListener("scroll", onScroll, { passive: true });
+    globalThis.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
-    return () => removeEventListener("scroll", onScroll);
+    return () => globalThis.removeEventListener("scroll", onScroll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -679,7 +689,7 @@ export default function Home() {
     if (!armedRef.current) return;
     if (startYRef.current == null || startXRef.current == null) return;
 
-    if (((typeof scrollY === "number" ? scrollY : 0) || 0) > 1) {
+    if ((globalThis.scrollY || 0) > 1) {
       setPull(0);
       armedRef.current = false;
       return;
@@ -704,8 +714,9 @@ export default function Home() {
 
     if (dy < CAPTURE_AFTER_PX) return;
 
-    // ✅ no `any`
-    if (e.cancelable) e.preventDefault();
+    // React TouchEvent doesn't guarantee cancelable typing; guard at runtime.
+    const evt = e.nativeEvent as unknown as { cancelable?: boolean };
+    if (evt.cancelable) e.preventDefault();
 
     const elastic = Math.min(PULL_MAX, (dy - CAPTURE_AFTER_PX) * 0.55);
     setPull(elastic);
@@ -744,7 +755,7 @@ export default function Home() {
     if (!armedRef.current) return;
     if (startYRef.current == null) return;
 
-    if (((typeof scrollY === "number" ? scrollY : 0) || 0) > 1) {
+    if ((globalThis.scrollY || 0) > 1) {
       setPull(0);
       armedRef.current = false;
       return;
@@ -762,7 +773,9 @@ export default function Home() {
       try {
         (e.currentTarget as HTMLElement).setPointerCapture(pointerIdRef.current);
         capturedRef.current = true;
-      } catch {}
+      } catch {
+        // ignore
+      }
     }
 
     e.preventDefault();
@@ -776,7 +789,9 @@ export default function Home() {
     if (capturedRef.current && pointerIdRef.current != null) {
       try {
         (e.currentTarget as HTMLElement).releasePointerCapture(pointerIdRef.current);
-      } catch {}
+      } catch {
+        // ignore
+      }
     }
 
     if (mouseDownRef.current && armedRef.current) {
@@ -795,7 +810,7 @@ export default function Home() {
   const onWheel = (e: React.WheelEvent) => {
     if (isInteractiveTarget(e.target)) return;
 
-    const y = (typeof scrollY === "number" ? scrollY : 0) || 0;
+    const y = globalThis.scrollY || 0;
 
     if (y > 1) {
       resetWheelArm();
@@ -808,8 +823,8 @@ export default function Home() {
       if (!wheelArmedRef.current) {
         wheelArmedRef.current = true;
 
-        if (wheelArmTimerRef.current) clearTimeout(wheelArmTimerRef.current);
-        wheelArmTimerRef.current = setTimeout(() => {
+        if (wheelArmTimerRef.current) globalThis.clearTimeout(wheelArmTimerRef.current);
+        wheelArmTimerRef.current = globalThis.setTimeout(() => {
           resetWheelArm();
         }, 700);
 
@@ -826,8 +841,8 @@ export default function Home() {
       const add = Math.min(16, mag * 0.16);
       setPull(pullRaw.get() + add);
 
-      if (wheelSettleTimer.current) clearTimeout(wheelSettleTimer.current);
-      wheelSettleTimer.current = setTimeout(() => {
+      if (wheelSettleTimer.current) globalThis.clearTimeout(wheelSettleTimer.current);
+      wheelSettleTimer.current = globalThis.setTimeout(() => {
         const ok = pullRaw.get() >= PULL_TRIGGER && wheelEnergyRef.current >= 220;
         if (ok) triggerMagicRefresh();
         setPull(0);
@@ -841,8 +856,8 @@ export default function Home() {
 
   useEffect(() => {
     return () => {
-      if (wheelSettleTimer.current) clearTimeout(wheelSettleTimer.current);
-      if (wheelArmTimerRef.current) clearTimeout(wheelArmTimerRef.current);
+      if (wheelSettleTimer.current) globalThis.clearTimeout(wheelSettleTimer.current);
+      if (wheelArmTimerRef.current) globalThis.clearTimeout(wheelArmTimerRef.current);
     };
   }, []);
 
@@ -887,10 +902,17 @@ export default function Home() {
     viewport: { once: true, amount: 0.28 },
   } as const;
 
+  // ✅ helper: filter style can accept MotionValue<string> in framer,
+  // but TS can be picky in React.CSSProperties; so we strongly type it.
+  const mobileGalleryFilter: MotionValue<string> = galleryFilterMV;
+
   return (
     <main
       className="min-h-screen bg-white text-slate-900"
-      style={{ touchAction: "pan-y", overscrollBehaviorY: "contain" }}
+      style={{
+        touchAction: "pan-y",
+        overscrollBehaviorY: "contain",
+      }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -1140,7 +1162,7 @@ export default function Home() {
                     <motion.div
                       style={{
                         opacity: isDesktop ? 1 : galleryOpacityMV,
-                        filter: isDesktop ? "none" : galleryFilterMV,
+                        filter: isDesktop ? "none" : mobileGalleryFilter,
                         scale: isDesktop ? 1 : galleryScaleMV,
                       }}
                     >
