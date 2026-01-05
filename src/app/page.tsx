@@ -1137,17 +1137,18 @@ export default function Home() {
                 <motion.div variants={slideL} className="pt-1 sm:pt-2">
                   <div ref={galleryWrapRef} className="relative">
                     <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
-                      <div className="-mx-2 sm:mx-0">
-                        <TopGallery
-                          images={[
-                            { name: "gallery11.png", alt: "Gallery 11" },
-                            { name: "gallery12.png", alt: "Gallery 12" },
-                            { name: "gallery13.png", alt: "Gallery 13" },
-                            { name: "gallery14.png", alt: "Gallery 14" },
-                            { name: "gallery15.png", alt: "Gallery 15" },
-                          ]}
-                        />
-                      </div>
+                     <div className="-mx-2 sm:mx-0" data-no-pull>
+  <TopGallery
+    images={[
+      { name: "gallery11.png", alt: "Gallery 11" },
+      { name: "gallery12.png", alt: "Gallery 12" },
+      { name: "gallery13.png", alt: "Gallery 13" },
+      { name: "gallery14.png", alt: "Gallery 14" },
+      { name: "gallery15.png", alt: "Gallery 15" },
+    ]}
+  />
+</div>
+
                     </motion.div>
 
                     {/* ✅ CHANGE: on phone, start LOWER (no negative margin),
