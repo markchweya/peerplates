@@ -194,27 +194,22 @@ function ChevronDown({ open }: { open: boolean }) {
 }
 
 /**
- * FULL-VIEWPORT INTRO HERO (CINEMATIC):
- * - ✅ NO logo above text
- * - ✅ Clean readable “PeerPlates”
- * - ✅ Removed the “box” between words (no chip, no dash background)
+ * INTRO OVERLAY HERO (CINEMATIC):
+ * - NO logo above text
+ * - Clean readable “PeerPlates”
+ * - Removed the “box” between words
+ * - Designed to fade out as the next section animates in (no user scrolling required)
  */
 function PeerPlatesCinematicHero({
-  nextId = "hero-content",
   headerOffsetPx = 96,
+  onSkip,
 }: {
-  nextId?: string;
   headerOffsetPx?: number;
+  onSkip?: () => void;
 }) {
   const reduce = useReducedMotion();
 
-  const scrollToNext = () => {
-    const el = document.getElementById(nextId);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  // subtle sweep highlight across the “Plates” portion
+  // subtle sweep highlight across “Plates”
   const shimmerX = useMotionValue(-40);
   const s2 = useTransform(shimmerX, (v) => Math.min(110, v + 18));
   const s3 = useTransform(shimmerX, (v) => Math.min(120, v + 38));
@@ -246,6 +241,14 @@ function PeerPlatesCinematicHero({
         height: `calc(100svh - ${headerOffsetPx}px)`,
         minHeight: 620,
       }}
+      onClick={onSkip}
+      role={onSkip ? "button" : undefined}
+      aria-label={onSkip ? "Continue" : undefined}
+      tabIndex={onSkip ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (!onSkip) return;
+        if (e.key === "Enter" || e.key === " ") onSkip();
+      }}
     >
       {/* soft premium background */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
@@ -264,7 +267,7 @@ function PeerPlatesCinematicHero({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0)_0%,rgba(255,255,255,0)_55%,rgba(2,6,23,0.06)_100%)]" />
       </div>
 
-      {/* subtle watermark rings */}
+      {/* watermark rings */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <motion.div
           className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2"
@@ -295,7 +298,7 @@ function PeerPlatesCinematicHero({
         <div className="absolute inset-0 bg-gradient-to-b from-white via-white/35 to-white" />
       </div>
 
-      {/* centered wordmark ONLY */}
+      {/* centered wordmark */}
       <div className="relative h-full flex flex-col items-center justify-center px-4">
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 12, scale: 0.99 }}
@@ -315,7 +318,6 @@ function PeerPlatesCinematicHero({
             }}
           />
 
-          {/* clean readable logo text */}
           <h1
             className="relative font-black tracking-tight leading-none"
             style={{
@@ -326,10 +328,7 @@ function PeerPlatesCinematicHero({
             }}
           >
             <span className="text-slate-900">Peer</span>
-
-            {/* ✅ FIX: no “box” separator — just clean spacing */}
             <span className="inline-block w-6" aria-hidden="true" />
-
             <span
               className="relative inline-block"
               style={{
@@ -340,8 +339,6 @@ function PeerPlatesCinematicHero({
               }}
             >
               Plates
-
-              {/* very light sweep */}
               <span
                 aria-hidden="true"
                 className="absolute inset-0 pointer-events-none"
@@ -357,7 +354,6 @@ function PeerPlatesCinematicHero({
             </span>
           </h1>
 
-          {/* tiny underline */}
           <div className="mt-5 flex justify-center">
             <div
               className="h-[2px] w-[min(320px,72vw)] rounded-full"
@@ -368,31 +364,14 @@ function PeerPlatesCinematicHero({
               }}
             />
           </div>
+
+          {/* tiny hint */}
+          <div className="mt-6 text-xs font-semibold text-slate-500">
+            Entering experience…
+            <span className="ml-2 opacity-70">(click to skip)</span>
+          </div>
         </motion.div>
       </div>
-
-      {/* scroll button */}
-      <button
-        type="button"
-        onClick={scrollToNext}
-        className="absolute left-1/2 -translate-x-1/2 rounded-full border border-slate-200 bg-white/88 backdrop-blur px-6 py-3 text-xs font-extrabold text-slate-700 shadow-sm transition hover:-translate-y-[2px]"
-        style={{
-          bottom: "max(18px, env(safe-area-inset-bottom))",
-        }}
-        aria-label="Scroll to content"
-      >
-        <span className="inline-flex items-center gap-2">
-          Scroll
-          <motion.span
-            aria-hidden="true"
-            animate={reduce ? {} : { y: [0, 5, 0] }}
-            transition={reduce ? undefined : { duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-            className="inline-block"
-          >
-            ↓
-          </motion.span>
-        </span>
-      </button>
     </section>
   );
 }
@@ -400,6 +379,24 @@ function PeerPlatesCinematicHero({
 export default function Home() {
   const heroRef = useRef<HTMLElement | null>(null);
   const showcaseRef = useRef<HTMLElement | null>(null);
+
+  // ✅ NEW: auto-reveal next section (no user scroll)
+  const [introOpen, setIntroOpen] = useState(true);
+
+  useEffect(() => {
+    // lock scroll during intro
+    const prev = document.body.style.overflow;
+    if (introOpen) document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [introOpen]);
+
+  useEffect(() => {
+    if (!introOpen) return;
+    const t = window.setTimeout(() => setIntroOpen(false), 1700);
+    return () => window.clearTimeout(t);
+  }, [introOpen]);
 
   const heroFx = useCinematicSection(heroRef, {
     enterStart: 1.02,
@@ -528,12 +525,11 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* Header (NO logo on top-left now) */}
+      {/* Header */}
       <HeroFade directionDelta={7} className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center gap-3 min-w-0">
-              {/* left spacer (keeps header layout clean without logo) */}
               <div className="w-[72px] shrink-0 md:w-[120px]" aria-hidden="true" />
 
               {/* Desktop */}
@@ -665,255 +661,284 @@ export default function Home() {
       {/* Spacer for fixed header */}
       <div className="h-[92px] sm:h-[96px]" />
 
-      {/* CINEMATIC INTRO HERO */}
-      <PeerPlatesCinematicHero nextId="hero-content" headerOffsetPx={96} />
+      {/* ✅ INTRO OVERLAY that fades away automatically */}
+      <AnimatePresence initial={false}>
+        {introOpen ? (
+          <motion.div
+            key="intro-overlay"
+            className="fixed left-0 right-0 z-[80] bg-white"
+            style={{
+              top: 96, // below header
+              height: "calc(100svh - 96px)",
+            }}
+            initial={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -28, filter: "blur(8px)" }}
+            transition={{ duration: 0.85, ease: [0.2, 0.9, 0.2, 1] }}
+          >
+            <PeerPlatesCinematicHero
+              headerOffsetPx={0}
+              onSkip={() => {
+                setIntroOpen(false);
+              }}
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
-      {/* HERO CONTENT */}
-      <motion.section
-        id="hero-content"
-        ref={heroRef}
-        style={{
-          opacity: heroFx.opacity,
-          y: heroFx.y,
-          filter: heroFx.filter,
-          willChange: "transform, opacity, filter",
-        }}
+      {/* ✅ Rest of page animates IN (comes up) once intro fades */}
+      <motion.div
+        initial={{ opacity: 0, y: 34 }}
+        animate={introOpen ? { opacity: 0, y: 34 } : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.9, ease: [0.2, 0.9, 0.2, 1], delay: introOpen ? 0 : 0.05 }}
       >
-        <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-          <div className="mt-6 sm:mt-10 grid gap-10 lg:grid-cols-2 lg:items-start">
-            <div className="pt-2">
-              <div ref={galleryWrapRef} className="relative">
-                {/* gallery fades on scroll */}
-                <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
-                  <div className="-mx-2 sm:mx-0">
-                    <TopGallery
-                      images={[
-                        { name: "gallery11.png", alt: "Gallery 11" },
-                        { name: "gallery12.png", alt: "Gallery 12" },
-                        { name: "gallery13.png", alt: "Gallery 13" },
-                        { name: "gallery14.png", alt: "Gallery 14" },
-                        { name: "gallery15.png", alt: "Gallery 15" },
-                      ]}
-                    />
-                  </div>
-                </motion.div>
+        {/* HERO CONTENT */}
+        <motion.section
+          id="hero-content"
+          ref={heroRef}
+          style={{
+            opacity: heroFx.opacity,
+            y: heroFx.y,
+            filter: heroFx.filter,
+            willChange: "transform, opacity, filter",
+          }}
+        >
+          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+            <div className="mt-6 sm:mt-10 grid gap-10 lg:grid-cols-2 lg:items-start">
+              <div className="pt-2">
+                <div ref={galleryWrapRef} className="relative">
+                  {/* gallery fades on scroll */}
+                  <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
+                    <div className="-mx-2 sm:mx-0">
+                      <TopGallery
+                        images={[
+                          { name: "gallery11.png", alt: "Gallery 11" },
+                          { name: "gallery12.png", alt: "Gallery 12" },
+                          { name: "gallery13.png", alt: "Gallery 13" },
+                          { name: "gallery14.png", alt: "Gallery 14" },
+                          { name: "gallery15.png", alt: "Gallery 15" },
+                        ]}
+                      />
+                    </div>
+                  </motion.div>
 
-                {/* overlay text + buttons */}
-                <motion.div
-                  style={{ y: overlayY }}
-                  initial={{ opacity: 0, y: 16, scale: 0.985 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.55, ease: [0.2, 0.9, 0.2, 1], delay: 0.05 }}
-                  className={cn("relative z-30", "-mt-24 sm:-mt-28 md:-mt-32")}
-                >
-                  <div className="sticky top-[112px]">
-                    <div
-                      className={cn(
-                        "relative overflow-hidden",
-                        "rounded-[38px] border border-slate-200/70",
-                        "bg-white/92 backdrop-blur-xl",
-                        "shadow-[0_30px_110px_rgba(2,6,23,0.16)]",
-                        "p-7 sm:p-8"
-                      )}
-                    >
-                      <div className="pointer-events-none absolute inset-0">
-                        <div
-                          className="absolute -top-28 -left-28 h-80 w-80 rounded-full blur-3xl opacity-25"
-                          style={{ background: "rgba(252,176,64,0.55)" }}
-                        />
-                        <div
-                          className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full blur-3xl opacity-18"
-                          style={{ background: "rgba(138,107,67,0.42)" }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/65 via-white/88 to-white" />
-                      </div>
-
-                      <MotionH1
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.1 }}
+                  {/* overlay text + buttons */}
+                  <motion.div
+                    style={{ y: overlayY }}
+                    initial={{ opacity: 0, y: 16, scale: 0.985 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.55, ease: [0.2, 0.9, 0.2, 1], delay: 0.05 }}
+                    className={cn("relative z-30", "-mt-24 sm:-mt-28 md:-mt-32")}
+                  >
+                    <div className="sticky top-[112px]">
+                      <div
                         className={cn(
-                          "relative font-extrabold tracking-tight leading-[0.96]",
-                          "text-slate-900",
-                          "text-[clamp(2.3rem,4.3vw,3.6rem)]"
+                          "relative overflow-hidden",
+                          "rounded-[38px] border border-slate-200/70",
+                          "bg-white/92 backdrop-blur-xl",
+                          "shadow-[0_30px_110px_rgba(2,6,23,0.16)]",
+                          "p-7 sm:p-8"
                         )}
                       >
-                        Eat better and back local:
-                        <br />
-                        authentic home-cooked meals
-                        <br />
-                        from trusted cooks and bakers.
-                      </MotionH1>
+                        <div className="pointer-events-none absolute inset-0">
+                          <div
+                            className="absolute -top-28 -left-28 h-80 w-80 rounded-full blur-3xl opacity-25"
+                            style={{ background: "rgba(252,176,64,0.55)" }}
+                          />
+                          <div
+                            className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full blur-3xl opacity-18"
+                            style={{ background: "rgba(138,107,67,0.42)" }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-tr from-white/65 via-white/88 to-white" />
+                        </div>
 
-                      <MotionDiv
-                        initial={{ opacity: 0, y: 14 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.55, delay: 0.18 }}
-                        className="relative mt-7 flex flex-col gap-3 sm:flex-row sm:items-center"
-                      >
-                        <Link
-                          href="/join"
-                          className="rounded-2xl bg-[#fcb040] px-7 py-3 text-center font-extrabold text-slate-900 shadow-sm transition hover:opacity-95 hover:-translate-y-[1px]"
+                        <MotionH1
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.6, delay: 0.1 }}
+                          className={cn(
+                            "relative font-extrabold tracking-tight leading-[0.96]",
+                            "text-slate-900",
+                            "text-[clamp(2.3rem,4.3vw,3.6rem)]"
+                          )}
                         >
-                          Join waitlist
-                        </Link>
+                          Eat better and back local:
+                          <br />
+                          authentic home-cooked meals
+                          <br />
+                          from trusted cooks and bakers.
+                        </MotionH1>
 
-                        <Link
-                          href="/queue"
-                          className="rounded-2xl border border-slate-200 px-7 py-3 text-center font-extrabold transition hover:bg-slate-50 hover:-translate-y-[1px]"
+                        <MotionDiv
+                          initial={{ opacity: 0, y: 14 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.55, delay: 0.18 }}
+                          className="relative mt-7 flex flex-col gap-3 sm:flex-row sm:items-center"
                         >
-                          Check queue
-                        </Link>
-                      </MotionDiv>
+                          <Link
+                            href="/join"
+                            className="rounded-2xl bg-[#fcb040] px-7 py-3 text-center font-extrabold text-slate-900 shadow-sm transition hover:opacity-95 hover:-translate-y-[1px]"
+                          >
+                            Join waitlist
+                          </Link>
+
+                          <Link
+                            href="/queue"
+                            className="rounded-2xl border border-slate-200 px-7 py-3 text-center font-extrabold transition hover:bg-slate-50 hover:-translate-y-[1px]"
+                          >
+                            Check queue
+                          </Link>
+                        </MotionDiv>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-
-            {/* Right card */}
-            <MotionDiv
-              initial={{ opacity: 0, x: 22 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.65, delay: 0.18 }}
-              className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm"
-            >
-              <div>
-                <div className="text-xl font-extrabold">How it works</div>
-                <div className="mt-2 text-slate-600 font-semibold">
-                  Join in minutes. Get a code. Share. Move up the waitlist.
+                  </motion.div>
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-4">
-                {[
-                  { n: "1", t: "Pick your role", d: "Consumer or vendor." },
-                  { n: "2", t: "Answer a few questions", d: "Only complete entries count." },
-                  { n: "3", t: "Get your link", d: "Share it to move up the waitlist." },
-                  { n: "4", t: "Safety first", d: "Vendors follow UK hygiene rules." },
-                ].map((s, i) => (
-                  <MotionDiv
-                    key={s.n}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.45, delay: 0.22 + i * 0.06 }}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fcb040] text-slate-900 font-extrabold">
-                        {s.n}
+              {/* Right card */}
+              <MotionDiv
+                initial={{ opacity: 0, x: 22 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.65, delay: 0.18 }}
+                className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-7 shadow-sm"
+              >
+                <div>
+                  <div className="text-xl font-extrabold">How it works</div>
+                  <div className="mt-2 text-slate-600 font-semibold">
+                    Join in minutes. Get a code. Share. Move up the waitlist.
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-4">
+                  {[
+                    { n: "1", t: "Pick your role", d: "Consumer or vendor." },
+                    { n: "2", t: "Answer a few questions", d: "Only complete entries count." },
+                    { n: "3", t: "Get your link", d: "Share it to move up the waitlist." },
+                    { n: "4", t: "Safety first", d: "Vendors follow UK hygiene rules." },
+                  ].map((s, i) => (
+                    <MotionDiv
+                      key={s.n}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.45, delay: 0.22 + i * 0.06 }}
+                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#fcb040] text-slate-900 font-extrabold">
+                          {s.n}
+                        </div>
+                        <div>
+                          <div className="font-extrabold text-slate-900 text-lg">{s.t}</div>
+                          <div className="mt-1 text-slate-600 font-semibold">{s.d}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-extrabold text-slate-900 text-lg">{s.t}</div>
-                        <div className="mt-1 text-slate-600 font-semibold">{s.d}</div>
-                      </div>
-                    </div>
-                  </MotionDiv>
-                ))}
-              </div>
-            </MotionDiv>
+                    </MotionDiv>
+                  ))}
+                </div>
+              </MotionDiv>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* SHOWCASE */}
+        <motion.section
+          ref={showcaseRef}
+          style={{
+            opacity: showcaseFx.opacity,
+            y: showcaseFx.y,
+            filter: showcaseFx.filter,
+            willChange: "transform, opacity, filter",
+          }}
+        >
+          <ScrollShowcase
+            heading="App Previews"
+            subheading="See how PeerPlates makes ordering and managing home-cooked food effortless."
+            direction="ltr"
+            snap={true}
+            tilt={false}
+            nav={[
+              { label: "Ordering", index: 0 },
+              { label: "Storefront", index: 2 },
+              { label: "Vendor", index: 3 },
+              { label: "Analytics", index: 4 },
+              { label: "Operations", index: 6 },
+            ]}
+            items={[
+              {
+                image: "/images/gallery/gallery1.jpeg",
+                kicker: "Scroll-first menu",
+                title: "TikTok-style scroll experience, built for ordering.",
+                subtitle: "Scroll. Crave. Add to cart.",
+                desc: 'Discover home-cooked meals in short, shoppable videos — tap “Add to cart” straight from the video.',
+              },
+              {
+                image: "/images/gallery/gallery2.jpeg",
+                kicker: "Quick picks",
+                title: "Highlights that make choosing effortless.",
+                subtitle: "See it. Want it. Order fast.",
+                desc: "Short, snackable previews that help you decide in seconds — perfect for busy students.",
+              },
+              {
+                image: "/images/gallery/gallery3.jpeg",
+                kicker: "Storefront",
+                title: "No back-and-forth. Just orders.",
+                subtitle: "Browse. Prices upfront. Checkout in seconds.",
+                desc: "A proper storefront for home-cooked meals: browse categories, see prices upfront, and checkout in seconds.",
+              },
+              {
+                image: "/images/gallery/gallery4.jpeg",
+                kicker: "Vendor profiles",
+                title: "Grow your community.",
+                subtitle: "Your profile. Your followers. Your drops.",
+                desc: "Build a loyal following with your own vendor profile — customers can follow, view your posts, and stay updated on your collection days and latest drops.",
+              },
+              {
+                image: "/images/gallery/gallery5.jpeg",
+                kicker: "Analytics",
+                title: "Eliminate the guesswork — PeerPlates tracks it for you.",
+                subtitle: "Orders, earnings, and what’s trending.",
+                desc: "Orders, revenue, customer activity, peak times — all in one clean dashboard.",
+              },
+              {
+                image: "/images/gallery/gallery6.png",
+                kicker: "Insights",
+                title: "Make smarter decisions with live performance stats.",
+                subtitle: "See your top sellers — fast.",
+                desc: "Know what’s working. See what’s moving fastest — and double down on the dishes that drive revenue.",
+              },
+              {
+                image: "/images/gallery/gallery7.jpeg",
+                kicker: "Vendor control",
+                title: "Set a cutoff. Stay in control.",
+                subtitle: "Orders close when you say so.",
+                desc: "Choose how far in advance customers must order — so you’ve got time to prep and don’t get overloaded.",
+              },
+              {
+                image: "/images/gallery/gallery9.png",
+                kicker: "Your kitchen. Your rules.",
+                title: "Set slots. Cap orders. Keep control.",
+                subtitle: "You decide when you’re taking orders and when you’re not.",
+                desc: "PeerPlates fits around your life — not the other way round.",
+              },
+              {
+                image: "/images/gallery/gallery10.png",
+                kicker: "Order management",
+                title: "Stay organised. Avoid mix-ups.",
+                subtitle: "Filter by pickup date — today, this week, or any day.",
+                desc: "Filter orders by pickup date so you can track what’s due today, this week, or a specific day — and make sure each order goes to the right customer.",
+              },
+            ]}
+          />
+
+          <div className="md:hidden h-[28vh]" aria-hidden="true" />
+        </motion.section>
+
+        <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mt-10 sm:mt-12 border-t border-slate-200 pt-6 pb-10 text-sm text-slate-500">
+            © {new Date().getFullYear()} PeerPlates
           </div>
         </div>
-      </motion.section>
-
-      {/* SHOWCASE */}
-      <motion.section
-        ref={showcaseRef}
-        style={{
-          opacity: showcaseFx.opacity,
-          y: showcaseFx.y,
-          filter: showcaseFx.filter,
-          willChange: "transform, opacity, filter",
-        }}
-      >
-        <ScrollShowcase
-          heading="App Previews"
-          subheading="See how PeerPlates makes ordering and managing home-cooked food effortless."
-          direction="ltr"
-          snap={true}
-          tilt={false}
-          nav={[
-            { label: "Ordering", index: 0 },
-            { label: "Storefront", index: 2 },
-            { label: "Vendor", index: 3 },
-            { label: "Analytics", index: 4 },
-            { label: "Operations", index: 6 },
-          ]}
-          items={[
-            {
-              image: "/images/gallery/gallery1.jpeg",
-              kicker: "Scroll-first menu",
-              title: "TikTok-style scroll experience, built for ordering.",
-              subtitle: "Scroll. Crave. Add to cart.",
-              desc: 'Discover home-cooked meals in short, shoppable videos — tap “Add to cart” straight from the video.',
-            },
-            {
-              image: "/images/gallery/gallery2.jpeg",
-              kicker: "Quick picks",
-              title: "Highlights that make choosing effortless.",
-              subtitle: "See it. Want it. Order fast.",
-              desc: "Short, snackable previews that help you decide in seconds — perfect for busy students.",
-            },
-            {
-              image: "/images/gallery/gallery3.jpeg",
-              kicker: "Storefront",
-              title: "No back-and-forth. Just orders.",
-              subtitle: "Browse. Prices upfront. Checkout in seconds.",
-              desc: "A proper storefront for home-cooked meals: browse categories, see prices upfront, and checkout in seconds.",
-            },
-            {
-              image: "/images/gallery/gallery4.jpeg",
-              kicker: "Vendor profiles",
-              title: "Grow your community.",
-              subtitle: "Your profile. Your followers. Your drops.",
-              desc: "Build a loyal following with your own vendor profile — customers can follow, view your posts, and stay updated on your collection days and latest drops.",
-            },
-            {
-              image: "/images/gallery/gallery5.jpeg",
-              kicker: "Analytics",
-              title: "Eliminate the guesswork — PeerPlates tracks it for you.",
-              subtitle: "Orders, earnings, and what’s trending.",
-              desc: "Orders, revenue, customer activity, peak times — all in one clean dashboard.",
-            },
-            {
-              image: "/images/gallery/gallery6.png",
-              kicker: "Insights",
-              title: "Make smarter decisions with live performance stats.",
-              subtitle: "See your top sellers — fast.",
-              desc: "Know what’s working. See what’s moving fastest — and double down on the dishes that drive revenue.",
-            },
-            {
-              image: "/images/gallery/gallery7.jpeg",
-              kicker: "Vendor control",
-              title: "Set a cutoff. Stay in control.",
-              subtitle: "Orders close when you say so.",
-              desc: "Choose how far in advance customers must order — so you’ve got time to prep and don’t get overloaded.",
-            },
-            {
-              image: "/images/gallery/gallery9.png",
-              kicker: "Your kitchen. Your rules.",
-              title: "Set slots. Cap orders. Keep control.",
-              subtitle: "You decide when you’re taking orders and when you’re not.",
-              desc: "PeerPlates fits around your life — not the other way round.",
-            },
-            {
-              image: "/images/gallery/gallery10.png",
-              kicker: "Order management",
-              title: "Stay organised. Avoid mix-ups.",
-              subtitle: "Filter by pickup date — today, this week, or any day.",
-              desc: "Filter orders by pickup date so you can track what’s due today, this week, or a specific day — and make sure each order goes to the right customer.",
-            },
-          ]}
-        />
-
-        <div className="md:hidden h-[28vh]" aria-hidden="true" />
-      </motion.section>
-
-      <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mt-10 sm:mt-12 border-t border-slate-200 pt-6 pb-10 text-sm text-slate-500">
-          © {new Date().getFullYear()} PeerPlates
-        </div>
-      </div>
+      </motion.div>
     </main>
   );
 }
