@@ -10,11 +10,10 @@ import {
   useMotionValue,
   useReducedMotion,
   useScroll,
-  useSpring,
   useTransform,
+  useSpring,
 } from "framer-motion";
 
-import LogoCinematic from "@/app/ui/LogoCinematic";
 import ScrollShowcase from "@/app/ui/ScrollShowcase";
 import HeroFade from "@/app/ui/HeroFade";
 import TopGallery from "@/app/ui/TopGallery";
@@ -73,7 +72,6 @@ function useCinematicSection(
   const yRaw = useMotionValue(0);
   const bRaw = useMotionValue(0);
 
-  // ✅ FIX: useSpring is a hook (not motion.useSpring)
   const o = useSpring(oRaw, { stiffness, damping, mass });
   const y = useSpring(yRaw, { stiffness, damping, mass });
   const b = useSpring(bRaw, { stiffness, damping, mass });
@@ -196,11 +194,10 @@ function ChevronDown({ open }: { open: boolean }) {
 }
 
 /**
- * FULL-VIEWPORT INTRO HERO (CINEMATIC)
- * - removes the “Authentic …” line
- * - moves logo ABOVE the PeerPlates wordmark
- * - gives room + fade-in feel for the logo
- * - keeps the reflective shimmer on “Plates”
+ * FULL-VIEWPORT INTRO HERO (CINEMATIC):
+ * - ✅ NO logo above text
+ * - ✅ Clean readable “PeerPlates”
+ * - ✅ Removed the “box” between words (no chip, no dash background)
  */
 function PeerPlatesCinematicHero({
   nextId = "hero-content",
@@ -217,16 +214,17 @@ function PeerPlatesCinematicHero({
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // shimmer sweep only for “Plates”
+  // subtle sweep highlight across the “Plates” portion
   const shimmerX = useMotionValue(-40);
   const s2 = useTransform(shimmerX, (v) => Math.min(110, v + 18));
   const s3 = useTransform(shimmerX, (v) => Math.min(120, v + 38));
+
   const shimmer = useMotionTemplate`linear-gradient(90deg,
-    rgba(15,23,42,0.95) 0%,
-    rgba(15,23,42,0.95) ${shimmerX}%,
-    rgba(252,176,64,0.98) ${s2}%,
-    rgba(15,23,42,0.95) ${s3}%,
-    rgba(15,23,42,0.95) 100%
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0) ${shimmerX}%,
+    rgba(255,255,255,0.95) ${s2}%,
+    rgba(255,255,255,0) ${s3}%,
+    rgba(255,255,255,0) 100%
   )`;
 
   useEffect(() => {
@@ -234,7 +232,7 @@ function PeerPlatesCinematicHero({
     let raf = 0;
     const tick = () => {
       const v = shimmerX.get();
-      shimmerX.set(v >= 140 ? -40 : v + 1.6);
+      shimmerX.set(v >= 140 ? -40 : v + 1.3);
       raf = window.requestAnimationFrame(tick);
     };
     raf = window.requestAnimationFrame(tick);
@@ -249,156 +247,128 @@ function PeerPlatesCinematicHero({
         minHeight: 620,
       }}
     >
-      {/* cinematic background layers */}
+      {/* soft premium background */}
       <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div
-          className="absolute left-1/2 top-[52%] -translate-x-1/2 -translate-y-1/2 h-[140vmin] w-[140vmin] rounded-full blur-3xl opacity-[0.12]"
+          className="absolute left-1/2 top-[52%] -translate-x-1/2 -translate-y-1/2 h-[140vmin] w-[140vmin] rounded-full blur-3xl opacity-[0.11]"
           style={{
             background: `radial-gradient(circle at 48% 46%, ${BRAND_ORANGE}, transparent 62%)`,
           }}
         />
         <div
-          className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 h-[160vmin] w-[160vmin] rounded-full blur-3xl opacity-[0.09]"
+          className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 h-[160vmin] w-[160vmin] rounded-full blur-3xl opacity-[0.08]"
           style={{
             background: `radial-gradient(circle at 54% 56%, ${BRAND_BROWN}, transparent 64%)`,
           }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0)_0%,rgba(255,255,255,0)_52%,rgba(2,6,23,0.08)_100%)]" />
-        <div className="absolute inset-0 opacity-[0.07] mix-blend-multiply [background-image:repeating-linear-gradient(0deg,rgba(2,6,23,0.12),rgba(2,6,23,0.12)_1px,transparent_1px,transparent_3px)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0)_0%,rgba(255,255,255,0)_55%,rgba(2,6,23,0.06)_100%)]" />
       </div>
 
-      {/* plate + spoon watermark */}
+      {/* subtle watermark rings */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <motion.div
           className="absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2"
           initial={reduce ? false : { opacity: 0, scale: 0.985 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, ease: [0.2, 0.9, 0.2, 1] }}
-          style={{ opacity: 0.45 }}
+          style={{ opacity: 0.26 }}
         >
           <motion.svg
             viewBox="0 0 520 520"
             className="block w-[104vmin] max-w-[980px] h-[104vmin] max-h-[980px]"
             animate={reduce ? {} : { rotate: 360 }}
-            transition={reduce ? undefined : { duration: 84, ease: "linear", repeat: Infinity }}
+            transition={reduce ? undefined : { duration: 96, ease: "linear", repeat: Infinity }}
           >
             <defs>
               <linearGradient id="pp-ring-cine" x1="80" y1="80" x2="440" y2="440" gradientUnits="userSpaceOnUse">
-                <stop stopColor={BRAND_ORANGE} stopOpacity="0.92" />
-                <stop offset="0.55" stopColor="#e9e9e9" stopOpacity="0.52" />
-                <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="0.42" />
+                <stop stopColor={BRAND_ORANGE} stopOpacity="0.9" />
+                <stop offset="0.55" stopColor="#e9e9e9" stopOpacity="0.35" />
+                <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="0.35" />
               </linearGradient>
             </defs>
 
             <circle cx="260" cy="260" r="206" fill="none" stroke="url(#pp-ring-cine)" strokeWidth="30" />
-            <circle cx="260" cy="260" r="164" fill="none" stroke="#e7e7e7" strokeOpacity="0.9" strokeWidth="11" />
-            <path
-              d="M140 262 A160 160 0 0 1 262 140"
-              fill="none"
-              stroke="#fff"
-              strokeOpacity="0.62"
-              strokeWidth="12"
-              strokeLinecap="round"
-            />
+            <circle cx="260" cy="260" r="164" fill="none" stroke="#e7e7e7" strokeOpacity="0.7" strokeWidth="11" />
           </motion.svg>
         </motion.div>
 
-        <motion.div
-          className="absolute left-1/2 top-[58%]"
-          style={{ transform: "translate(calc(-50% + 40vmin), calc(-50% - 6vmin))" }}
-          animate={reduce ? {} : { rotate: [0, 8, -6, 0], y: [0, -5, 3, 0] }}
-          transition={reduce ? undefined : { duration: 6.8, ease: [0.2, 0.9, 0.2, 1], repeat: Infinity }}
-        >
-          <svg viewBox="0 0 240 240" className="w-[38vmin] max-w-[320px] h-[38vmin] max-h-[320px] opacity-[0.75]">
-            <defs>
-              <linearGradient id="pp-spoon-cine" x1="0" y1="0" x2="1" y2="1">
-                <stop stopColor="#ffffff" stopOpacity="0.95" />
-                <stop offset="1" stopColor="#d7d7d7" stopOpacity="0.95" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M165 78c0 19-19 36-44 36s-44-17-44-36 19-31 44-31 44 12 44 31Z"
-              fill="url(#pp-spoon-cine)"
-            />
-            <path
-              d="M121 114c-11 22-31 68-24 97 3 13 19 15 29 4 25-27 49-57 62-74 7-10-6-19-15-11-17 14-36 22-52 22Z"
-              fill="url(#pp-spoon-cine)"
-            />
-            <circle cx="176" cy="72" r="4" fill={BRAND_ORANGE} opacity="0.55" />
-          </svg>
-        </motion.div>
-
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-white/40 to-white" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-white/35 to-white" />
       </div>
 
-      {/* centered content */}
-      <div
-        className="relative mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8"
-        style={{ height: `calc(100svh - ${headerOffsetPx}px)` }}
-      >
-        <div className="flex h-full flex-col items-center justify-center text-center">
-          {/* Logo ABOVE wordmark */}
-          <motion.div
-            initial={reduce ? false : { opacity: 0, y: 14, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.75, ease: [0.2, 0.9, 0.2, 1], delay: 0.06 }}
-            className="mb-4 sm:mb-5"
-          >
-            <div
-              className="rounded-[22px] border border-slate-200 bg-white/75 backdrop-blur px-3 py-3 shadow-sm"
-              style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.08)" }}
-            >
-              <LogoCinematic size={72} wordScale={1} />
-            </div>
-          </motion.div>
-
-          {/* Wordmark with reveal wipe */}
-          <motion.div
-            initial={reduce ? false : { opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.75, ease: [0.2, 0.9, 0.2, 1] }}
-            className="relative inline-flex items-center justify-center"
+      {/* centered wordmark ONLY */}
+      <div className="relative h-full flex flex-col items-center justify-center px-4">
+        <motion.div
+          initial={reduce ? false : { opacity: 0, y: 12, scale: 0.99 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.85, ease: [0.2, 0.9, 0.2, 1], delay: 0.06 }}
+          className="relative text-center"
+        >
+          {/* soft aura */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-[52%] -translate-x-1/2 -translate-y-1/2 blur-3xl opacity-[0.16]"
             style={{
-              transform: `translateY(${Math.max(8, headerOffsetPx * 0.06)}px)`,
+              width: "min(980px, 96vw)",
+              height: 260,
+              background: `radial-gradient(circle at 48% 45%, rgba(252,176,64,0.24), transparent 62%),
+                           radial-gradient(circle at 58% 56%, rgba(138,107,67,0.18), transparent 64%)`,
+            }}
+          />
+
+          {/* clean readable logo text */}
+          <h1
+            className="relative font-black tracking-tight leading-none"
+            style={{
+              fontSize: "clamp(3.2rem, 8.6vw, 6.8rem)",
+              letterSpacing: "-0.04em",
+              color: "#0f172a",
+              textShadow: "0 10px 32px rgba(2,6,23,0.10)",
             }}
           >
-            <motion.div
-              aria-hidden="true"
-              initial={reduce ? false : { scaleX: 1 }}
-              animate={{ scaleX: 0 }}
-              transition={{ duration: 1.05, ease: [0.2, 0.9, 0.2, 1], delay: 0.08 }}
-              className="absolute inset-0 origin-left rounded-2xl bg-white"
-            />
+            <span className="text-slate-900">Peer</span>
 
-            <motion.h1
-              initial={reduce ? false : { letterSpacing: "0.08em", scale: 0.992 }}
-              animate={{ letterSpacing: "-0.02em", scale: 1 }}
-              transition={{ duration: 1.05, ease: [0.2, 0.9, 0.2, 1], delay: 0.04 }}
-              className="leading-[0.9] font-extrabold"
+            {/* ✅ FIX: no “box” separator — just clean spacing */}
+            <span className="inline-block w-6" aria-hidden="true" />
+
+            <span
+              className="relative inline-block"
               style={{
-                fontFamily: "var(--font-logo, ui-sans-serif, system-ui)",
-                fontSize: "clamp(2.4rem, 6.4vw, 4.8rem)",
-                maxWidth: "92vw",
-                whiteSpace: "nowrap",
+                backgroundImage: `linear-gradient(135deg, ${BRAND_ORANGE} 10%, ${BRAND_BROWN} 90%)`,
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
               }}
             >
-              <span className="text-slate-900">Peer</span>{" "}
-              <motion.span
+              Plates
+
+              {/* very light sweep */}
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 pointer-events-none"
                 style={{
-                  backgroundImage: shimmer,
+                  backgroundImage: shimmer as any,
                   WebkitBackgroundClip: "text",
                   backgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  color: BRAND_ORANGE,
+                  color: "transparent",
+                  opacity: 0.35,
+                  mixBlendMode: "screen",
                 }}
-              >
-                Plates
-              </motion.span>
-            </motion.h1>
-          </motion.div>
+              />
+            </span>
+          </h1>
 
-          {/* ✅ Removed the “Authentic …” paragraph entirely */}
-        </div>
+          {/* tiny underline */}
+          <div className="mt-5 flex justify-center">
+            <div
+              className="h-[2px] w-[min(320px,72vw)] rounded-full"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(252,176,64,0), rgba(252,176,64,0.70), rgba(138,107,67,0.60), rgba(252,176,64,0))",
+                opacity: 0.45,
+              }}
+            />
+          </div>
+        </motion.div>
       </div>
 
       {/* scroll button */}
@@ -406,7 +376,9 @@ function PeerPlatesCinematicHero({
         type="button"
         onClick={scrollToNext}
         className="absolute left-1/2 -translate-x-1/2 rounded-full border border-slate-200 bg-white/88 backdrop-blur px-6 py-3 text-xs font-extrabold text-slate-700 shadow-sm transition hover:-translate-y-[2px]"
-        style={{ bottom: "max(18px, env(safe-area-inset-bottom))" }}
+        style={{
+          bottom: "max(18px, env(safe-area-inset-bottom))",
+        }}
         aria-label="Scroll to content"
       >
         <span className="inline-flex items-center gap-2">
@@ -556,17 +528,16 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* Header */}
+      {/* Header (NO logo on top-left now) */}
       <HeroFade directionDelta={7} className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center gap-3 min-w-0">
-              {/* ✅ Removed logo from top-left.
-                  Keep a tiny invisible spacer so layout stays clean. */}
-              <div className="h-[56px] w-[56px] shrink-0" aria-hidden="true" />
+              {/* left spacer (keeps header layout clean without logo) */}
+              <div className="w-[72px] shrink-0 md:w-[120px]" aria-hidden="true" />
 
               {/* Desktop */}
-              <div className="hidden md:flex items-center gap-3 ml-auto">
+              <div className="hidden md:flex items-center gap-3 ml-0">
                 <div className="relative" data-desktop-menu-root>
                   <button
                     type="button"
@@ -587,7 +558,7 @@ export default function Home() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.98 }}
                         transition={{ duration: 0.16, ease: [0.2, 0.9, 0.2, 1] }}
-                        className="absolute right-0 mt-3 w-[320px] origin-top-right"
+                        className="absolute left-0 mt-3 w-[320px] origin-top-left"
                       >
                         <div
                           className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
@@ -635,7 +606,9 @@ export default function Home() {
                     <HamburgerIcon open={menuOpen} />
                   </button>
                 </div>
-              ) : null}
+              ) : (
+                <div className="ml-auto" />
+              )}
             </div>
           </div>
 
@@ -710,6 +683,7 @@ export default function Home() {
           <div className="mt-6 sm:mt-10 grid gap-10 lg:grid-cols-2 lg:items-start">
             <div className="pt-2">
               <div ref={galleryWrapRef} className="relative">
+                {/* gallery fades on scroll */}
                 <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
                   <div className="-mx-2 sm:mx-0">
                     <TopGallery
@@ -724,6 +698,7 @@ export default function Home() {
                   </div>
                 </motion.div>
 
+                {/* overlay text + buttons */}
                 <motion.div
                   style={{ y: overlayY }}
                   initial={{ opacity: 0, y: 16, scale: 0.985 }}
@@ -796,6 +771,7 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Right card */}
             <MotionDiv
               initial={{ opacity: 0, x: 22 }}
               animate={{ opacity: 1, x: 0 }}
