@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   AnimatePresence,
   motion,
@@ -407,6 +407,30 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
 export default function Home() {
   const heroRef = useRef<HTMLElement | null>(null);
   const showcaseRef = useRef<HTMLElement | null>(null);
+
+  // ✅ Measure REAL header height (fixes prod overlap)
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [headerH, setHeaderH] = useState(96);
+
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+
+    const read = () => setHeaderH(Math.round(el.getBoundingClientRect().height));
+    read();
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => read());
+      ro.observe(el);
+    }
+
+    window.addEventListener("resize", read);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", read);
+    };
+  }, []);
 
   // ✅ Intro overlay
   const [introOpen, setIntroOpen] = useState(true);
@@ -896,9 +920,12 @@ export default function Home() {
       onPointerCancel={endPointer}
       onWheel={onWheel}
     >
-      {/* Header (z boosted so menus never go behind transformed content) */}
-      <HeroFade directionDelta={7} className="fixed top-0 left-0 right-0 z-[600] pointer-events-auto">
-        <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      {/* Header (measured; fixes prod overlap) */}
+      <HeroFade directionDelta={7} className="fixed top-0 left-0 right-0 z-[1000] pointer-events-auto">
+        <div
+          ref={headerRef}
+          className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60"
+        >
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-[72px] shrink-0 md:w-[120px]" aria-hidden="true" />
@@ -931,7 +958,7 @@ export default function Home() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.98 }}
                         transition={{ duration: 0.16, ease: easeOut }}
-                        className="absolute left-0 mt-3 w-[320px] origin-top-left z-[650]"
+                        className="absolute left-0 mt-3 w-[320px] origin-top-left z-[1100]"
                       >
                         <div
                           className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
@@ -1002,7 +1029,7 @@ export default function Home() {
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.22, ease: easeOut }}
                   className="md:hidden overflow-hidden"
-                  style={{ zIndex: 650 }}
+                  style={{ zIndex: 1100 }}
                 >
                   <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
                     <div className="mx-auto w-full max-w-[420px]">
@@ -1042,14 +1069,14 @@ export default function Home() {
         </div>
       </HeroFade>
 
-      {/* Spacer for fixed header */}
-      <div className="h-[92px] sm:h-[96px]" />
+      {/* Spacer for fixed header (dynamic) */}
+      <div style={{ height: headerH }} />
 
       {/* Pull-to-refresh indicator */}
       <motion.div
         className="fixed left-0 right-0 z-[520] pointer-events-none"
         style={{
-          top: 96,
+          top: headerH,
           opacity: pullOpacity,
           scale: pullScale,
           filter: pullFilter,
@@ -1092,8 +1119,8 @@ export default function Home() {
             key="intro-overlay"
             className="fixed left-0 right-0 z-[500] bg-white"
             style={{
-              top: 96,
-              height: "calc(100svh - 96px)",
+              top: headerH,
+              height: `calc(100svh - ${headerH}px)`,
             }}
             initial={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -1133,7 +1160,6 @@ export default function Home() {
                 {/* Left column */}
                 <motion.div variants={slideL} className="pt-1 sm:pt-2">
                   <div ref={galleryWrapRef} className="relative">
-                    {/* ✅ HARD HEIGHT WRAPPER so deployed == localhost */}
                     <motion.div
                       style={{
                         opacity: isDesktop ? 1 : galleryOpacityMV,
@@ -1164,13 +1190,11 @@ export default function Home() {
                     {/* Text card (mobile can float, desktop stays stable) */}
                     <motion.div
                       style={{ y: isDesktop ? 0 : overlayYMV }}
-                      className={cn(
-                        "relative z-30 mt-6",
-                        isDesktop ? "sm:mt-8" : "sm:-mt-28 md:-mt-32"
-                      )}
+                      className={cn("relative z-30 mt-6", isDesktop ? "sm:mt-8" : "sm:-mt-28 md:-mt-32")}
                       {...sectionEnter}
                     >
-                      <div className="sm:sticky sm:top-[112px]">
+                      {/* ✅ sticky offset uses measured header height */}
+                      <div className="sm:sticky" style={{ top: headerH + 16 }}>
                         <div
                           className={cn(
                             "relative overflow-hidden",
