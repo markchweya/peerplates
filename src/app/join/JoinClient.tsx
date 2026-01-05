@@ -2,8 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import { MotionDiv } from "@/app/ui/motion";
@@ -16,7 +16,6 @@ function cn(...v: Array<string | false | undefined | null>) {
 }
 
 function CustomerIcon({ className = "" }: { className?: string }) {
-  // clean person silhouette (no chef hat)
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
       <path
@@ -32,28 +31,53 @@ function CustomerIcon({ className = "" }: { className?: string }) {
   );
 }
 
-function VendorIcon({ className = "" }: { className?: string }) {
-  // person + chef hat silhouette
+/** ✅ Vendor icon: CHEF HAT ONLY */
+function ChefHatIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
       <path
-        d="M7.6 9.2c-.4-2.6 1.6-4.6 4.4-4.6s4.8 2 4.4 4.6c.6-.2 1.2-.2 1.8.1 1.2.6 1.8 2.1 1.2 3.4-.5 1.2-1.7 1.9-3 1.6H7.6c-1.3.3-2.5-.4-3-1.6-.6-1.3 0-2.8 1.2-3.4.6-.3 1.2-.3 1.8-.1Z"
+        d="M7.2 9.3c-1.8-.4-3.2-2-3.2-4 0-2.2 1.8-4 4-4 1.1 0 2.1.4 2.8 1.1.7-.7 1.7-1.1 2.8-1.1s2.1.4 2.8 1.1c.7-.7 1.7-1.1 2.8-1.1 2.2 0 4 1.8 4 4 0 2-1.4 3.6-3.2 4v2.2H7.2V9.3Z"
         fill="currentColor"
         opacity="0.95"
       />
+      <path d="M7.2 11.5h13.6v2H7.2v-2Z" fill="currentColor" opacity="0.22" />
+    </svg>
+  );
+}
+
+function HamburgerIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      <path d="M5 7h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M5 17h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function XIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChevronDown({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
       <path
-        d="M12 13.9c-2.9 0-5.2 2.1-5.2 4.7V20h10.4v-1.4c0-2.6-2.3-4.7-5.2-4.7Z"
-        fill="currentColor"
-        opacity="0.95"
-      />
-      <path
-        d="M12 13.4c1.8 0 3.2-1.4 3.2-3.1S13.8 7.2 12 7.2 8.8 8.6 8.8 10.3s1.4 3.1 3.2 3.1Z"
-        fill="currentColor"
+        d="M6 9l6 6 6-6"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
 }
 
+/** Clean “not emoji” food glyphs (optional background accents) */
 function FoodGlyph({
   className = "",
   variant,
@@ -61,7 +85,6 @@ function FoodGlyph({
   className?: string;
   variant: "bowl" | "pepper" | "croissant" | "taco";
 }) {
-  // “not emojis” → clean vector glyphs with gradient + shadow for a 3D-ish vibe
   const paths = {
     bowl: (
       <>
@@ -69,15 +92,17 @@ function FoodGlyph({
           d="M6 13c0 4.2 3 7 6 7s6-2.8 6-7c0-.8-.1-1.6-.3-2.3H6.3C6.1 11.4 6 12.2 6 13Z"
           fill="url(#g)"
         />
-        <path
-          d="M7 10.6h10c-.4-2.8-2.4-5-5-5s-4.6 2.2-5 5Z"
-          fill="rgba(255,255,255,0.55)"
-        />
+        <path d="M7 10.6h10c-.4-2.8-2.4-5-5-5s-4.6 2.2-5 5Z" fill="rgba(255,255,255,0.55)" />
       </>
     ),
     pepper: (
       <>
-        <path d="M12.5 6.3c.8-1.3 1.9-2.1 3.4-2.3" stroke="rgba(255,255,255,0.7)" strokeWidth="1.6" strokeLinecap="round" />
+        <path
+          d="M12.5 6.3c.8-1.3 1.9-2.1 3.4-2.3"
+          stroke="rgba(255,255,255,0.7)"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
         <path
           d="M10 7.2c-2.6.8-4.2 3.2-3.8 6 .5 3.6 3.4 6.2 6.7 6 3.5-.2 6.3-3.2 6.1-6.8-.2-3.2-2.7-5.8-6-6.2-.7-.1-2.1.2-3 .6Z"
           fill="url(#g)"
@@ -129,43 +154,43 @@ function FoodGlyph({
 
 function FloatingFood() {
   const items = [
-    { variant: "bowl" as const, left: "8%", top: "18%", s: 60, d: 0.0 },
-    { variant: "pepper" as const, left: "86%", top: "22%", s: 56, d: 0.2 },
-    { variant: "croissant" as const, left: "12%", top: "78%", s: 62, d: 0.35 },
-    { variant: "taco" as const, left: "88%", top: "76%", s: 60, d: 0.5 },
+    { variant: "bowl" as const, left: "8%", top: "18%", s: 56, d: 0.0 },
+    { variant: "pepper" as const, left: "86%", top: "22%", s: 52, d: 0.2 },
+    { variant: "croissant" as const, left: "12%", top: "78%", s: 58, d: 0.35 },
+    { variant: "taco" as const, left: "88%", top: "76%", s: 56, d: 0.5 },
   ];
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* soft glow field */}
       <motion.div
-        className="absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full blur-3xl opacity-25"
+        className="absolute -left-40 -top-40 h-[520px] w-[520px] rounded-full blur-3xl opacity-20"
         style={{ background: "rgba(252,176,64,0.35)" }}
         animate={{ x: [0, 60, 0], y: [0, 26, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute -right-44 -bottom-48 h-[620px] w-[620px] rounded-full blur-3xl opacity-25"
+        className="absolute -right-44 -bottom-48 h-[620px] w-[620px] rounded-full blur-3xl opacity-18"
         style={{ background: "rgba(138,107,67,0.22)" }}
         animate={{ x: [0, -70, 0], y: [0, -30, 0] }}
         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* floating glyphs */}
       {items.map((it) => (
         <motion.div
           key={`${it.variant}-${it.left}-${it.top}`}
           className="absolute"
-          style={{ left: it.left, top: it.top, width: it.s, height: it.s, filter: "drop-shadow(0 16px 22px rgba(2,6,23,0.18))" }}
-          animate={{
-            y: [-10, 10, -10],
-            rotate: [-4, 4, -4],
-            opacity: [0.75, 1, 0.75],
+          style={{
+            left: it.left,
+            top: it.top,
+            width: it.s,
+            height: it.s,
+            filter: "drop-shadow(0 16px 22px rgba(2,6,23,0.16))",
           }}
+          animate={{ y: [-10, 10, -10], rotate: [-4, 4, -4], opacity: [0.6, 0.95, 0.6] }}
           transition={{ duration: 5.4, repeat: Infinity, ease: "easeInOut", delay: it.d }}
         >
           <div className="rounded-2xl bg-white/70 backdrop-blur border border-slate-200/70 p-2 shadow-sm">
-            <FoodGlyph variant={it.variant} className="h-10 w-10" />
+            <FoodGlyph variant={it.variant} className="h-9 w-9" />
           </div>
         </motion.div>
       ))}
@@ -185,19 +210,51 @@ export default function JoinClient({ referral }: { referral: string }) {
     [ref]
   );
 
-  const glowRing = useMemo(
-    () => ({
-      boxShadow:
-        "0 0 0 1px rgba(252,176,64,0.35), 0 18px 60px rgba(252,176,64,0.18), 0 10px 30px rgba(2,6,23,0.10)",
-    }),
+  const navLinks = useMemo(
+    () => [
+      { href: "/", label: "Home" },
+      { href: "/mission", label: "Mission" },
+      { href: "/vision", label: "Vision" },
+      { href: "/food-safety", label: "Food safety" },
+      { href: "/queue", label: "Check queue" },
+      { href: "/faq", label: "FAQ" },
+      { href: "/privacy", label: "Privacy" },
+    ],
     []
   );
 
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(false);
+
+  // lock scroll only when the full-screen mobile menu is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    if (mobileOpen) document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
+  const btnBase =
+    "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
+  const btnGhost = "border border-slate-200 bg-white text-slate-900 hover:bg-slate-50";
+  const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
+
   return (
     <main className="relative min-h-screen bg-white text-slate-900 overflow-hidden">
+      {/* Optional background accents */}
       <FloatingFood />
 
-      <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+      <style>{`
+        summary::-webkit-details-marker { display:none; }
+        .pp-tap { -webkit-tap-highlight-color: transparent; user-select:none; }
+        details[open] .pp-chevron { transform: rotate(180deg); }
+        .pp-chevron { transition: transform 180ms ease; }
+        @media (min-width: 768px) { .pp-mobile-only { display:none !important; } }
+        @media (max-width: 767px) { .pp-desktop-only { display:none !important; } }
+      `}</style>
+
+      <div className="relative mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         {/* Top bar */}
         <MotionDiv
           initial={{ opacity: 0, y: -10 }}
@@ -205,14 +262,69 @@ export default function JoinClient({ referral }: { referral: string }) {
           transition={{ duration: 0.45 }}
           className="flex items-center justify-between gap-4"
         >
-          <Link href="/" className="flex items-center">
+          <Link href="/" className="flex items-center gap-3 min-w-0">
             <LogoCinematic size={64} wordScale={1} />
           </Link>
 
-          <div className="text-sm text-slate-900/60 whitespace-nowrap">Join waitlist</div>
+          {/* Desktop dropdown */}
+          <div className="pp-desktop-only hidden md:flex items-center gap-3">
+            <details
+              className="relative"
+              open={desktopOpen}
+              onToggle={(e) => setDesktopOpen((e.target as HTMLDetailsElement).open)}
+            >
+              <summary className={cn("pp-tap", btnBase, btnGhost, "gap-2 cursor-pointer")} aria-label="Open menu">
+                Menu <ChevronDown className="pp-chevron h-5 w-5" />
+              </summary>
+
+              <div className="absolute right-0 mt-3 w-[320px] origin-top-right">
+                <div
+                  className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm"
+                  style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
+                >
+                  <div className="grid gap-2">
+                    {navLinks.map((l) => (
+                      <Link
+                        key={l.href}
+                        href={l.href}
+                        onClick={() => setDesktopOpen(false)}
+                        className={cn("w-full", btnBase, "px-5 py-3", btnGhost, "justify-start")}
+                      >
+                        {l.label}
+                      </Link>
+                    ))}
+                    <Link
+                      href="/join"
+                      onClick={() => setDesktopOpen(false)}
+                      className={cn("w-full", btnBase, "px-5 py-3", btnPrimary)}
+                    >
+                      Join waitlist
+                    </Link>
+                  </div>
+                  <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          {/* Mobile hamburger */}
+          <div className="pp-mobile-only md:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
+              className={cn(
+                "pp-tap inline-flex items-center justify-center",
+                "h-10 w-10 rounded-full border border-slate-200 bg-white shadow-sm",
+                "transition hover:-translate-y-[1px] text-slate-900"
+              )}
+            >
+              <HamburgerIcon className="h-5 w-5" />
+            </button>
+          </div>
         </MotionDiv>
 
-        {/* Main cinematic card */}
+        {/* Main card (SOLID white, no transparent overlay) */}
         <motion.div
           initial={{ opacity: 0, y: 18, scale: 0.99 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -220,100 +332,170 @@ export default function JoinClient({ referral }: { referral: string }) {
           className="mt-8 sm:mt-10"
         >
           <div
-            className={cn(
-              "relative rounded-[40px] border border-[#fcb040]/40 bg-white/75 backdrop-blur p-6 sm:p-8 shadow-sm"
-            )}
-            style={glowRing}
+            className="relative rounded-[40px] border border-[#fcb040]/45 bg-white p-6 sm:p-8 shadow-sm"
+            style={{
+              boxShadow:
+                "0 0 0 1px rgba(252,176,64,0.22), 0 22px 70px rgba(2,6,23,0.10), 0 14px 40px rgba(252,176,64,0.14)",
+            }}
           >
-            {/* inner shine */}
-            <div className="pointer-events-none absolute inset-0 rounded-[40px] bg-gradient-to-br from-white/70 via-white/20 to-transparent" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-extrabold text-slate-800 shadow-sm">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{
+                  background: BRAND_ORANGE,
+                  boxShadow: "0 0 0 1px rgba(255,255,255,0.85), 0 0 18px rgba(252,176,64,0.45)",
+                }}
+              />
+              Choose your role
+            </div>
 
-            <div className="relative">
-              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/70 bg-white/70 px-5 py-2.5 text-sm font-extrabold text-slate-800 shadow-sm">
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{
-                    background: BRAND_ORANGE,
-                    boxShadow: "0 0 0 1px rgba(255,255,255,0.7), 0 0 22px rgba(252,176,64,0.55)",
-                  }}
-                />
-                Choose your role
-              </div>
+            <h1 className="mt-5 font-extrabold tracking-tight leading-[1.02] text-[clamp(2.2rem,4.8vw,3.6rem)]">
+              Eat better.{" "}
+              <span
+                style={{
+                  backgroundImage: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})`,
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  color: "transparent",
+                }}
+              >
+                Join the waitlist.
+              </span>
+            </h1>
 
-              <h1 className="mt-5 font-extrabold tracking-tight leading-[1.02] text-[clamp(2.4rem,4.8vw,3.6rem)]">
-                Eat better.{" "}
-                <span
-                  style={{
-                    backgroundImage: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})`,
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    color: "transparent",
-                  }}
-                >
-                  Join the waitlist.
-                </span>
-              </h1>
+            <p className="mt-3 text-slate-900/70 font-semibold max-w-2xl">
+              Consumers move up by referrals. Vendors are reviewed via questionnaire — built for safety, trust, and real
+              home-cooked food.
+            </p>
 
-              <p className="mt-3 text-slate-900/70 font-semibold max-w-2xl">
-                Consumers move up by referrals. Vendors are reviewed via questionnaire — built for safety, trust, and
-                real home-cooked food.
-              </p>
+            {ref ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.1 }}
+                className="mt-5 rounded-3xl border border-[#fcb040]/40 bg-white px-5 py-4 shadow-sm"
+                style={{ boxShadow: "0 10px 28px rgba(252,176,64,0.10)" }}
+              >
+                <div className="text-sm font-extrabold text-slate-700">
+                  Referral detected <span className="ml-2 font-mono text-slate-900">{ref}</span>
+                </div>
+              </motion.div>
+            ) : null}
 
-              {ref ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.1 }}
-                  className="mt-5 rounded-3xl border border-[#fcb040]/40 bg-white/70 backdrop-blur px-5 py-4 shadow-sm"
-                  style={{
-                    boxShadow: "0 10px 30px rgba(252,176,64,0.10)",
-                  }}
-                >
-                  <div className="text-sm font-extrabold text-slate-700">
-                    Referral detected
-                    <span className="ml-2 font-mono text-slate-900">{ref}</span>
-                  </div>
-                </motion.div>
-              ) : null}
+            {/* Role cards */}
+            <div className="mt-7 grid gap-4 sm:grid-cols-2">
+              <RoleCard
+                href={consumerHref}
+                title="Consumer"
+                subtitle="Buy food • Refer friends • Move up the queue"
+                icon={<CustomerIcon className="h-7 w-7 text-slate-900" />}
+                glow="rgba(252,176,64,0.18)"
+              />
 
-              {/* Role cards */}
-              <div className="mt-7 grid gap-4 sm:grid-cols-2">
-                <RoleCard
-                  href={consumerHref}
-                  title="Consumer"
-                  subtitle="Buy food • Refer friends • Move up the queue"
-                  icon={<CustomerIcon className="h-7 w-7 text-slate-900" />}
-                  glow="rgba(252,176,64,0.22)"
-                />
+              <RoleCard
+                href={vendorHref}
+                title="Vendor"
+                subtitle="Sell food • Questionnaire review • Manual queue position"
+                icon={<ChefHatIcon className="h-7 w-7 text-slate-900" />}
+                glow="rgba(138,107,67,0.14)"
+              />
+            </div>
 
-                <RoleCard
-                  href={vendorHref}
-                  title="Vendor"
-                  subtitle="Sell food • Questionnaire review • Manual queue position"
-                  icon={<VendorIcon className="h-7 w-7 text-slate-900" />}
-                  glow="rgba(138,107,67,0.18)"
-                />
-              </div>
-
-              {/* Back */}
-              <div className="mt-7">
-                <Link
-                  href="/"
-                  className="inline-flex rounded-2xl border border-[#fcb040]/50 bg-white/70 backdrop-blur px-6 py-3 text-center font-extrabold text-slate-900 transition hover:-translate-y-[1px]"
-                  style={{ boxShadow: "0 10px 24px rgba(2,6,23,0.10)" }}
-                >
-                  Back
-                </Link>
-              </div>
+            {/* Back */}
+            <div className="mt-7">
+              <Link
+                href="/"
+                className={cn(
+                  "inline-flex rounded-2xl border border-[#fcb040]/55 bg-white px-6 py-3",
+                  "text-center font-extrabold text-slate-900 transition hover:-translate-y-[1px]"
+                )}
+                style={{ boxShadow: "0 10px 24px rgba(2,6,23,0.10)" }}
+              >
+                Back
+              </Link>
             </div>
           </div>
         </motion.div>
 
-        {/* footer spacing */}
-        <div className="mt-10 text-xs text-slate-500/70">
-          © {new Date().getFullYear()} PeerPlates
-        </div>
+        <div className="mt-10 text-xs text-slate-500/70">© {new Date().getFullYear()} PeerPlates</div>
       </div>
+
+      {/* ✅ Mobile full-screen menu (WHITE background, icon on left) */}
+      <AnimatePresence>
+        {mobileOpen ? (
+          <motion.div
+            key="mobile-menu"
+            className="fixed inset-0 z-[200] bg-white"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            {/* top row: close + brand (icon on left) */}
+            <div className="flex items-center gap-3 px-4 pt-4">
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close menu"
+                className={cn(
+                  "pp-tap h-10 w-10 rounded-full",
+                  "border border-slate-200 bg-white shadow-sm",
+                  "flex items-center justify-center text-slate-900"
+                )}
+              >
+                <XIcon className="h-5 w-5" />
+              </button>
+
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-12 w-12 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center">
+                  <LogoCinematic size={36} wordScale={0.72} />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-extrabold leading-none">PeerPlates</div>
+                  <div className="text-xs font-semibold text-slate-500">authentic • affordable • local</div>
+                </div>
+              </div>
+            </div>
+
+            {/* menu card */}
+            <div className="px-4 pt-5">
+              <div
+                className="mx-auto w-full max-w-[420px] rounded-[34px] border border-slate-200 bg-white p-4 shadow-sm"
+                style={{ boxShadow: "0 26px 90px rgba(2,6,23,0.12)" }}
+              >
+                <div className="grid gap-3">
+                  {navLinks.map((l) => (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "w-full rounded-2xl border border-slate-200 bg-white",
+                        "px-5 py-3.5 text-center font-extrabold text-slate-900 shadow-sm"
+                      )}
+                    >
+                      {l.label}
+                    </Link>
+                  ))}
+
+                  <Link
+                    href="/join"
+                    onClick={() => setMobileOpen(false)}
+                    className={cn(
+                      "w-full rounded-2xl border border-[#fcb040]/70 bg-[#fcb040]",
+                      "px-5 py-3.5 text-center font-extrabold text-slate-900 shadow-sm"
+                    )}
+                  >
+                    Join waitlist
+                  </Link>
+                </div>
+
+                <div className="mt-4 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </main>
   );
 }
@@ -332,33 +514,25 @@ function RoleCard({
   glow: string;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55 }}
-    >
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
       <Link
         href={href}
         className={cn(
-          "group relative block overflow-hidden rounded-[28px] border border-[#fcb040]/35 bg-white/70 backdrop-blur p-6 shadow-sm transition",
+          "group relative block overflow-hidden rounded-[28px] border border-[#fcb040]/35 bg-white p-6 shadow-sm transition",
           "hover:-translate-y-[2px]"
         )}
-        style={{
-          boxShadow: "0 14px 36px rgba(2,6,23,0.10)",
-        }}
+        style={{ boxShadow: "0 14px 36px rgba(2,6,23,0.10)" }}
       >
-        {/* glow wash */}
         <div
           className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full blur-3xl opacity-0 transition-opacity duration-500 group-hover:opacity-100"
           style={{ background: glow }}
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/60 via-white/20 to-transparent" />
 
         <div className="relative flex items-center gap-3">
-          <div className="h-12 w-12 rounded-2xl border border-slate-200/70 bg-white/75 backdrop-blur flex items-center justify-center shadow-sm">
+          <div className="h-12 w-12 rounded-2xl border border-slate-200 bg-white flex items-center justify-center shadow-sm">
             {icon}
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-xl font-extrabold tracking-tight">{title}</div>
             <div className="mt-1 text-slate-900/70 font-semibold">{subtitle}</div>
           </div>
