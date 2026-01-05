@@ -12,9 +12,8 @@ import {
   useScroll,
   useTransform,
   useSpring,
-  type Easing,
-  type MotionValue,
 } from "framer-motion";
+
 
 import ScrollShowcase from "@/app/ui/ScrollShowcase";
 import HeroFade from "@/app/ui/HeroFade";
@@ -91,10 +90,10 @@ function useCinematicSection(
   const y = useSpring(yRaw, { stiffness, damping, mass });
   const b = useSpring(bRaw, { stiffness, damping, mass });
 
-  const filter: MotionValue<string> = useMotionTemplate`blur(${b}px)`;
+  const filter = useMotionTemplate`blur(${b}px)`;
 
   useEffect(() => {
-    let raf: number | null = null;
+    let raf: ReturnType<typeof requestAnimationFrame> | null = null;
 
     const update = () => {
       raf = null;
@@ -102,7 +101,7 @@ function useCinematicSection(
       if (!el) return;
 
       const rect = el.getBoundingClientRect();
-      const vh = Math.max(1, window.innerHeight);
+      const vh = Math.max(1, innerHeight);
 
       const enterDen = Math.max(0.0001, (enterStart - enterEnd) * vh);
       const enterT = clamp01((enterStart * vh - rect.top) / enterDen);
@@ -121,32 +120,19 @@ function useCinematicSection(
 
     const schedule = () => {
       if (raf != null) return;
-      raf = window.requestAnimationFrame(update);
+      raf = requestAnimationFrame(update);
     };
 
     document.addEventListener("scroll", schedule, { capture: true, passive: true });
-    window.addEventListener("resize", schedule, { passive: true });
+    addEventListener("resize", schedule, { passive: true });
     schedule();
 
     return () => {
       document.removeEventListener("scroll", schedule, true);
-      window.removeEventListener("resize", schedule);
-      if (raf != null) window.cancelAnimationFrame(raf);
+      removeEventListener("resize", schedule);
+      if (raf != null) cancelAnimationFrame(raf);
     };
-  }, [
-    ref,
-    enterStart,
-    enterEnd,
-    exitStart,
-    exitEnd,
-    yEnter,
-    yExit,
-    blurEnter,
-    blurExit,
-    oRaw,
-    yRaw,
-    bRaw,
-  ]);
+  }, [ref, enterStart, enterEnd, exitStart, exitEnd, yEnter, yExit, blurEnter, blurExit, oRaw, yRaw, bRaw]);
 
   return { opacity: o, y, filter };
 }
@@ -228,17 +214,8 @@ function LoadingDots({ className, dotSize = 5 }: { className?: string; dotSize?:
                 ? "0 8px 22px rgba(252,176,64,0.22), 0 8px 22px rgba(138,107,67,0.18)"
                 : "0 10px 26px rgba(2,6,23,0.10)",
           }}
-          animate={{
-            y: [0, -6, 0],
-            opacity: [0.35, 1, 0.35],
-            scale: [0.96, 1.06, 0.96],
-          }}
-          transition={{
-            duration: 0.95,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: i * 0.16,
-          }}
+          animate={{ y: [0, -6, 0], opacity: [0.35, 1, 0.35], scale: [0.96, 1.06, 0.96] }}
+          transition={{ duration: 0.95, repeat: Infinity, ease: "easeInOut", delay: i * 0.16 }}
         />
       ))}
     </span>
@@ -255,7 +232,7 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
   const s2 = useTransform(shimmerX, (v) => Math.min(110, v + 18));
   const s3 = useTransform(shimmerX, (v) => Math.min(120, v + 38));
 
-  const shimmer: MotionValue<string> = useMotionTemplate`linear-gradient(90deg,
+  const shimmer = useMotionTemplate`linear-gradient(90deg,
     rgba(255,255,255,0) 0%,
     rgba(255,255,255,0) ${shimmerX}%,
     rgba(255,255,255,0.95) ${s2}%,
@@ -265,14 +242,18 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
 
   useEffect(() => {
     if (reduce) return;
-    let raf = 0;
+    let raf: ReturnType<typeof requestAnimationFrame> | null = null;
+
     const tick = () => {
       const v = shimmerX.get();
       shimmerX.set(v >= 140 ? -40 : v + 1.3);
-      raf = window.requestAnimationFrame(tick);
+      raf = requestAnimationFrame(tick);
     };
-    raf = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(raf);
+
+    raf = requestAnimationFrame(tick);
+    return () => {
+      if (raf != null) cancelAnimationFrame(raf);
+    };
   }, [reduce, shimmerX]);
 
   return (
@@ -368,7 +349,7 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
               }}
             >
               Plates
-              {/* ✅ no "as any": make it a motion element so MotionValue works */}
+              {/* ✅ make it motion.span so MotionValue<string> is allowed WITHOUT any */}
               <motion.span
                 aria-hidden="true"
                 className="absolute inset-0 pointer-events-none"
@@ -426,10 +407,10 @@ export default function Home() {
       ro.observe(el);
     }
 
-    window.addEventListener("resize", read);
+    addEventListener("resize", read);
     return () => {
       ro?.disconnect();
-      window.removeEventListener("resize", read);
+      removeEventListener("resize", read);
     };
   }, []);
 
@@ -446,8 +427,8 @@ export default function Home() {
 
   useEffect(() => {
     if (!introOpen) return;
-    const t = window.setTimeout(() => setIntroOpen(false), 2100);
-    return () => window.clearTimeout(t);
+    const t = setTimeout(() => setIntroOpen(false), 2100);
+    return () => clearTimeout(t);
   }, [introOpen]);
 
   const landed = !introOpen;
@@ -497,7 +478,7 @@ export default function Home() {
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
+    const mq = matchMedia("(min-width: 768px)");
     const apply = () => setIsDesktop(mq.matches);
     apply();
 
@@ -505,9 +486,9 @@ export default function Home() {
       mq.addEventListener("change", apply);
       return () => mq.removeEventListener("change", apply);
     } else {
-      // @ts-ignore
+      // @ts-ignore (older Safari)
       mq.addListener(apply);
-      // @ts-ignore
+      // @ts-ignore (older Safari)
       return () => mq.removeListener(apply);
     }
   }, []);
@@ -527,10 +508,10 @@ export default function Home() {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    window.addEventListener("keydown", onKey);
+    addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
+      removeEventListener("keydown", onKey);
     };
   }, [menuOpen]);
 
@@ -548,11 +529,11 @@ export default function Home() {
       setDesktopMenuOpen(false);
     };
 
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("mousedown", onDown);
+    addEventListener("keydown", onKey);
+    addEventListener("mousedown", onDown);
     return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("mousedown", onDown);
+      removeEventListener("keydown", onKey);
+      removeEventListener("mousedown", onDown);
     };
   }, [desktopMenuOpen]);
 
@@ -583,8 +564,7 @@ export default function Home() {
   const galleryOpacityMV = useTransform(galleryP, [0, 0.25, 0.75, 1], [1, 0.92, 0.68, 0.42]);
   const galleryBlurMV = useTransform(galleryP, [0, 1], [0, 3]);
   const galleryScaleMV = useTransform(galleryP, [0, 1], [1, 0.985]);
-
-  const galleryFilterMV: MotionValue<string> = useMotionTemplate`blur(${galleryBlurMV}px)`;
+  const galleryFilterMV = useMotionTemplate`blur(${galleryBlurMV}px)`;
   const overlayYMV = useTransform(galleryP, [0, 0.35, 1], [0, -28, -96]);
 
   // =========================================================
@@ -603,10 +583,11 @@ export default function Home() {
   const pointerIdRef = useRef<number | null>(null);
   const capturedRef = useRef(false);
 
-  const wheelSettleTimer = useRef<number | null>(null);
+  // ✅ IMPORTANT: type timers as ReturnType<typeof setTimeout> (fixes your screenshot error)
+  const wheelSettleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const wheelArmedRef = useRef(false);
-  const wheelArmTimerRef = useRef<number | null>(null);
+  const wheelArmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wheelEnergyRef = useRef(0);
 
   const atTopRef = useRef(false);
@@ -627,7 +608,7 @@ export default function Home() {
   const resetWheelArm = () => {
     wheelArmedRef.current = false;
     wheelEnergyRef.current = 0;
-    if (wheelArmTimerRef.current) window.clearTimeout(wheelArmTimerRef.current);
+    if (wheelArmTimerRef.current) clearTimeout(wheelArmTimerRef.current);
     wheelArmTimerRef.current = null;
   };
 
@@ -642,14 +623,14 @@ export default function Home() {
     triggeredRef.current = true;
 
     try {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      window.scrollTo(0, 0);
+      scrollTo(0, 0);
     }
 
     setIntroOpen(true);
 
-    window.setTimeout(() => {
+    setTimeout(() => {
       triggeredRef.current = false;
     }, 1700);
   };
@@ -657,7 +638,7 @@ export default function Home() {
   // Track when we're "settled" at top
   useEffect(() => {
     const onScroll = () => {
-      const y = window.scrollY || 0;
+      const y = (typeof scrollY === "number" ? scrollY : 0) || 0;
 
       if (y <= 1) {
         if (!atTopRef.current) {
@@ -672,9 +653,9 @@ export default function Home() {
       }
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("scroll", onScroll, { passive: true });
     onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => removeEventListener("scroll", onScroll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -698,7 +679,7 @@ export default function Home() {
     if (!armedRef.current) return;
     if (startYRef.current == null || startXRef.current == null) return;
 
-    if ((window.scrollY || 0) > 1) {
+    if (((typeof scrollY === "number" ? scrollY : 0) || 0) > 1) {
       setPull(0);
       armedRef.current = false;
       return;
@@ -723,6 +704,7 @@ export default function Home() {
 
     if (dy < CAPTURE_AFTER_PX) return;
 
+    // ✅ no `any`
     if (e.cancelable) e.preventDefault();
 
     const elastic = Math.min(PULL_MAX, (dy - CAPTURE_AFTER_PX) * 0.55);
@@ -762,7 +744,7 @@ export default function Home() {
     if (!armedRef.current) return;
     if (startYRef.current == null) return;
 
-    if ((window.scrollY || 0) > 1) {
+    if (((typeof scrollY === "number" ? scrollY : 0) || 0) > 1) {
       setPull(0);
       armedRef.current = false;
       return;
@@ -813,7 +795,7 @@ export default function Home() {
   const onWheel = (e: React.WheelEvent) => {
     if (isInteractiveTarget(e.target)) return;
 
-    const y = window.scrollY || 0;
+    const y = (typeof scrollY === "number" ? scrollY : 0) || 0;
 
     if (y > 1) {
       resetWheelArm();
@@ -826,8 +808,8 @@ export default function Home() {
       if (!wheelArmedRef.current) {
         wheelArmedRef.current = true;
 
-        if (wheelArmTimerRef.current) window.clearTimeout(wheelArmTimerRef.current);
-        wheelArmTimerRef.current = window.setTimeout(() => {
+        if (wheelArmTimerRef.current) clearTimeout(wheelArmTimerRef.current);
+        wheelArmTimerRef.current = setTimeout(() => {
           resetWheelArm();
         }, 700);
 
@@ -844,8 +826,8 @@ export default function Home() {
       const add = Math.min(16, mag * 0.16);
       setPull(pullRaw.get() + add);
 
-      if (wheelSettleTimer.current) window.clearTimeout(wheelSettleTimer.current);
-      wheelSettleTimer.current = window.setTimeout(() => {
+      if (wheelSettleTimer.current) clearTimeout(wheelSettleTimer.current);
+      wheelSettleTimer.current = setTimeout(() => {
         const ok = pullRaw.get() >= PULL_TRIGGER && wheelEnergyRef.current >= 220;
         if (ok) triggerMagicRefresh();
         setPull(0);
@@ -859,20 +841,20 @@ export default function Home() {
 
   useEffect(() => {
     return () => {
-      if (wheelSettleTimer.current) window.clearTimeout(wheelSettleTimer.current);
-      if (wheelArmTimerRef.current) window.clearTimeout(wheelArmTimerRef.current);
+      if (wheelSettleTimer.current) clearTimeout(wheelSettleTimer.current);
+      if (wheelArmTimerRef.current) clearTimeout(wheelArmTimerRef.current);
     };
   }, []);
 
   const pullOpacity = useTransform(pullY, [0, 18, 60], [0, 0.85, 1]);
   const pullScale = useTransform(pullY, [0, 60], [0.98, 1]);
   const pullBlur = useTransform(pullY, [0, 70], [10, 0]);
-  const pullFilter: MotionValue<string> = useMotionTemplate`blur(${pullBlur}px)`;
+  const pullFilter = useMotionTemplate`blur(${pullBlur}px)`;
 
   // =========================================================
   // ✅ Landing animations
   // =========================================================
-  const easeOut: Easing = [0.2, 0.9, 0.2, 1];
+  const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
 
   const landingWrap = {
     hidden: { opacity: 0, y: 18 },
@@ -908,10 +890,7 @@ export default function Home() {
   return (
     <main
       className="min-h-screen bg-white text-slate-900"
-      style={{
-        touchAction: "pan-y",
-        overscrollBehaviorY: "contain",
-      }}
+      style={{ touchAction: "pan-y", overscrollBehaviorY: "contain" }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -1103,11 +1082,7 @@ export default function Home() {
               }}
             />
             <span className="text-xs font-extrabold text-slate-700">
-              {pullNow >= PULL_TRIGGER
-                ? "Release to refresh"
-                : wheelArmedRef.current
-                ? "Pull again to refresh"
-                : "Pull to refresh"}
+              {pullNow >= PULL_TRIGGER ? "Release to refresh" : wheelArmedRef.current ? "Pull again to refresh" : "Pull to refresh"}
             </span>
             <LoadingDots dotSize={4} />
           </div>
