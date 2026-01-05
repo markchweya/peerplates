@@ -314,14 +314,7 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
             transition={reduce ? undefined : { duration: 96, ease: "linear", repeat: Infinity }}
           >
             <defs>
-              <linearGradient
-                id="pp-ring-cine"
-                x1="80"
-                y1="80"
-                x2="440"
-                y2="440"
-                gradientUnits="userSpaceOnUse"
-              >
+              <linearGradient id="pp-ring-cine" x1="80" y1="80" x2="440" y2="440" gradientUnits="userSpaceOnUse">
                 <stop stopColor={BRAND_ORANGE} stopOpacity="0.9" />
                 <stop offset="0.55" stopColor="#e9e9e9" stopOpacity="0.35" />
                 <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="0.35" />
@@ -555,20 +548,18 @@ export default function Home() {
   const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
-  // ✅ Hero overlay scroll effect (gallery fades, text/card floats)
+  // ✅ Hero overlay scroll effect (gallery fades, text/card floats) — MOBILE ONLY for consistency
   const galleryWrapRef = useRef<HTMLDivElement | null>(null);
   const { scrollYProgress: galleryP } = useScroll({
     target: galleryWrapRef,
     offset: ["start start", "end start"],
   });
 
-  const galleryOpacity = useTransform(galleryP, [0, 0.25, 0.75, 1], [1, 0.92, 0.68, 0.42]);
-  const galleryBlur = useTransform(galleryP, [0, 1], [0, 3]);
-  const galleryScale = useTransform(galleryP, [0, 1], [1, 0.985]);
-  const galleryFilter = useMotionTemplate`blur(${galleryBlur}px)`;
-
-  // ✅ Delay upward “float” so on iPhone gallery is visible first
-  const overlayY = useTransform(galleryP, [0, 0.35, 1], [0, -28, -96]);
+  const galleryOpacityMV = useTransform(galleryP, [0, 0.25, 0.75, 1], [1, 0.92, 0.68, 0.42]);
+  const galleryBlurMV = useTransform(galleryP, [0, 1], [0, 3]);
+  const galleryScaleMV = useTransform(galleryP, [0, 1], [1, 0.985]);
+  const galleryFilterMV = useMotionTemplate`blur(${galleryBlurMV}px)`;
+  const overlayYMV = useTransform(galleryP, [0, 0.35, 1], [0, -28, -96]);
 
   // =========================================================
   // ✅ Pull-to-refresh — iPhone safe capture gating
@@ -578,7 +569,7 @@ export default function Home() {
   const [pullNow, setPullNow] = useState(0);
 
   const startYRef = useRef<number | null>(null);
-  const startXRef = useRef<number | null>(null); // ✅ NEW
+  const startXRef = useRef<number | null>(null);
   const armedRef = useRef(false);
   const triggeredRef = useRef(false);
 
@@ -599,8 +590,6 @@ export default function Home() {
   const PULL_TRIGGER = 92;
   const START_DRAG_PX = 12;
   const TOP_SETTLE_MS = 140;
-
-  // ✅ This is the iPhone “don’t kill scroll” threshold
   const CAPTURE_AFTER_PX = 28;
 
   const setPull = (v: number) => {
@@ -663,7 +652,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ MOBILE touch (FIXED)
+  // ✅ MOBILE touch
   const onTouchStart = (e: React.TouchEvent) => {
     if (isInteractiveTarget(e.target)) return;
 
@@ -683,7 +672,6 @@ export default function Home() {
     if (!armedRef.current) return;
     if (startYRef.current == null || startXRef.current == null) return;
 
-    // Abort if user left the top
     if ((window.scrollY || 0) > 1) {
       setPull(0);
       armedRef.current = false;
@@ -697,22 +685,18 @@ export default function Home() {
     const dy = yNow - startYRef.current;
     const dx = xNow - startXRef.current;
 
-    // ✅ If they swipe UP (normal scroll), never intercept
     if (dy <= 0) {
       setPull(0);
       return;
     }
 
-    // ✅ If it's more horizontal than vertical, never intercept
     if (Math.abs(dx) > dy * 0.85) {
       setPull(0);
       return;
     }
 
-    // ✅ Ignore tiny jitter; DO NOT preventDefault yet
     if (dy < CAPTURE_AFTER_PX) return;
 
-    // ✅ Now it’s a real pull-down: intercept
     if ((e as any).cancelable) e.preventDefault();
 
     const elastic = Math.min(PULL_MAX, (dy - CAPTURE_AFTER_PX) * 0.55);
@@ -799,7 +783,7 @@ export default function Home() {
     setPull(0);
   };
 
-  // PC wheel/trackpad pull (unchanged)
+  // PC wheel/trackpad pull
   const onWheel = (e: React.WheelEvent) => {
     if (isInteractiveTarget(e.target)) return;
 
@@ -912,8 +896,8 @@ export default function Home() {
       onPointerCancel={endPointer}
       onWheel={onWheel}
     >
-      {/* Header */}
-      <HeroFade directionDelta={7} className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
+      {/* Header (z boosted so menus never go behind transformed content) */}
+      <HeroFade directionDelta={7} className="fixed top-0 left-0 right-0 z-[600] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center gap-3 min-w-0">
@@ -947,7 +931,7 @@ export default function Home() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.98 }}
                         transition={{ duration: 0.16, ease: easeOut }}
-                        className="absolute left-0 mt-3 w-[320px] origin-top-left"
+                        className="absolute left-0 mt-3 w-[320px] origin-top-left z-[650]"
                       >
                         <div
                           className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
@@ -1018,6 +1002,7 @@ export default function Home() {
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.22, ease: easeOut }}
                   className="md:hidden overflow-hidden"
+                  style={{ zIndex: 650 }}
                 >
                   <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
                     <div className="mx-auto w-full max-w-[420px]">
@@ -1062,7 +1047,7 @@ export default function Home() {
 
       {/* Pull-to-refresh indicator */}
       <motion.div
-        className="fixed left-0 right-0 z-[90] pointer-events-none"
+        className="fixed left-0 right-0 z-[520] pointer-events-none"
         style={{
           top: 96,
           opacity: pullOpacity,
@@ -1105,7 +1090,7 @@ export default function Home() {
         {introOpen ? (
           <motion.div
             key="intro-overlay"
-            className="fixed left-0 right-0 z-[80] bg-white"
+            className="fixed left-0 right-0 z-[500] bg-white"
             style={{
               top: 96,
               height: "calc(100svh - 96px)",
@@ -1148,24 +1133,41 @@ export default function Home() {
                 {/* Left column */}
                 <motion.div variants={slideL} className="pt-1 sm:pt-2">
                   <div ref={galleryWrapRef} className="relative">
-                    <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
+                    {/* ✅ HARD HEIGHT WRAPPER so deployed == localhost */}
+                    <motion.div
+                      style={{
+                        opacity: isDesktop ? 1 : galleryOpacityMV,
+                        filter: isDesktop ? "none" : (galleryFilterMV as any),
+                        scale: isDesktop ? 1 : galleryScaleMV,
+                      }}
+                    >
                       <div className="-mx-2 sm:mx-0" data-no-pull>
-                        <TopGallery
-                          images={[
-                            { name: "gallery11.png", alt: "Gallery 11" },
-                            { name: "gallery12.png", alt: "Gallery 12" },
-                            { name: "gallery13.png", alt: "Gallery 13" },
-                            { name: "gallery14.png", alt: "Gallery 14" },
-                            { name: "gallery15.png", alt: "Gallery 15" },
-                          ]}
-                        />
+                        <div
+                          className="relative w-full overflow-hidden rounded-[28px] sm:rounded-[34px] border border-slate-200 bg-white shadow-sm"
+                          style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
+                        >
+                          <div className="relative h-[360px] sm:h-[520px] lg:h-[560px]">
+                            <TopGallery
+                              images={[
+                                { name: "gallery11.png", alt: "Gallery 11" },
+                                { name: "gallery12.png", alt: "Gallery 12" },
+                                { name: "gallery13.png", alt: "Gallery 13" },
+                                { name: "gallery14.png", alt: "Gallery 14" },
+                                { name: "gallery15.png", alt: "Gallery 15" },
+                              ]}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </motion.div>
 
-                    {/* Text overlay */}
+                    {/* Text card (mobile can float, desktop stays stable) */}
                     <motion.div
-                      style={{ y: overlayY }}
-                      className={cn("relative z-30", "mt-6 sm:-mt-28 md:-mt-32")}
+                      style={{ y: isDesktop ? 0 : overlayYMV }}
+                      className={cn(
+                        "relative z-30 mt-6",
+                        isDesktop ? "sm:mt-8" : "sm:-mt-28 md:-mt-32"
+                      )}
                       {...sectionEnter}
                     >
                       <div className="sm:sticky sm:top-[112px]">
