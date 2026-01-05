@@ -14,22 +14,17 @@ const BRAND_BROWN = "#8a6b43";
  * Smart image that falls back between:
  * 1) /images/gallery/<name>
  * 2) /images/<name>
- *
- * This fixes the #1 reason your gallery shows blank: wrong folder.
  */
 function SmartImg({
   name,
   alt,
   className,
 }: {
-  name: string; // e.g. "gallery11.png"
+  name: string;
   alt: string;
   className?: string;
 }) {
-  const candidates = useMemo(
-    () => [`/images/gallery/${name}`, `/images/${name}`],
-    [name]
-  );
+  const candidates = useMemo(() => [`/images/gallery/${name}`, `/images/${name}`], [name]);
 
   const [srcIdx, setSrcIdx] = useState(0);
   const src = candidates[srcIdx] ?? candidates[candidates.length - 1];
@@ -40,10 +35,7 @@ function SmartImg({
       alt={alt}
       className={className}
       draggable={false}
-      onError={() => {
-        // try the next path
-        setSrcIdx((i) => (i < candidates.length - 1 ? i + 1 : i));
-      }}
+      onError={() => setSrcIdx((i) => (i < candidates.length - 1 ? i + 1 : i))}
     />
   );
 }
@@ -59,12 +51,18 @@ export default function TopGallery({
   const [dir, setDir] = useState<1 | -1>(1);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
+  // ✅ direction-lock helpers so vertical scroll stays buttery
+  const startPt = useRef<{ x: number; y: number } | null>(null);
+  const allowDrag = useRef(false);
+
   const safeSet = (n: number, nextDir?: 1 | -1) => {
     const len = images.length || 1;
     const v = ((n % len) + len) % len;
     if (typeof nextDir === "number") setDir(nextDir);
     setIdx(v);
   };
+
+  if (!images?.length) return null;
 
   const prev = images[(idx - 1 + images.length) % images.length];
   const cur = images[idx];
@@ -77,7 +75,7 @@ export default function TopGallery({
     "shadow-[0_22px_70px_rgba(0,0,0,0.22)] " +
     "transition active:scale-[0.98] hover:bg-white/34";
 
-  // Desktop trackpad / shift-scroll navigation
+  // ✅ Desktop trackpad / shift-scroll navigation (LESS AGGRESSIVE)
   useEffect(() => {
     const el = rootRef.current;
     if (!el) return;
@@ -88,12 +86,17 @@ export default function TopGallery({
     const onWheel = (e: WheelEvent) => {
       const dx = Math.abs(e.deltaX);
       const dy = Math.abs(e.deltaY);
-      const horizontalIntent = dx > dy || e.shiftKey;
+
+      // Require clear horizontal intent (diagonal scroll should still scroll the page)
+      const horizontalIntent = dx > dy * 1.25 || e.shiftKey;
       if (!horizontalIntent) return;
 
       const primary = dx > dy ? e.deltaX : e.deltaY;
-      if (Math.abs(primary) < 3) return;
 
+      // Ignore tiny trackpad noise
+      if (Math.abs(primary) < 6) return;
+
+      // Only prevent default when we truly mean to hijack scrolling
       e.preventDefault();
 
       const now = performance.now();
@@ -102,10 +105,10 @@ export default function TopGallery({
 
       acc += primary;
 
-      if (acc > 60) {
+      if (acc > 70) {
         acc = 0;
         safeSet(idx + 1, 1);
-      } else if (acc < -60) {
+      } else if (acc < -70) {
         acc = 0;
         safeSet(idx - 1, -1);
       }
@@ -115,11 +118,10 @@ export default function TopGallery({
     return () => el.removeEventListener("wheel", onWheel as any);
   }, [idx, images.length]);
 
-  if (!images?.length) return null;
-
   return (
     <motion.div
       ref={rootRef}
+      data-no-pull // ✅ key: stops page pull-to-refresh from hijacking touch inside gallery
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "ArrowRight") safeSet(idx + 1, 1);
@@ -158,11 +160,7 @@ export default function TopGallery({
             aria-label="Previous (peek)"
           >
             <div className="relative h-full w-full overflow-hidden rounded-[26px] border border-white/40 bg-white/10 shadow-[0_18px_60px_rgba(2,6,23,0.18)]">
-              <SmartImg
-                name={prev.name}
-                alt={prev.alt}
-                className="h-full w-full object-cover opacity-75"
-              />
+              <SmartImg name={prev.name} alt={prev.alt} className="h-full w-full object-cover opacity-75" />
               <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-white/5 to-transparent" />
             </div>
           </button>
@@ -175,11 +173,7 @@ export default function TopGallery({
             aria-label="Next (peek)"
           >
             <div className="relative h-full w-full overflow-hidden rounded-[26px] border border-white/40 bg-white/10 shadow-[0_18px_60px_rgba(2,6,23,0.18)]">
-              <SmartImg
-                name={next.name}
-                alt={next.alt}
-                className="h-full w-full object-cover opacity-75"
-              />
+              <SmartImg name={next.name} alt={next.alt} className="h-full w-full object-cover opacity-75" />
               <div className="absolute inset-0 bg-gradient-to-l from-white/30 via-white/5 to-transparent" />
             </div>
           </button>
@@ -187,16 +181,46 @@ export default function TopGallery({
           {/* center slide */}
           <motion.div
             className="absolute inset-0 z-10 flex items-center justify-center cursor-grab active:cursor-grabbing"
-            drag="x"
+            // ✅ only allow dragging when we've detected a horizontal intent
+            drag={allowDrag.current ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.1}
+            dragElastic={0.12}
+            dragMomentum={true}
+            dragDirectionLock
+            onPointerDown={(e) => {
+              startPt.current = { x: e.clientX, y: e.clientY };
+              allowDrag.current = false; // reset
+            }}
+            onPointerMove={(e) => {
+              if (!startPt.current) return;
+
+              const dx = e.clientX - startPt.current.x;
+              const dy = e.clientY - startPt.current.y;
+
+              // If user is scrolling vertically, never engage drag.
+              if (Math.abs(dy) > Math.abs(dx) * 1.15 && Math.abs(dy) > 8) {
+                allowDrag.current = false;
+                return;
+              }
+
+              // If user clearly swipes horizontally, enable drag.
+              if (Math.abs(dx) > Math.abs(dy) * 1.15 && Math.abs(dx) > 10) {
+                allowDrag.current = true;
+              }
+            }}
+            onPointerUp={() => {
+              startPt.current = null;
+              allowDrag.current = false;
+            }}
             onDragEnd={(_, info) => {
+              // only respond if drag was active
               const t = info.offset.x;
               const v = info.velocity.x;
               if (t < -110 || v < -900) safeSet(idx + 1, 1);
               else if (t > 110 || v > 900) safeSet(idx - 1, -1);
             }}
-            style={{ touchAction: "pan-y" }}
+            // ✅ crucial: allow vertical scrolling on touch
+            style={{ touchAction: "pan-y pinch-zoom" }}
           >
             <div
               className={cn(
@@ -226,11 +250,7 @@ export default function TopGallery({
                   }}
                   transition={{ duration: 0.44, ease: [0.2, 0.9, 0.2, 1] }}
                 >
-                  <SmartImg
-                    name={cur.name}
-                    alt={cur.alt}
-                    className="h-full w-full object-cover"
-                  />
+                  <SmartImg name={cur.name} alt={cur.alt} className="h-full w-full object-cover" />
                 </motion.div>
               </AnimatePresence>
 
@@ -245,8 +265,7 @@ export default function TopGallery({
               onClick={() => safeSet(idx - 1, -1)}
               className={cn(arrowBtn, "absolute left-6 top-1/2 -translate-y-1/2 z-20")}
               style={{
-                boxShadow:
-                  "0 22px 70px rgba(0,0,0,0.22), 0 0 0 2px rgba(252,176,64,0.26) inset",
+                boxShadow: "0 22px 70px rgba(0,0,0,0.22), 0 0 0 2px rgba(252,176,64,0.26) inset",
               }}
               aria-label="Previous image"
             >
@@ -268,8 +287,7 @@ export default function TopGallery({
               onClick={() => safeSet(idx + 1, 1)}
               className={cn(arrowBtn, "absolute right-6 top-1/2 -translate-y-1/2 z-20")}
               style={{
-                boxShadow:
-                  "0 22px 70px rgba(0,0,0,0.22), 0 0 0 2px rgba(252,176,64,0.26) inset",
+                boxShadow: "0 22px 70px rgba(0,0,0,0.22), 0 0 0 2px rgba(252,176,64,0.26) inset",
               }}
               aria-label="Next image"
             >
