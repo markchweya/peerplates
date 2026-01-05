@@ -1,11 +1,13 @@
 // src/app/join/page.tsx
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import { MotionDiv } from "@/app/ui/motion";
-
-export const metadata = {
-  title: "Join Waitlist | PeerPlates",
-};
 
 function ConsumerIcon({ className = "" }: { className?: string }) {
   return (
@@ -20,33 +22,16 @@ function ConsumerIcon({ className = "" }: { className?: string }) {
   );
 }
 
-/** ✅ Chef icon (neutral) to replace “female hair” vendor icon */
-function ChefIcon({ className = "" }: { className?: string }) {
+/** ✅ Chef HAT ONLY (vendor icon) */
+function ChefHatIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
-      {/* hat */}
       <path
         d="M7.2 9.3c-1.8-.4-3.2-2-3.2-4 0-2.2 1.8-4 4-4 1.1 0 2.1.4 2.8 1.1.7-.7 1.7-1.1 2.8-1.1s2.1.4 2.8 1.1c.7-.7 1.7-1.1 2.8-1.1 2.2 0 4 1.8 4 4 0 2-1.4 3.6-3.2 4v2.2H7.2V9.3Z"
         fill="currentColor"
         opacity="0.95"
       />
-      {/* face */}
-      <path
-        d="M8.2 13.1h7.6c.6 0 1 .4 1 1v.6c0 2.7-2.2 4.9-4.8 4.9S7.2 17.4 7.2 14.7v-.6c0-.6.4-1 1-1Z"
-        fill="currentColor"
-        opacity="0.28"
-      />
-      {/* apron/body */}
-      <path
-        d="M6.6 21c.1-2.9 2.6-5.2 5.4-5.2s5.3 2.3 5.4 5.2H6.6Z"
-        fill="currentColor"
-        opacity="0.9"
-      />
-      {/* apron knot */}
-      <path
-        d="M12 15.6c.9 0 1.6-.6 1.6-1.4 0-.8-.7-1.4-1.6-1.4s-1.6.6-1.6 1.4c0 .8.7 1.4 1.6 1.4Z"
-        fill="currentColor"
-      />
+      <path d="M7.2 11.5h13.6v2H7.2v-2Z" fill="currentColor" opacity="0.28" />
     </svg>
   );
 }
@@ -54,120 +39,118 @@ function ChefIcon({ className = "" }: { className?: string }) {
 const ORANGE = "#fcb040";
 const BROWN = "#8a6b43";
 
-function FoodIcon({ className = "" }: { className?: string }) {
-  // plate + fork/spoon vibe (same feel across pages)
+function HamburgerIcon({ className = "" }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {/* Plate */}
-      <circle cx="13" cy="12" r="6.25" />
-      {/* Table line */}
-      <path d="M4 19h18" />
-      {/* Spoon/fork stylised */}
-      <path d="M6.5 4.5c1.7 0 3 1.4 3 3.1 0 1.1-.6 2.1-1.5 2.7v8.7" />
-      <path d="M6.5 4.5c-1.7 0-3 1.4-3 3.1 0 1.1.6 2.1 1.5 2.7v8.7" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      <path d="M5 7h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M5 17h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   );
 }
 
-export default async function JoinPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ ref?: string }>;
-}) {
-  const sp = (await searchParams) || {};
-  const ref = String(sp.ref || "").trim();
+function XIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChevronDown({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
+      <path
+        d="M6 9l6 6 6-6"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export default function JoinPage() {
+  const searchParams = useSearchParams();
+  const ref = (searchParams?.get("ref") || "").trim();
 
   const consumerHref = ref ? `/join/consumer?ref=${encodeURIComponent(ref)}` : "/join/consumer";
   const vendorHref = ref ? `/join/vendor?ref=${encodeURIComponent(ref)}` : "/join/vendor";
 
-  const navLinks = [
-    { href: "/", label: "Home", variant: "ghost" as const },
-    { href: "/mission", label: "Mission", variant: "ghost" as const },
-    { href: "/vision", label: "Vision", variant: "ghost" as const },
-    { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
-    { href: "/faq", label: "FAQ", variant: "ghost" as const },
-    { href: "/privacy", label: "Privacy", variant: "ghost" as const },
-    { href: "/queue", label: "Check queue", variant: "ghost" as const },
-    { href: "/join", label: "Join waitlist", variant: "primary" as const },
-  ];
+  const navLinks = useMemo(
+    () => [
+      { href: "/", label: "Home" },
+      { href: "/mission", label: "Mission" },
+      { href: "/vision", label: "Vision" },
+      { href: "/food-safety", label: "Food safety" },
+      { href: "/queue", label: "Check queue" },
+      { href: "/faq", label: "FAQ" },
+      { href: "/privacy", label: "Privacy" },
+    ],
+    []
+  );
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
+
+  // ✅ lock scroll only when the menu is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    if (mobileMenuOpen) document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileMenuOpen]);
 
   const btnBase =
     "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
-  const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
+  const btnGhost = "border border-slate-200 bg-white text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* ✅ HARD GUARANTEE: correct visibility even if Tailwind breakpoints misbehave */}
       <style>{`
-        @media (min-width: 768px) {
-          .pp-mobile-menu { display: none !important; }
-        }
-        @media (max-width: 767px) {
-          .pp-desktop-nav { display: none !important; }
-        }
-        summary::-webkit-details-marker { display: none; }
+        summary::-webkit-details-marker { display:none; }
+        .pp-tap { -webkit-tap-highlight-color: transparent; user-select:none; }
+        details[open] .pp-chevron { transform: rotate(180deg); }
+        .pp-chevron { transition: transform 180ms ease; }
+
+        @media (min-width: 768px) { .pp-mobile-only { display:none !important; } }
+        @media (max-width: 767px) { .pp-desktop-only { display:none !important; } }
       `}</style>
 
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
-        <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+        <div className="border-b border-slate-200/60 bg-white">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45 }}
-              className="flex items-center gap-3 min-w-0"
+              className="flex items-center gap-3"
             >
-              <Link href="/" className="flex items-center min-w-0 overflow-hidden">
+              {/* Logo (left) */}
+              <Link href="/" className="flex items-center gap-3 min-w-0">
                 <span className="shrink-0">
                   <LogoCinematic size={56} wordScale={1} />
                 </span>
               </Link>
 
-              {/* Desktop nav */}
-              <div className="pp-desktop-nav hidden md:flex items-center gap-3 ml-auto">
-                {navLinks.map((l) => (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    className={[btnBase, l.variant === "primary" ? btnPrimary : btnGhost].join(" ")}
-                  >
-                    {l.label}
-                  </Link>
-                ))}
-              </div>
-
-              {/* Mobile menu button: ICON ONLY (no visible “Menu” text) */}
-              <div className="pp-mobile-menu md:hidden ml-auto shrink-0">
-                <details className="relative">
-                  <summary
-                    aria-label={menuOpenLabel()}
-                    className={[
-                      "list-none cursor-pointer select-none",
-                      "inline-flex items-center justify-center",
-                      "rounded-full border border-slate-200 bg-white/95 backdrop-blur",
-                      "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]",
-                      "text-slate-900",
-                    ].join(" ")}
-                  >
-                    <FoodIcon className="h-5 w-5" />
-                    {/* ✅ ensure nothing shows visually */}
-                    <span className="sr-only">Open menu</span>
+              {/* Desktop: dropdown + join */}
+              <div className="pp-desktop-only ml-auto hidden md:flex items-center gap-3">
+                <details
+                  className="relative"
+                  open={desktopMenuOpen}
+                  onToggle={(e) => setDesktopMenuOpen((e.target as HTMLDetailsElement).open)}
+                >
+                  <summary className={["pp-tap", btnBase, btnGhost, "gap-2 cursor-pointer"].join(" ")} aria-label="Open menu">
+                    Menu <ChevronDown className="pp-chevron h-5 w-5" />
                   </summary>
 
-                  <div className="absolute right-0 mt-3 w-[min(92vw,420px)] origin-top-right">
+                  <div className="absolute right-0 mt-3 w-[320px] origin-top-right">
                     <div
-                      className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
+                      className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm"
                       style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
                     >
                       <div className="grid gap-2">
@@ -175,22 +158,38 @@ export default async function JoinPage({
                           <Link
                             key={l.href}
                             href={l.href}
-                            className={[
-                              "w-full",
-                              btnBase,
-                              "px-5 py-3",
-                              l.variant === "primary" ? btnPrimary : btnGhost,
-                            ].join(" ")}
+                            onClick={() => setDesktopMenuOpen(false)}
+                            className={["w-full", btnBase, "px-5 py-3", btnGhost, "justify-start"].join(" ")}
                           >
                             {l.label}
                           </Link>
                         ))}
                       </div>
-
                       <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
                     </div>
                   </div>
                 </details>
+
+                <Link href="/join" className={[btnBase, btnPrimary].join(" ")}>
+                  Join waitlist
+                </Link>
+              </div>
+
+              {/* Mobile hamburger (ICON ONLY) */}
+              <div className="pp-mobile-only md:hidden ml-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(true)}
+                  className={[
+                    "pp-tap inline-flex items-center justify-center",
+                    "rounded-full border border-slate-200 bg-white",
+                    "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]",
+                    "text-slate-900",
+                  ].join(" ")}
+                  aria-label="Open menu"
+                >
+                  <HamburgerIcon className="h-5 w-5" />
+                </button>
               </div>
             </MotionDiv>
           </div>
@@ -199,6 +198,82 @@ export default async function JoinPage({
 
       {/* Spacer */}
       <div className="h-[84px]" />
+
+      {/* ✅ Mobile menu: SOLID WHITE sheet */}
+      <AnimatePresence>
+        {mobileMenuOpen ? (
+          <motion.div
+            key="mobile-menu"
+            className="fixed inset-0 z-[120] bg-white"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            {/* top bar */}
+            <div className="flex items-center gap-3 px-4 pt-4">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+                className={[
+                  "pp-tap h-10 w-10 rounded-full",
+                  "border border-slate-200 bg-white shadow-sm",
+                  "flex items-center justify-center text-slate-900",
+                ].join(" ")}
+              >
+                <XIcon className="h-5 w-5" />
+              </button>
+
+              {/* ✅ Icon on the LEFT (brand block) */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-11 w-11 rounded-2xl border border-slate-200 bg-white shadow-sm flex items-center justify-center">
+                  <LogoCinematic size={34} wordScale={0.72} />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-extrabold leading-none">PeerPlates</div>
+                  <div className="text-xs font-semibold text-slate-500">authentic • affordable • local</div>
+                </div>
+              </div>
+            </div>
+
+            {/* menu content */}
+            <div className="px-4 pt-5">
+              <div
+                className="mx-auto w-full max-w-[420px] rounded-[34px] border border-slate-200 bg-white shadow-sm p-4"
+                style={{ boxShadow: "0 26px 90px rgba(2,6,23,0.12)" }}
+              >
+                <div className="grid gap-3">
+                  {navLinks.map((l) => (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={[
+                        "w-full rounded-2xl border border-slate-200 bg-white",
+                        "px-5 py-3.5 text-center font-extrabold text-slate-900 shadow-sm",
+                      ].join(" ")}
+                    >
+                      {l.label}
+                    </Link>
+                  ))}
+
+                  <Link
+                    href="/join"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={[
+                      "w-full rounded-2xl border border-[#fcb040]/70 bg-[#fcb040]",
+                      "px-5 py-3.5 text-center font-extrabold text-slate-900 shadow-sm",
+                    ].join(" ")}
+                  >
+                    Join waitlist
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       {/* Content */}
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
@@ -215,17 +290,13 @@ export default async function JoinPage({
 
           <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.4rem,5vw,4.2rem)]">
             Eat better.{" "}
-            <span
-              className="bg-clip-text text-transparent"
-              style={{ backgroundImage: `linear-gradient(90deg, ${ORANGE}, ${BROWN})` }}
-            >
+            <span className="bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(90deg, ${ORANGE}, ${BROWN})` }}>
               Join the waitlist.
             </span>
           </h1>
 
           <p className="mt-4 max-w-2xl text-slate-900/70 font-semibold leading-relaxed">
-            Consumers move up by referrals. Vendors are reviewed via questionnaire — built for safety, trust, and real
-            home-cooked food.
+            Consumers move up by referrals. Vendors are reviewed via questionnaire — built for safety, trust, and real home-cooked food.
           </p>
 
           {ref ? (
@@ -259,8 +330,7 @@ export default async function JoinPage({
             >
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-2xl border border-slate-200 bg-white flex items-center justify-center shadow-sm">
-                  {/* ✅ chef icon */}
-                  <ChefIcon className="h-7 w-7 text-slate-900" />
+                  <ChefHatIcon className="h-7 w-7 text-slate-900" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-xl font-extrabold">Vendor</div>
@@ -283,13 +353,4 @@ export default async function JoinPage({
       </div>
     </main>
   );
-}
-
-/**
- * ✅ “menu reads Menu” fix:
- * some browsers show the <summary> marker + label weirdly if aria-label is empty.
- * keep a stable label but sr-only hides visible text.
- */
-function menuOpenLabel() {
-  return "Open menu";
 }
