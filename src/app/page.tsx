@@ -314,7 +314,14 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
             transition={reduce ? undefined : { duration: 96, ease: "linear", repeat: Infinity }}
           >
             <defs>
-              <linearGradient id="pp-ring-cine" x1="80" y1="80" x2="440" y2="440" gradientUnits="userSpaceOnUse">
+              <linearGradient
+                id="pp-ring-cine"
+                x1="80"
+                y1="80"
+                x2="440"
+                y2="440"
+                gradientUnits="userSpaceOnUse"
+              >
                 <stop stopColor={BRAND_ORANGE} stopOpacity="0.9" />
                 <stop offset="0.55" stopColor="#e9e9e9" stopOpacity="0.35" />
                 <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="0.35" />
@@ -559,7 +566,9 @@ export default function Home() {
   const galleryBlur = useTransform(galleryP, [0, 1], [0, 3]);
   const galleryScale = useTransform(galleryP, [0, 1], [1, 0.985]);
   const galleryFilter = useMotionTemplate`blur(${galleryBlur}px)`;
-  const overlayY = useTransform(galleryP, [0, 0.6, 1], [0, -46, -96]);
+
+  // ✅ CHANGE: delay the upward “float” so on iPhone the gallery is visible first
+  const overlayY = useTransform(galleryP, [0, 0.35, 1], [0, -28, -96]);
 
   // =========================================================
   // ✅ Pull-to-refresh — FIXED: only works when TOP is settled
@@ -1141,10 +1150,11 @@ export default function Home() {
                       </div>
                     </motion.div>
 
-                    {/* ✅ Mobile: less “magazine” overlap + smoother entry */}
+                    {/* ✅ CHANGE: on phone, start LOWER (no negative margin),
+                        then as user scrolls, it floats up and overlaps the gallery */}
                     <motion.div
                       style={{ y: overlayY }}
-                      className={cn("relative z-30", "-mt-16 sm:-mt-28 md:-mt-32")}
+                      className={cn("relative z-30", "mt-6 sm:-mt-28 md:-mt-32")}
                       {...sectionEnter}
                     >
                       {/* sticky only on sm+ (phone looks cleaner without sticky stacking) */}
@@ -1177,8 +1187,7 @@ export default function Home() {
                             className={cn(
                               "relative font-extrabold tracking-tight leading-[0.98]",
                               "text-slate-900",
-                             "text-[clamp(2.05rem,7.8vw,5.8rem)]"
-
+                              "text-[clamp(2.05rem,7.8vw,5.8rem)]"
                             )}
                           >
                             Eat better and back local:
@@ -1272,12 +1281,7 @@ export default function Home() {
               willChange: "transform, opacity, filter",
             }}
           >
-            <motion.div
-              variants={landingWrap}
-              initial="hidden"
-              animate={landed ? "show" : "hidden"}
-              className="mx-auto w-full"
-            >
+            <motion.div variants={landingWrap} initial="hidden" animate={landed ? "show" : "hidden"} className="mx-auto w-full">
               <motion.div variants={pop} {...sectionEnter}>
                 <ScrollShowcase
                   heading="App Previews"
