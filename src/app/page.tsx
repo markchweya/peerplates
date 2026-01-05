@@ -567,18 +567,18 @@ export default function Home() {
   const galleryScale = useTransform(galleryP, [0, 1], [1, 0.985]);
   const galleryFilter = useMotionTemplate`blur(${galleryBlur}px)`;
 
-  // ✅ CHANGE: delay the upward “float” so on iPhone the gallery is visible first
+  // ✅ Delay upward “float” so on iPhone gallery is visible first
   const overlayY = useTransform(galleryP, [0, 0.35, 1], [0, -28, -96]);
 
   // =========================================================
-  // ✅ Pull-to-refresh — FIXED: only works when TOP is settled
-  // (prevents "refresh" while just scrolling up)
+  // ✅ Pull-to-refresh — iPhone safe capture gating
   // =========================================================
   const pullRaw = useMotionValue(0);
   const pullY = useSpring(pullRaw, { stiffness: 260, damping: 26, mass: 0.7 });
   const [pullNow, setPullNow] = useState(0);
 
   const startYRef = useRef<number | null>(null);
+  const startXRef = useRef<number | null>(null); // ✅ NEW
   const armedRef = useRef(false);
   const triggeredRef = useRef(false);
 
@@ -588,19 +588,20 @@ export default function Home() {
 
   const wheelSettleTimer = useRef<number | null>(null);
 
-  // Wheel arming (two-stage) + "energy" gate to stop accidental trackpad triggers
   const wheelArmedRef = useRef(false);
   const wheelArmTimerRef = useRef<number | null>(null);
   const wheelEnergyRef = useRef(0);
 
-  // TOP-settle tracking (must be at top for a tiny moment before arming)
   const atTopRef = useRef(false);
   const topSinceRef = useRef<number | null>(null);
 
   const PULL_MAX = 130;
-  const PULL_TRIGGER = 92; // slightly higher to avoid accidental triggers
+  const PULL_TRIGGER = 92;
   const START_DRAG_PX = 12;
   const TOP_SETTLE_MS = 140;
+
+  // ✅ This is the iPhone “don’t kill scroll” threshold
+  const CAPTURE_AFTER_PX = 28;
 
   const setPull = (v: number) => {
     const vv = clamp(v, 0, PULL_MAX);
@@ -662,37 +663,59 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // MOBILE touch
+  // ✅ MOBILE touch (FIXED)
   const onTouchStart = (e: React.TouchEvent) => {
     if (isInteractiveTarget(e.target)) return;
 
-    // ✅ only allow pull when top is SETTLED
     if (topSettled()) {
       armedRef.current = true;
-      startYRef.current = e.touches[0]?.clientY ?? null;
+      const t = e.touches[0];
+      startYRef.current = t?.clientY ?? null;
+      startXRef.current = t?.clientX ?? null;
     } else {
       armedRef.current = false;
       startYRef.current = null;
+      startXRef.current = null;
     }
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
     if (!armedRef.current) return;
-    if (startYRef.current == null) return;
+    if (startYRef.current == null || startXRef.current == null) return;
 
-    const yNow = e.touches[0]?.clientY ?? startYRef.current;
+    // Abort if user left the top
+    if ((window.scrollY || 0) > 1) {
+      setPull(0);
+      armedRef.current = false;
+      return;
+    }
+
+    const t = e.touches[0];
+    const yNow = t?.clientY ?? startYRef.current;
+    const xNow = t?.clientX ?? startXRef.current;
+
     const dy = yNow - startYRef.current;
+    const dx = xNow - startXRef.current;
 
+    // ✅ If they swipe UP (normal scroll), never intercept
     if (dy <= 0) {
       setPull(0);
       return;
     }
 
-    if (dy < START_DRAG_PX) return;
+    // ✅ If it's more horizontal than vertical, never intercept
+    if (Math.abs(dx) > dy * 0.85) {
+      setPull(0);
+      return;
+    }
 
-    e.preventDefault();
+    // ✅ Ignore tiny jitter; DO NOT preventDefault yet
+    if (dy < CAPTURE_AFTER_PX) return;
 
-    const elastic = Math.min(PULL_MAX, (dy - START_DRAG_PX) * 0.5);
+    // ✅ Now it’s a real pull-down: intercept
+    if ((e as any).cancelable) e.preventDefault();
+
+    const elastic = Math.min(PULL_MAX, (dy - CAPTURE_AFTER_PX) * 0.55);
     setPull(elastic);
   };
 
@@ -704,6 +727,7 @@ export default function Home() {
     setPull(0);
     armedRef.current = false;
     startYRef.current = null;
+    startXRef.current = null;
   };
 
   const onTouchCancel = onTouchEnd;
@@ -713,8 +737,6 @@ export default function Home() {
     if (e.pointerType !== "mouse") return;
     if (e.button !== 0) return;
     if (isInteractiveTarget(e.target)) return;
-
-    // ✅ only start if top is settled
     if (!topSettled()) return;
 
     mouseDownRef.current = true;
@@ -730,7 +752,6 @@ export default function Home() {
     if (!armedRef.current) return;
     if (startYRef.current == null) return;
 
-    // ✅ if user left top, abort
     if ((window.scrollY || 0) > 1) {
       setPull(0);
       armedRef.current = false;
@@ -778,24 +799,20 @@ export default function Home() {
     setPull(0);
   };
 
-  // ✅ PC wheel/trackpad pull (2-stage + energy gate, only when top is settled)
+  // PC wheel/trackpad pull (unchanged)
   const onWheel = (e: React.WheelEvent) => {
     if (isInteractiveTarget(e.target)) return;
 
     const y = window.scrollY || 0;
 
-    // Not at top => normal scrolling, clear any arming
     if (y > 1) {
       resetWheelArm();
       return;
     }
 
-    // At top but not settled yet => do nothing (prevents "scroll-up refresh")
     if (!topSettled()) return;
 
-    // User scrolls UP at the top
     if (e.deltaY < 0) {
-      // First "up" gesture arms only (no indicator jerk)
       if (!wheelArmedRef.current) {
         wheelArmedRef.current = true;
 
@@ -807,16 +824,13 @@ export default function Home() {
         return;
       }
 
-      // Armed: now allow actual pulling, but require meaningful delta (trackpad noise filter)
       const mag = Math.abs(e.deltaY);
       if (mag < 10) return;
 
       e.preventDefault();
 
-      // accumulate "effort" so tiny nudges don't trigger
       wheelEnergyRef.current += mag;
 
-      // gentler pull mapping
       const add = Math.min(16, mag * 0.16);
       setPull(pullRaw.get() + add);
 
@@ -828,7 +842,6 @@ export default function Home() {
         resetWheelArm();
       }, 140);
     } else {
-      // Scrolling DOWN cancels
       resetWheelArm();
       if (pullRaw.get() > 0) setPull(0);
     }
@@ -847,7 +860,7 @@ export default function Home() {
   const pullFilter = useMotionTemplate`blur(${pullBlur}px)`;
 
   // =========================================================
-  // ✅ Landing animations (snappier on phone)
+  // ✅ Landing animations
   // =========================================================
   const easeOut = [0.2, 0.9, 0.2, 1] as any;
 
@@ -875,7 +888,6 @@ export default function Home() {
     show: { opacity: 1, x: 0, scale: 1, filter: "blur(0px)", transition: { duration: 0.65, ease: easeOut } },
   };
 
-  // ✅ extra smooth section transitions on mobile
   const sectionEnter = {
     initial: { opacity: 0, y: 18, scale: 0.99, filter: "blur(10px)" },
     whileInView: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
@@ -887,7 +899,7 @@ export default function Home() {
     <main
       className="min-h-screen bg-white text-slate-900"
       style={{
-        touchAction: "pan-x pan-y",
+        touchAction: "pan-y",
         overscrollBehaviorY: "contain",
       }}
       onTouchStart={onTouchStart}
@@ -1048,7 +1060,7 @@ export default function Home() {
       {/* Spacer for fixed header */}
       <div className="h-[92px] sm:h-[96px]" />
 
-      {/* ✅ Pull-to-refresh indicator */}
+      {/* Pull-to-refresh indicator */}
       <motion.div
         className="fixed left-0 right-0 z-[90] pointer-events-none"
         style={{
@@ -1088,7 +1100,7 @@ export default function Home() {
         </div>
       </motion.div>
 
-      {/* ✅ INTRO OVERLAY */}
+      {/* Intro overlay */}
       <AnimatePresence initial={false}>
         {introOpen ? (
           <motion.div
@@ -1108,7 +1120,7 @@ export default function Home() {
         ) : null}
       </AnimatePresence>
 
-      {/* ✅ Whole page content gets pulled down on "refresh pull" */}
+      {/* Whole page content pulled down on "refresh pull" */}
       <motion.div style={{ y: pullY }}>
         <motion.div
           initial={{ opacity: 0, y: 34 }}
@@ -1137,28 +1149,25 @@ export default function Home() {
                 <motion.div variants={slideL} className="pt-1 sm:pt-2">
                   <div ref={galleryWrapRef} className="relative">
                     <motion.div style={{ opacity: galleryOpacity, filter: galleryFilter, scale: galleryScale }}>
-                     <div className="-mx-2 sm:mx-0" data-no-pull>
-  <TopGallery
-    images={[
-      { name: "gallery11.png", alt: "Gallery 11" },
-      { name: "gallery12.png", alt: "Gallery 12" },
-      { name: "gallery13.png", alt: "Gallery 13" },
-      { name: "gallery14.png", alt: "Gallery 14" },
-      { name: "gallery15.png", alt: "Gallery 15" },
-    ]}
-  />
-</div>
-
+                      <div className="-mx-2 sm:mx-0" data-no-pull>
+                        <TopGallery
+                          images={[
+                            { name: "gallery11.png", alt: "Gallery 11" },
+                            { name: "gallery12.png", alt: "Gallery 12" },
+                            { name: "gallery13.png", alt: "Gallery 13" },
+                            { name: "gallery14.png", alt: "Gallery 14" },
+                            { name: "gallery15.png", alt: "Gallery 15" },
+                          ]}
+                        />
+                      </div>
                     </motion.div>
 
-                    {/* ✅ CHANGE: on phone, start LOWER (no negative margin),
-                        then as user scrolls, it floats up and overlaps the gallery */}
+                    {/* Text overlay */}
                     <motion.div
                       style={{ y: overlayY }}
                       className={cn("relative z-30", "mt-6 sm:-mt-28 md:-mt-32")}
                       {...sectionEnter}
                     >
-                      {/* sticky only on sm+ (phone looks cleaner without sticky stacking) */}
                       <div className="sm:sticky sm:top-[112px]">
                         <div
                           className={cn(
