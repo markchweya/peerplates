@@ -12,6 +12,8 @@ import {
   useScroll,
   useTransform,
   useSpring,
+  type Easing,
+  type MotionValue,
 } from "framer-motion";
 
 import ScrollShowcase from "@/app/ui/ScrollShowcase";
@@ -39,9 +41,7 @@ function isInteractiveTarget(target: EventTarget | null) {
   const el = target as HTMLElement | null;
   if (!el) return false;
   return Boolean(
-    el.closest(
-      'a,button,input,textarea,select,option,label,[role="button"],[role="link"],[data-no-pull]'
-    )
+    el.closest('a,button,input,textarea,select,option,label,[role="button"],[role="link"],[data-no-pull]')
   );
 }
 
@@ -91,7 +91,7 @@ function useCinematicSection(
   const y = useSpring(yRaw, { stiffness, damping, mass });
   const b = useSpring(bRaw, { stiffness, damping, mass });
 
-  const filter = useMotionTemplate`blur(${b}px)`;
+  const filter: MotionValue<string> = useMotionTemplate`blur(${b}px)`;
 
   useEffect(() => {
     let raf: number | null = null;
@@ -255,7 +255,7 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
   const s2 = useTransform(shimmerX, (v) => Math.min(110, v + 18));
   const s3 = useTransform(shimmerX, (v) => Math.min(120, v + 38));
 
-  const shimmer = useMotionTemplate`linear-gradient(90deg,
+  const shimmer: MotionValue<string> = useMotionTemplate`linear-gradient(90deg,
     rgba(255,255,255,0) 0%,
     rgba(255,255,255,0) ${shimmerX}%,
     rgba(255,255,255,0.95) ${s2}%,
@@ -368,11 +368,12 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
               }}
             >
               Plates
-              <span
+              {/* ✅ no "as any": make it a motion element so MotionValue works */}
+              <motion.span
                 aria-hidden="true"
                 className="absolute inset-0 pointer-events-none"
                 style={{
-                  backgroundImage: shimmer as any,
+                  backgroundImage: shimmer,
                   WebkitBackgroundClip: "text",
                   backgroundClip: "text",
                   color: "transparent",
@@ -582,7 +583,8 @@ export default function Home() {
   const galleryOpacityMV = useTransform(galleryP, [0, 0.25, 0.75, 1], [1, 0.92, 0.68, 0.42]);
   const galleryBlurMV = useTransform(galleryP, [0, 1], [0, 3]);
   const galleryScaleMV = useTransform(galleryP, [0, 1], [1, 0.985]);
-  const galleryFilterMV = useMotionTemplate`blur(${galleryBlurMV}px)`;
+
+  const galleryFilterMV: MotionValue<string> = useMotionTemplate`blur(${galleryBlurMV}px)`;
   const overlayYMV = useTransform(galleryP, [0, 0.35, 1], [0, -28, -96]);
 
   // =========================================================
@@ -721,7 +723,7 @@ export default function Home() {
 
     if (dy < CAPTURE_AFTER_PX) return;
 
-    if ((e as any).cancelable) e.preventDefault();
+    if (e.cancelable) e.preventDefault();
 
     const elastic = Math.min(PULL_MAX, (dy - CAPTURE_AFTER_PX) * 0.55);
     setPull(elastic);
@@ -865,12 +867,12 @@ export default function Home() {
   const pullOpacity = useTransform(pullY, [0, 18, 60], [0, 0.85, 1]);
   const pullScale = useTransform(pullY, [0, 60], [0.98, 1]);
   const pullBlur = useTransform(pullY, [0, 70], [10, 0]);
-  const pullFilter = useMotionTemplate`blur(${pullBlur}px)`;
+  const pullFilter: MotionValue<string> = useMotionTemplate`blur(${pullBlur}px)`;
 
   // =========================================================
   // ✅ Landing animations
   // =========================================================
-  const easeOut = [0.2, 0.9, 0.2, 1] as any;
+  const easeOut: Easing = [0.2, 0.9, 0.2, 1];
 
   const landingWrap = {
     hidden: { opacity: 0, y: 18 },
@@ -1163,7 +1165,7 @@ export default function Home() {
                     <motion.div
                       style={{
                         opacity: isDesktop ? 1 : galleryOpacityMV,
-                        filter: isDesktop ? "none" : (galleryFilterMV as any),
+                        filter: isDesktop ? "none" : galleryFilterMV,
                         scale: isDesktop ? 1 : galleryScaleMV,
                       }}
                     >
