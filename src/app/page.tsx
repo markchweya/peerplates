@@ -7,6 +7,13 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 const BRAND_ORANGE = "#fcb040";
 const BRAND_BROWN = "#8a6b43";
 
+// Deterministic 0..1 “random” based on index + salt (stable across SSR + client)
+function rand01(i: number, salt = 0) {
+  const x = Math.sin((i + 1) * 12.9898 + (salt + 1) * 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+
 function cn(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
@@ -14,6 +21,427 @@ function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n));
 }
 const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
+
+/** ✅ BendingSpoons-style “seed → split → infinity loop” (recurring) */
+/** ✅ Food cinematic “seed → droplets → kettle + steam” (recurring) */
+function FoodCinematic({
+  mode = "ambient", // "intro" draws + blooms; "ambient" breathes + steam flows
+  className = "",
+}: {
+  mode?: "intro" | "ambient";
+  className?: string;
+}) {
+  const reduce = useReducedMotion();
+
+  // Kettle outline (single-ish stroke vibe)
+  const kettleOutline =
+    "M 318 262 C 302 238 306 212 328 196 C 360 172 440 166 486 182 C 526 196 552 222 548 258 C 544 292 512 316 470 324 C 424 334 360 324 334 298 C 326 290 322 278 318 262 Z";
+
+  const kettleLid = "M 360 170 C 392 142 456 142 488 170";
+  const kettleKnob = { cx: 424, cy: 152, r: 10 };
+
+  const kettleHandle =
+    "M 548 220 C 602 214 636 250 636 286 C 636 322 606 350 560 344";
+
+  const kettleSpout =
+    "M 318 220 C 276 224 252 246 246 270 C 241 290 260 304 286 304";
+
+  // Steam lines (separate paths for nicer animation)
+  const steam1 = "M 370 138 C 352 118 352 98 370 78 C 388 58 388 38 370 18";
+  const steam2 = "M 424 132 C 406 110 408 92 426 72 C 444 52 444 34 426 14";
+  const steam3 = "M 478 138 C 460 118 462 98 480 78 C 498 58 498 38 480 18";
+
+  const introDur = 5.1;
+  const ambientDur = 10.5;
+
+  const commonSvg =
+    "w-[min(980px,92vw)] h-auto overflow-visible pointer-events-none select-none";
+
+  // Reduced motion: show a tasteful static kettle
+  if (reduce) {
+    return (
+      <div className={cn("pointer-events-none", className)} aria-hidden="true">
+        <svg viewBox="0 0 800 400" className={commonSvg}>
+          <defs>
+            <linearGradient id="ppFoodGradStatic" x1="260" y1="90" x2="600" y2="340" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor={BRAND_ORANGE} stopOpacity="0.9" />
+              <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="0.9" />
+            </linearGradient>
+            <filter id="ppFoodGlowStatic" x="-50%" y="-80%" width="200%" height="260%">
+              <feGaussianBlur stdDeviation="8" result="b" />
+              <feColorMatrix
+                in="b"
+                type="matrix"
+                values="
+                  1 0 0 0 0
+                  0 1 0 0 0
+                  0 0 1 0 0
+                  0 0 0 0.55 0"
+                result="g"
+              />
+              <feMerge>
+                <feMergeNode in="g" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          <g opacity="0.13" filter="url(#ppFoodGlowStatic)">
+            <path d={kettleOutline} fill="none" stroke="url(#ppFoodGradStatic)" strokeWidth="10" strokeLinecap="round" />
+            <path d={kettleLid} fill="none" stroke="url(#ppFoodGradStatic)" strokeWidth="8" strokeLinecap="round" />
+            <path d={kettleHandle} fill="none" stroke="url(#ppFoodGradStatic)" strokeWidth="10" strokeLinecap="round" />
+            <path d={kettleSpout} fill="none" stroke="url(#ppFoodGradStatic)" strokeWidth="9" strokeLinecap="round" />
+            <circle cx={kettleKnob.cx} cy={kettleKnob.cy} r={kettleKnob.r} fill="none" stroke="url(#ppFoodGradStatic)" strokeWidth="7" />
+          </g>
+        </svg>
+      </div>
+    );
+  }
+
+  if (mode === "ambient") {
+    return (
+      <div className={cn("pointer-events-none", className)} aria-hidden="true">
+        <motion.svg
+          viewBox="0 0 800 400"
+          className={commonSvg}
+          initial={{ opacity: 0, scale: 0.985, y: 10, filter: "blur(10px)" }}
+          animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ duration: 0.75, ease: easeOut }}
+        >
+          <defs>
+            <linearGradient id="ppFoodGradAmbient" x1="260" y1="90" x2="600" y2="340" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor={BRAND_ORANGE} stopOpacity="1" />
+              <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="1" />
+            </linearGradient>
+
+            <filter id="ppFoodGlowAmbient" x="-55%" y="-110%" width="210%" height="320%">
+              <feGaussianBlur stdDeviation="12" result="b" />
+              <feColorMatrix
+                in="b"
+                type="matrix"
+                values="
+                  1 0 0 0 0
+                  0 1 0 0 0
+                  0 0 1 0 0
+                  0 0 0 0.60 0"
+                result="g"
+              />
+              <feMerge>
+                <feMergeNode in="g" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+
+            <radialGradient id="ppFoodHalo" cx="50%" cy="56%" r="62%">
+              <stop offset="0" stopColor={BRAND_ORANGE} stopOpacity="0.18" />
+              <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="0.02" />
+            </radialGradient>
+          </defs>
+
+          {/* soft halo behind kettle */}
+          <motion.ellipse
+            cx="420"
+            cy="255"
+            rx="210"
+            ry="110"
+            fill="url(#ppFoodHalo)"
+            animate={{ opacity: [0.06, 0.12, 0.06], rx: [200, 220, 200] }}
+            transition={{ duration: ambientDur, repeat: Infinity, ease: "easeInOut" }}
+          />
+
+          {/* kettle (faint) */}
+          <g filter="url(#ppFoodGlowAmbient)">
+            <motion.path
+              d={kettleOutline}
+              fill="none"
+              stroke="url(#ppFoodGradAmbient)"
+              strokeWidth="12"
+              strokeLinecap="round"
+              opacity={0.1}
+              animate={{ opacity: [0.08, 0.14, 0.08] }}
+              transition={{ duration: ambientDur, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.path
+              d={kettleOutline}
+              fill="none"
+              stroke="url(#ppFoodGradAmbient)"
+              strokeWidth="9"
+              strokeLinecap="round"
+              opacity={0.14}
+              animate={{ opacity: [0.12, 0.18, 0.12] }}
+              transition={{ duration: ambientDur, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.path d={kettleLid} fill="none" stroke="url(#ppFoodGradAmbient)" strokeWidth="7" strokeLinecap="round" opacity={0.12} />
+            <motion.path d={kettleHandle} fill="none" stroke="url(#ppFoodGradAmbient)" strokeWidth="10" strokeLinecap="round" opacity={0.12} />
+            <motion.path d={kettleSpout} fill="none" stroke="url(#ppFoodGradAmbient)" strokeWidth="9" strokeLinecap="round" opacity={0.12} />
+            <motion.circle
+              cx={kettleKnob.cx}
+              cy={kettleKnob.cy}
+              r={kettleKnob.r}
+              fill="none"
+              stroke="url(#ppFoodGradAmbient)"
+              strokeWidth="6"
+              opacity={0.12}
+            />
+          </g>
+
+          {/* steam flow (dash offset looping) */}
+          {[
+            { d: steam1, delay: 0.0, w: 6, o: 0.14 },
+            { d: steam2, delay: 0.35, w: 6, o: 0.16 },
+            { d: steam3, delay: 0.7, w: 6, o: 0.13 },
+          ].map((s, idx) => (
+            <motion.path
+              key={idx}
+              d={s.d}
+              fill="none"
+              stroke={`url(#ppFoodGradAmbient)`}
+              strokeWidth={s.w}
+              strokeLinecap="round"
+              opacity={s.o}
+              strokeDasharray="14 16"
+              animate={{
+                strokeDashoffset: [0, -90],
+                opacity: [s.o * 0.7, s.o, s.o * 0.7],
+              }}
+              transition={{
+                duration: 4.8,
+                repeat: Infinity,
+                ease: "linear",
+                delay: s.delay,
+              }}
+            />
+          ))}
+        </motion.svg>
+      </div>
+    );
+  }
+
+  // INTRO: seed → droplets → kettle draw → steam pulse (repeat)
+  return (
+    <div className={cn("pointer-events-none", className)} aria-hidden="true">
+      <motion.svg viewBox="0 0 800 400" className={commonSvg}>
+        <defs>
+          <linearGradient id="ppFoodGradIntro" x1="260" y1="90" x2="600" y2="340" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor={BRAND_ORANGE} stopOpacity="1" />
+            <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="1" />
+          </linearGradient>
+
+          <filter id="ppFoodGlowIntro" x="-60%" y="-120%" width="220%" height="340%">
+            <feGaussianBlur stdDeviation="15" result="b" />
+            <feColorMatrix
+              in="b"
+              type="matrix"
+              values="
+                1 0 0 0 0
+                0 1 0 0 0
+                0 0 1 0 0
+                0 0 0 0.70 0"
+              result="g"
+            />
+            <feMerge>
+              <feMergeNode in="g" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          <radialGradient id="ppFoodBlob" cx="42%" cy="34%" r="70%">
+            <stop offset="0" stopColor={BRAND_ORANGE} stopOpacity="0.95" />
+            <stop offset="0.62" stopColor={BRAND_BROWN} stopOpacity="0.55" />
+            <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="0.12" />
+          </radialGradient>
+
+          <radialGradient id="ppFoodDrop" cx="38%" cy="34%" r="70%">
+            <stop offset="0" stopColor={BRAND_ORANGE} stopOpacity="0.9" />
+            <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="0.06" />
+          </radialGradient>
+        </defs>
+
+        {/* SEED / blob */}
+        <motion.path
+          d="M 410 92
+             C 475 104 548 150 560 220
+             C 570 286 520 332 452 340
+             C 382 348 300 324 274 264
+             C 246 204 274 124 340 98
+             C 368 87 390 87 410 92 Z"
+          fill="url(#ppFoodBlob)"
+          filter="url(#ppFoodGlowIntro)"
+          initial={{ opacity: 0, scale: 0.84, rotate: -10, y: 10 }}
+          animate={{
+            opacity: [0, 1, 0],
+            scale: [0.84, 1.05, 1.12],
+            rotate: [-12, 8, 18],
+            y: [12, 0, -6],
+          }}
+          transition={{
+            duration: introDur,
+            ease: "easeInOut",
+            times: [0, 0.18, 0.42],
+            repeat: Infinity,
+          }}
+          style={{ transformOrigin: "400px 200px" }}
+        />
+
+        {/* DROPLETS split */}
+        <motion.circle
+          cx="400"
+          cy="200"
+          r="60"
+          fill="url(#ppFoodDrop)"
+          filter="url(#ppFoodGlowIntro)"
+          initial={{ opacity: 0, scale: 0.75 }}
+          animate={{
+            opacity: [0, 0, 0.75, 0.95, 0],
+            scale: [0.75, 0.75, 1, 1.06, 1.06],
+            cx: [400, 400, 348, 330, 330],
+            cy: [200, 200, 190, 210, 210],
+          }}
+          transition={{
+            duration: introDur,
+            ease: "easeInOut",
+            times: [0, 0.2, 0.36, 0.52, 0.74],
+            repeat: Infinity,
+          }}
+        />
+        <motion.circle
+          cx="400"
+          cy="200"
+          r="60"
+          fill="url(#ppFoodDrop)"
+          filter="url(#ppFoodGlowIntro)"
+          initial={{ opacity: 0, scale: 0.75 }}
+          animate={{
+            opacity: [0, 0, 0.75, 0.95, 0],
+            scale: [0.75, 0.75, 1, 1.06, 1.06],
+            cx: [400, 400, 456, 490, 490],
+            cy: [200, 200, 214, 200, 200],
+          }}
+          transition={{
+            duration: introDur,
+            ease: "easeInOut",
+            times: [0, 0.2, 0.36, 0.52, 0.74],
+            repeat: Infinity,
+          }}
+        />
+
+        {/* KETTLE DRAW (glow) */}
+        <g filter="url(#ppFoodGlowIntro)">
+          <motion.path
+            d={kettleOutline}
+            fill="none"
+            stroke="url(#ppFoodGradIntro)"
+            strokeWidth="18"
+            strokeLinecap="round"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{
+              opacity: [0, 0, 0, 0.9, 0.25, 0],
+              pathLength: [0, 0, 0, 1, 1, 0],
+            }}
+            transition={{
+              duration: introDur,
+              ease: "easeInOut",
+              times: [0, 0.33, 0.46, 0.64, 0.84, 1],
+              repeat: Infinity,
+            }}
+          />
+
+          <motion.path
+            d={kettleOutline}
+            fill="none"
+            stroke="url(#ppFoodGradIntro)"
+            strokeWidth="10"
+            strokeLinecap="round"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{
+              opacity: [0, 0, 0, 1, 0.7, 0],
+              pathLength: [0, 0, 0, 1, 1, 0],
+            }}
+            transition={{
+              duration: introDur,
+              ease: "easeInOut",
+              times: [0, 0.34, 0.48, 0.66, 0.86, 1],
+              repeat: Infinity,
+            }}
+          />
+
+          {/* lid / handle / spout / knob appear with the kettle */}
+          <motion.path
+            d={kettleLid}
+            fill="none"
+            stroke="url(#ppFoodGradIntro)"
+            strokeWidth="8"
+            strokeLinecap="round"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0, 0, 0.9, 0.55, 0] }}
+            transition={{ duration: introDur, ease: "easeInOut", times: [0, 0.38, 0.52, 0.68, 0.86, 1], repeat: Infinity }}
+          />
+          <motion.path
+            d={kettleHandle}
+            fill="none"
+            stroke="url(#ppFoodGradIntro)"
+            strokeWidth="10"
+            strokeLinecap="round"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0, 0, 0.9, 0.55, 0] }}
+            transition={{ duration: introDur, ease: "easeInOut", times: [0, 0.38, 0.52, 0.68, 0.86, 1], repeat: Infinity }}
+          />
+          <motion.path
+            d={kettleSpout}
+            fill="none"
+            stroke="url(#ppFoodGradIntro)"
+            strokeWidth="9"
+            strokeLinecap="round"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0, 0, 0.9, 0.55, 0] }}
+            transition={{ duration: introDur, ease: "easeInOut", times: [0, 0.38, 0.52, 0.68, 0.86, 1], repeat: Infinity }}
+          />
+          <motion.circle
+            cx={kettleKnob.cx}
+            cy={kettleKnob.cy}
+            r={kettleKnob.r}
+            fill="none"
+            stroke="url(#ppFoodGradIntro)"
+            strokeWidth="7"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0, 0, 0.9, 0.55, 0] }}
+            transition={{ duration: introDur, ease: "easeInOut", times: [0, 0.4, 0.54, 0.7, 0.86, 1], repeat: Infinity }}
+          />
+        </g>
+
+        {/* STEAM “pulse” when kettle is present */}
+        {[steam1, steam2, steam3].map((sd, i) => (
+          <motion.path
+            key={i}
+            d={sd}
+            fill="none"
+            stroke="url(#ppFoodGradIntro)"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray="14 16"
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: [0, 0, 0, 0.22, 0.12, 0],
+              strokeDashoffset: [0, 0, 0, -90, -140, -200],
+            }}
+            transition={{
+              duration: introDur,
+              ease: "easeInOut",
+              times: [0, 0.42, 0.58, 0.72, 0.86, 1],
+              repeat: Infinity,
+              delay: i * 0.06,
+            }}
+          />
+        ))}
+
+        {/* tiny “spark crumbs” near top of kettle */}
+  
+
+      </motion.svg>
+    </div>
+  );
+}
+
 
 function FloatingDotsBackdrop({ zIndex = 0 }: { zIndex?: number }) {
   const reduce = useReducedMotion();
@@ -202,7 +630,7 @@ export default function Home() {
   const [introOpen, setIntroOpen] = useState(!reduce);
   useEffect(() => {
     if (reduce) return;
-    const t = globalThis.setTimeout(() => setIntroOpen(false), 1250);
+    const t = globalThis.setTimeout(() => setIntroOpen(false), 1550);
     return () => globalThis.clearTimeout(t);
   }, [reduce]);
 
@@ -277,8 +705,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900 relative overflow-hidden">
-      {/* Dots behind everything */}
-      <FloatingDotsBackdrop zIndex={0} />
+      
 
       {/* Subtle page glow (also fades in) */}
       <motion.div
@@ -303,7 +730,12 @@ export default function Home() {
         <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pt-6">
           <div className="flex items-center justify-end gap-3" data-menu-root>
             <motion.div variants={popFast} className="relative hidden md:block">
-              <button type="button" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen} className={cn(btnBase, btnGhost, "gap-2")}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-expanded={menuOpen}
+                className={cn(btnBase, btnGhost, "gap-2")}
+              >
                 Menu <span className={cn("transition", menuOpen ? "rotate-180" : "rotate-0")}>▾</span>
               </button>
 
@@ -354,16 +786,21 @@ export default function Home() {
         </div>
       </motion.div>
 
-      {/* Center hero logo (persistent) — smooth pop/fade in after intro */}
+      {/* Center hero logo (persistent) — with subtle “infinity” ambient breathing behind */}
       <motion.div className="relative z-10" initial="hidden" animate={landed ? "show" : "hidden"} variants={wrap}>
         <div className="min-h-[calc(100svh-110px)] flex items-center justify-center px-6">
-          <motion.div variants={pop}>
+          <motion.div variants={pop} className="relative">
+            {/* ambient infinity behind the wordmark */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[56%] -z-10 opacity-[0.85]">
+              <FoodCinematic mode="ambient" />
+            </div>
+
             <PeerPlatesWordmark />
           </motion.div>
         </div>
       </motion.div>
 
-      {/* Reload intro overlay: logo appears in the middle + “opens”, then fades out. */}
+      {/* Reload intro overlay: wordmark + BendingSpoons-ish “seed → infinity loop” recurring for the intro moment */}
       <AnimatePresence initial={false}>
         {introOpen ? (
           <motion.div
@@ -375,7 +812,12 @@ export default function Home() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.55, ease: easeOut }}
           >
-            <div className="relative h-full w-full flex items-center justify-center px-6">
+            <div className="relative h-full w-full flex items-center justify-center px-6 overflow-hidden">
+              {/* centered cinematic morph */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <FoodCinematic mode="intro" className="opacity-[0.95]" />
+              </div>
+
               <motion.div
                 initial={{ opacity: 0, y: 12, scale: 0.96, filter: "blur(10px)" }}
                 animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
@@ -384,7 +826,7 @@ export default function Home() {
               >
                 <PeerPlatesWordmark />
 
-                {/* “Open” ring expansion */}
+                {/* “Open” ring expansion (keeps your existing “opens” feel) */}
                 <motion.div
                   aria-hidden="true"
                   className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
@@ -392,11 +834,11 @@ export default function Home() {
                   animate={{
                     width: ["0px", "74vmin", "122vmin"],
                     height: ["0px", "74vmin", "122vmin"],
-                    opacity: [0, 0.18, 0],
+                    opacity: [0, 0.16, 0],
                   }}
                   transition={{ duration: 1.05, ease: easeOut }}
                   style={{
-                    border: `2px solid rgba(252,176,64,0.30)`,
+                    border: `2px solid rgba(252,176,64,0.28)`,
                     boxShadow: "0 0 0 2px rgba(138,107,67,0.12) inset",
                   }}
                 />
