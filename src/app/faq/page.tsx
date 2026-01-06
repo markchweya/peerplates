@@ -143,14 +143,33 @@ export default function FAQPage() {
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45 }}
+              transition={{
+                type: "spring",
+                stiffness: 120,
+                damping: 20,
+                mass: 1.2,
+                delay: 0.12,
+              }}
               className="flex items-center gap-3 min-w-0"
             >
-              <Link href="/" className="flex items-center min-w-0 overflow-hidden">
-                <span className="shrink-0">
-                  <LogoCinematic size={56} wordScale={1} />
+              <Link href="/" className="flex items-center min-w-0">
+                {/* ✅ FIX: do not clip LogoCinematic fade/glow (match Mission/Privacy) */}
+                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
+                  {/* ✅ FIX: slower logo fade-in so it doesn't “fade out fast” */}
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      duration: 1.6,
+                      ease: [0.2, 0.9, 0.2, 1],
+                      delay: 0.18,
+                    }}
+                    className="inline-flex shrink-0"
+                  >
+                    <LogoCinematic size={56} wordScale={1} />
+                  </motion.span>
                 </span>
               </Link>
 
@@ -181,6 +200,10 @@ export default function FAQPage() {
                       "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]",
                       "text-slate-900",
                     ].join(" ")}
+                    style={{
+                      borderColor: "rgba(252,176,64,0.35)",
+                      color: BRAND_ORANGE,
+                    }}
                   >
                     <HamburgerIcon open={menuOpen} />
                   </button>

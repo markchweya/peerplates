@@ -203,12 +203,14 @@ export default function MissionPage() {
   }, [desktopMenuOpen]);
 
   const navLinks = useMemo(
-    () => [
-      { href: "/", label: "Home" },
-      { href: "/mission", label: "Mission" },
-      { href: "/vision", label: "Vision" },
-      { href: "/food-safety", label: "Food safety" },
-      { href: "/queue", label: "Check queue" },
+   () => [
+      { href: "/", label: "Home", variant: "ghost" as const },
+      { href: "/vision", label: "Vision", variant: "ghost" as const },
+      {href: "/faq", label: "FAQ", variant: "ghost" as const },
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
+      { href: "/queue", label: "Check queue", variant: "ghost" as const },
+      { href: "/privacy", label: "Privacy", variant: "ghost" as const },
+      { href: "/join", label: "Join waitlist", variant: "primary" as const },
     ],
     []
   );
@@ -227,12 +229,18 @@ export default function MissionPage() {
             <MotionDiv
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{
+                duration: 1.1, // slower, more cinematic
+                ease: [0.25, 0.1, 0.25, 1], // gentle ease-in-out
+              }}
               className="flex items-center gap-3 min-w-0"
             >
               <Link href="/" className="flex items-center min-w-0">
-                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-hidden">
-                  <span className="inline-flex shrink-0">
+                {/* ✅ FIX (same as Vision): remove any clipping during fade/slide/glow */}
+                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
+                  {/* give the logo a tiny vertical buffer so filters/glow never get cut */}
+                  <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
                     <LogoCinematic size={64} wordScale={1} />
                   </span>
                 </span>
@@ -399,8 +407,8 @@ export default function MissionPage() {
               The solution already existed — it just wasn’t easy to access.
             </div>
             <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-              We ordered a big bowl of jollof rice from a local home cook — and realised: authentic, great-value food is nearby…
-              but discovery + ordering needed to feel effortless.
+              We ordered a big bowl of jollof rice from a local home cook — and realised: authentic, great-value food is
+              nearby… but discovery + ordering needed to feel effortless.
             </div>
           </motion.div>
 
@@ -417,10 +425,11 @@ export default function MissionPage() {
             />
             <div className="text-sm font-extrabold text-slate-500">What PeerPlates is</div>
             <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
-              A community-driven marketplace for home cooks & bakers.
+              A community-driven marketplace for home cooks &amp; bakers.
             </div>
             <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-              Independent vendors sell authentic, affordable meals to nearby customers — built for speed, clarity, and trust.
+              Independent vendors sell authentic, affordable meals to nearby customers — built for speed, clarity, and
+              trust.
             </div>
           </motion.div>
         </div>

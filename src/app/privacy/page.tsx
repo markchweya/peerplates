@@ -200,13 +200,14 @@ export default function PrivacyPage() {
   }, [desktopMenuOpen]);
 
   const navLinks = useMemo(
-    () => [
-      { href: "/", label: "Home" },
-      { href: "/mission", label: "Mission" },
-      { href: "/vision", label: "Vision" },
-      { href: "/food-safety", label: "Food safety" },
-      { href: "/queue", label: "Check queue" },
-      { href: "/privacy", label: "Privacy" },
+   () => [
+      { href: "/", label: "Home", variant: "ghost" as const },
+      { href: "/mission", label: "Mission", variant: "ghost" as const },
+      { href: "/vision", label: "Vision", variant: "ghost" as const },
+      {href: "/faq", label: "FAQ", variant: "ghost" as const },
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
+      { href: "/queue", label: "Check queue", variant: "ghost" as const },
+      { href: "/join", label: "Join waitlist", variant: "primary" as const },
     ],
     []
   );
@@ -246,21 +247,38 @@ export default function PrivacyPage() {
         />
       </div>
 
-      {/* ✅ Header (menu from vision) */}
+      {/* ✅ Header (menu from vision) + ✅ logo fade behavior like mission */}
       <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{
+                type: "spring",
+                stiffness: 120,
+                damping: 20,
+                mass: 1.2,
+                delay: 0.15,
+              }}
               className="flex items-center gap-3 min-w-0"
             >
               <Link href="/" className="flex items-center min-w-0">
-                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-hidden">
-                  <span className="inline-flex shrink-0">
+                {/* ✅ match mission: don't clip logo fade/glow */}
+                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
+                  {/* ✅ match mission: slower logo fade-in */}
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      duration: 1.6,
+                      ease: [0.2, 0.9, 0.2, 1],
+                      delay: 0.2,
+                    }}
+                    className="inline-flex shrink-0"
+                  >
                     <LogoCinematic size={64} wordScale={1} />
-                  </span>
+                  </motion.span>
                 </span>
               </Link>
 
@@ -315,7 +333,9 @@ export default function PrivacyPage() {
                             </Link>
                           </div>
 
-                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+                            Taste. Tap. Order.
+                          </div>
                         </div>
                       </motion.div>
                     ) : null}
@@ -388,7 +408,9 @@ export default function PrivacyPage() {
                           </Link>
                         </div>
 
-                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+                          Taste. Tap. Order.
+                        </div>
                       </div>
                     </div>
                   </div>

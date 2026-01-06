@@ -245,12 +245,14 @@ export default function VisionPage() {
   }, [desktopMenuOpen]);
 
   const navLinks = useMemo(
-    () => [
-      { href: "/", label: "Home" },
-      { href: "/mission", label: "Mission" },
-      { href: "/vision", label: "Vision" },
-      { href: "/food-safety", label: "Food safety" },
-      { href: "/queue", label: "Check queue" },
+   () => [
+      { href: "/", label: "Home", variant: "ghost" as const },
+      { href: "/mission", label: "Mission", variant: "ghost" as const },
+      {href: "/faq", label: "FAQ", variant: "ghost" as const },
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
+      { href: "/queue", label: "Check queue", variant: "ghost" as const },
+      { href: "/privacy", label: "Privacy", variant: "ghost" as const },
+      { href: "/join", label: "Join waitlist", variant: "primary" as const },
     ],
     []
   );
@@ -273,8 +275,11 @@ export default function VisionPage() {
               className="flex items-center gap-3 min-w-0"
             >
               <Link href="/" className="flex items-center min-w-0">
-                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-hidden">
-                  <span className="inline-flex shrink-0">
+                {/* ✅ FIX: do NOT use overflow-hidden here (it clips the logo fade/slide/glow).
+                    keep layout constraints via max-width, but allow overflow to render. */}
+                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
+                  {/* small vertical breathing room prevents filter/glow clipping in some browsers */}
+                  <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
                     <LogoCinematic size={64} wordScale={1} />
                   </span>
                 </span>
@@ -446,7 +451,8 @@ export default function VisionPage() {
               </div>
             </div>
             <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
-              To empower local food entrepreneurs with the tools, visibility, and support to grow — turning passion into meaningful income.
+              To empower local food entrepreneurs with the tools, visibility, and support to grow — turning passion into
+              meaningful income.
             </div>
           </motion.div>
 
@@ -472,16 +478,15 @@ export default function VisionPage() {
               </div>
             </div>
             <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
-              To make it easy to find great-value, home-cooked meals that taste authentic — made with real warmth, not factory production.
+              To make it easy to find great-value, home-cooked meals that taste authentic — made with real warmth, not
+              factory production.
             </div>
           </motion.div>
         </div>
       </PageShell>
 
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="border-t border-slate-200 py-10 text-sm text-slate-500">
-          © {new Date().getFullYear()} PeerPlates
-        </div>
+        <div className="border-t border-slate-200 py-10 text-sm text-slate-500">© {new Date().getFullYear()} PeerPlates</div>
       </div>
     </main>
   );
