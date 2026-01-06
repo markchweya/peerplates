@@ -2,12 +2,19 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { ReactNode, useEffect, useMemo, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import { MotionDiv } from "@/app/ui/motion";
+
+const ORANGE = "#fcb040";
+const BROWN = "#8a6b43";
+
+function cn(...v: Array<string | false | undefined | null>) {
+  return v.filter(Boolean).join(" ");
+}
 
 function ConsumerIcon({ className = "" }: { className?: string }) {
   return (
@@ -36,36 +43,38 @@ function ChefHatIcon({ className = "" }: { className?: string }) {
   );
 }
 
-const ORANGE = "#fcb040";
-const BROWN = "#8a6b43";
-
-function HamburgerIcon({ className = "" }: { className?: string }) {
+/** Hamburger icon (3 lines) that animates into an X when open — SAME as FoodSafetyPage */
+function HamburgerIcon({ open }: { open: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
-      <path d="M5 7h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M5 17h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function XIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
-      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ChevronDown({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
-      <path
-        d="M6 9l6 6 6-6"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <motion.path
+        d="M5 7h14"
+        initial={false}
+        animate={{ rotate: open ? 45 : 0, y: open ? 5 : 0 }}
+        transition={{ duration: 0.18, ease: "easeInOut" }}
+        style={{ originX: 0.5, originY: 0.5 }}
+      />
+      <motion.path
+        d="M5 12h14"
+        initial={false}
+        animate={{ opacity: open ? 0 : 1 }}
+        transition={{ duration: 0.12, ease: "easeInOut" }}
+      />
+      <motion.path
+        d="M5 17h14"
+        initial={false}
+        animate={{ rotate: open ? -45 : 0, y: open ? -5 : 0 }}
+        transition={{ duration: 0.18, ease: "easeInOut" }}
+        style={{ originX: 0.5, originY: 0.5 }}
       />
     </svg>
   );
@@ -78,74 +87,70 @@ export default function JoinClient({ referral }: { referral: string }) {
   const consumerHref = ref ? `/join/consumer?ref=${encodeURIComponent(ref)}` : "/join/consumer";
   const vendorHref = ref ? `/join/vendor?ref=${encodeURIComponent(ref)}` : "/join/vendor";
 
+  // ✅ SAME navLinks/menu as FoodSafetyPage (kept as you shared)
   const navLinks = useMemo(
     () => [
-      { href: "/", label: "Home" },
-      { href: "/mission", label: "Mission" },
-      { href: "/vision", label: "Vision" },
-      { href: "/food-safety", label: "Food safety" },
-      { href: "/queue", label: "Check queue" },
-      { href: "/faq", label: "FAQ" },
-      { href: "/privacy", label: "Privacy" },
+      { href: "/", label: "Home", variant: "ghost" as const },
+      { href: "/mission", label: "Mission", variant: "ghost" as const },
+      { href: "/vision", label: "Vision", variant: "ghost" as const },
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
+      { href: "/queue", label: "Check queue", variant: "ghost" as const },
+      { href: "/join", label: "Join waitlist", variant: "primary" as const },
     ],
     []
   );
 
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const hamburgerRef = useRef<HTMLButtonElement | null>(null);
-const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  // ✅ SAME menu state/behavior as FoodSafetyPage
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
-  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
+  const closeMenus = useCallback(() => setMenuOpen(false), []);
 
-  const desktopWrapRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
 
-  const closeAllMenus = useCallback(() => {
-    setMobileMenuOpen(false);
-    setDesktopMenuOpen(false);
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", apply);
+      return () => mq.removeEventListener("change", apply);
+    } else {
+      // @ts-ignore
+      mq.addListener(apply);
+      // @ts-ignore
+      return () => mq.removeListener(apply);
+    }
   }, []);
 
-  // ✅ Lock scroll only while mobile menu is open
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    if (mobileMenuOpen) document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [mobileMenuOpen]);
+    if (isDesktop) setMenuOpen(false);
+  }, [isDesktop]);
 
-  // ✅ Close menus on navigation
   useEffect(() => {
-    closeAllMenus();
-  }, [pathname, ref, closeAllMenus]);
+    // close on route change (same “close on navigation” intent)
+    closeMenus();
+  }, [pathname, ref, closeMenus]);
 
-  // ✅ Close desktop dropdown on click-outside + ESC
   useEffect(() => {
-    if (!desktopMenuOpen) return;
-
-    const onDown = (e: MouseEvent | TouchEvent) => {
-      const el = desktopWrapRef.current;
-      if (!el) return;
-      if (!el.contains(e.target as Node)) setDesktopMenuOpen(false);
-    };
+    if (!menuOpen) return;
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDesktopMenuOpen(false);
+      if (e.key === "Escape") setMenuOpen(false);
     };
 
-    document.addEventListener("mousedown", onDown, { passive: true });
-    document.addEventListener("touchstart", onDown, { passive: true });
-    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
 
     return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("touchstart", onDown);
-      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
     };
-  }, [desktopMenuOpen]);
+  }, [menuOpen]);
 
   const btnBase =
     "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
-  const btnGhost = "border border-slate-200 bg-white text-slate-900 hover:bg-slate-50";
+  const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
   return (
@@ -153,162 +158,111 @@ const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(nu
       <style>{`
         summary::-webkit-details-marker { display:none; }
         .pp-tap { -webkit-tap-highlight-color: transparent; user-select:none; }
-        .pp-chevron { transition: transform 180ms ease; }
-        .pp-chevron.pp-open { transform: rotate(180deg); }
-
-        @media (min-width: 768px) { .pp-mobile-only { display:none !important; } }
-        @media (max-width: 767px) { .pp-desktop-only { display:none !important; } }
       `}</style>
 
-      {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-[1000] pointer-events-auto isolate">
-
-        <div className="border-b border-slate-200/60 bg-white">
+      {/* ✅ Header — SAME as FoodSafetyPage */}
+      <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
+        <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
-  initial={{ opacity: 0, y: -10 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.45 }}
-  className="flex items-center gap-3 md:grid md:grid-cols-[1fr_auto_1fr] md:gap-3"
->
-  {/* Logo (left) */}
-  <Link href="/" className="flex items-center gap-3 min-w-0 md:justify-self-start">
-      <span className="shrink-0">
-      <LogoCinematic size={56} wordScale={1} />
-    </span>
-
-  </Link>
-
-  {/* Desktop: dropdown (CENTERED) */}
-  <div className="pp-desktop-only hidden md:flex items-center justify-center" ref={desktopWrapRef}>
-    <div className="relative">
-       <button
-      type="button"
-      aria-label={desktopMenuOpen ? "Close menu" : "Open menu"}
-      onClick={() => setDesktopMenuOpen((v) => !v)}
-      className={["pp-tap", btnBase, "gap-2 cursor-pointer relative z-20", "border border-slate-200/70 bg-white/70 backdrop-blur-xl text-slate-900 hover:bg-white/85"].join(" ")}
-    >
-      Menu
-      <ChevronDown className={["h-5 w-5 pp-chevron", desktopMenuOpen ? "pp-open" : ""].join(" ")} />
-    </button>
-
-      <AnimatePresence>
-        {desktopMenuOpen ? (
-          <motion.div
-            key="desk-menu"
-  className="absolute right-0 mt-3 w-[92vw] max-w-[360px] origin-top-right z-[2000]"
-
-
-
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 6, scale: 0.98 }}
-            transition={{ duration: 0.16, ease: "easeOut" }}
-          >
-            <div
-              className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
-              style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="flex items-center gap-3 min-w-0"
             >
-              <div className="grid gap-2">
+              <Link href="/" className="flex items-center min-w-0 overflow-hidden">
+                <span className="shrink-0">
+                  <LogoCinematic size={64} wordScale={1} />
+                </span>
+              </Link>
+
+              {/* Desktop nav */}
+              <div className="hidden md:flex items-center gap-3 ml-auto">
                 {navLinks.map((l) => (
                   <Link
                     key={l.href}
                     href={l.href}
-                    onClick={() => setDesktopMenuOpen(false)}
-                    className={["w-full", btnBase, "px-6 py-3", btnGhost, "justify-start"].join(" ")}
+                    className={[btnBase, l.variant === "primary" ? btnPrimary : btnGhost].join(" ")}
                   >
                     {l.label}
                   </Link>
                 ))}
               </div>
-              <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap . Order.</div>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-    </div>
-  </div>
 
-  {/* Right spacer (keeps Menu perfectly centered on desktop) */}
-  <div className="hidden md:block" aria-hidden="true" />
-
-  {/* Mobile hamburger (unchanged) */}
-  <div className="pp-mobile-only md:hidden ml-auto shrink-0">
-  <button
-  ref={hamburgerRef}
-  type="button"
-  onClick={() => {
-    if (!hamburgerRef.current) return;
-
-    const rect = hamburgerRef.current.getBoundingClientRect();
-    setMenuPos({
-      top: rect.bottom + 8,
-      right: window.innerWidth - rect.right,
-    });
-
-    setMobileMenuOpen((v) => !v);
-  }}
-  className={[
-    "pp-tap inline-flex items-center justify-center",
-    "rounded-full border border-slate-200 bg-white",
-    "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]",
-    "text-slate-900 relative z-[3100]",
-  ].join(" ")}
-  aria-label="Toggle menu"
->
-    {mobileMenuOpen ? (
-    <XIcon className="h-5 w-5" />
-  ) : (
-    <HamburgerIcon className="h-5 w-5" />
-  )}
-
-</button>
-
-
-  </div>
-</MotionDiv>
-
+              {/* Mobile icon */}
+              {!isDesktop ? (
+                <div className="ml-auto shrink-0 relative md:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setMenuOpen((v) => !v)}
+                    aria-label={menuOpen ? "Close menu" : "Open menu"}
+                    aria-expanded={menuOpen}
+                    className={cn(
+                      "pp-tap inline-flex items-center justify-center",
+                      "rounded-full border border-slate-200 bg-white/95 backdrop-blur",
+                      "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]",
+                      "text-slate-900"
+                    )}
+                  >
+                    <HamburgerIcon open={menuOpen} />
+                  </button>
+                </div>
+              ) : null}
+            </MotionDiv>
           </div>
+
+          {/* Mobile dropdown */}
+          {!isDesktop ? (
+            <AnimatePresence initial={false}>
+              {menuOpen ? (
+                <motion.div
+                  key="mobile-menu"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: [0.2, 0.9, 0.2, 1] }}
+                  className="md:hidden overflow-hidden"
+                >
+                  <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
+                    <div className="mx-auto w-full max-w-[420px]">
+                      <div
+                        className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
+                        style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
+                      >
+                        <div className="grid gap-2">
+                          {navLinks.map((l) => (
+                            <Link
+                              key={l.href}
+                              href={l.href}
+                              onClick={() => setMenuOpen(false)}
+                              className={cn(
+                                "w-full",
+                                btnBase,
+                                "px-5 py-3",
+                                l.variant === "primary" ? btnPrimary : btnGhost
+                              )}
+                            >
+                              {l.label}
+                            </Link>
+                          ))}
+                        </div>
+                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+                          Taste. Tap. Order.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          ) : null}
         </div>
       </div>
 
       {/* Spacer */}
       <div className="h-[84px]" />
 
-  {/* Mobile dropdown — simple menu only */}
-{mobileMenuOpen && menuPos ? (
-  <div className="fixed inset-0 z-[3000]" onClick={() => setMobileMenuOpen(false)}>
-    <div
-      className="absolute w-[min(360px,92vw)] rounded-[28px] border border-slate-200 bg-white/95 backdrop-blur-xl p-3 shadow-sm"
-      style={{
-        top: menuPos.top,
-        right: menuPos.right,
-        boxShadow: "0 18px 60px rgba(2,6,23,0.14)",
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-    
-
-      {/* links */}
-      <div className="grid gap-2">
-        {navLinks.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            onClick={() => setMobileMenuOpen(false)}
-            className="w-full rounded-2xl px-5 py-3 font-extrabold border border-slate-200 bg-white text-slate-900 shadow-sm hover:bg-slate-50"
-          >
-            {l.label}
-          </Link>
-        ))}
-      </div>
-    </div>
-  </div>
-) : null}
-
-
-
-      {/* Content */}
+      {/* ✅ Content — unchanged from your JoinClient */}
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         <MotionDiv
           initial={{ opacity: 0, y: 14 }}
@@ -323,7 +277,10 @@ const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(nu
 
           <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.4rem,5vw,4.2rem)]">
             Eat better.{" "}
-            <span className="bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(90deg, ${ORANGE}, ${BROWN})` }}>
+            <span
+              className="bg-clip-text text-transparent"
+              style={{ backgroundImage: `linear-gradient(90deg, ${ORANGE}, ${BROWN})` }}
+            >
               Join the waitlist.
             </span>
           </h1>
@@ -335,7 +292,8 @@ const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(nu
 
           {ref ? (
             <div className="mt-6 rounded-2xl border border-[#fcb040] bg-white p-4 text-sm">
-              <span className="font-semibold">Referral detected:</span> <span className="font-mono">{ref}</span>
+              <span className="font-semibold">Referral detected:</span>{" "}
+              <span className="font-mono">{ref}</span>
             </div>
           ) : null}
 
