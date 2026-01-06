@@ -743,7 +743,7 @@ function EatBetterSection() {
         <p className="text-[clamp(18px,2.2vw,26px)] font-semibold leading-[1.25]">
           <span
             style={{
-              backgroundImage: `linear-gradient(135deg, ${BRAND_ORANGE} 12%, ${BRAND_BROWN} 88%)`,
+              backgroundImage: `linear-gradient(135deg, "black" 90%`,
               WebkitBackgroundClip: "text",
               backgroundClip: "text",
               color: "transparent",
