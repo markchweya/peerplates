@@ -66,16 +66,16 @@ function PageShell({
 }) {
   return (
     <section className="relative">
-      {/* soft brand glow */}
+      {/* ✅ SAME shading as vision/page.tsx */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/60 to-white" />
         <div
           className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-20"
-          style={{ background: "rgba(252,176,64,0.35)" }}
+          style={{ background: "rgba(138,107,67,0.25)" }}
         />
         <div
           className="absolute -right-44 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-20"
-          style={{ background: "rgba(138,107,67,0.25)" }}
+          style={{ background: "rgba(252,176,64,0.35)" }}
         />
       </div>
 
@@ -95,7 +95,7 @@ function PageShell({
             {title}{" "}
             <span
               style={{
-                backgroundImage: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})`,
+                backgroundImage: `linear-gradient(90deg, ${BRAND_BROWN}, ${BRAND_ORANGE})`,
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
                 color: "transparent",
@@ -208,19 +208,20 @@ export default function MissionPage() {
               {!isDesktop ? (
                 <div className="ml-auto shrink-0 relative md:hidden">
                   <button
-                    type="button"
-                    onClick={() => setMenuOpen((v) => !v)}
-                    aria-label={menuOpen ? "Close menu" : "Open menu"}
-                    aria-expanded={menuOpen}
-                    className={cn(
-                      "inline-flex items-center justify-center",
-                      "rounded-full border border-slate-200 bg-white/95 backdrop-blur",
-                      "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]",
-                      "text-slate-900"
-                    )}
-                  >
-                    <HamburgerIcon open={menuOpen} />
-                  </button>
+      type="button"
+      onClick={() => setMenuOpen((v) => !v)}
+      aria-label={menuOpen ? "Close menu" : "Open menu"}
+      aria-expanded={menuOpen}
+      className={cn(
+        "inline-flex items-center justify-center",
+        "rounded-full border border-slate-200 bg-white/95 backdrop-blur",
+        "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]"
+      )}
+      // ✅ same as Vision: makes the bars orange
+      style={{ color: BRAND_ORANGE, borderColor: "rgba(252,176,64,0.35)" }}
+    >
+      <HamburgerIcon open={menuOpen} />
+    </button>
                 </div>
               ) : null}
             </MotionDiv>
@@ -250,13 +251,20 @@ export default function MissionPage() {
                               key={l.href}
                               href={l.href}
                               onClick={() => setMenuOpen(false)}
-                              className={cn("w-full", btnBase, "px-5 py-3", l.variant === "primary" ? btnPrimary : btnGhost)}
+                              className={cn(
+                                "w-full",
+                                btnBase,
+                                "px-5 py-3",
+                                l.variant === "primary" ? btnPrimary : btnGhost
+                              )}
                             >
                               {l.label}
                             </Link>
                           ))}
                         </div>
-                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+                          Taste. Tap. Order.
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -276,42 +284,59 @@ export default function MissionPage() {
         highlight="PeerPlates."
         body="University life moves fast — and cooking proper meals consistently just wasn’t realistic. Takeaways were expensive, meal-prep often felt like poor value… and not the kind of food we actually craved."
       >
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* ✅ Card 1 — styled like Vision card (orange glow blob) */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.08 }}
-            className="rounded-3xl border border-slate-200 bg-white/75 backdrop-blur p-6 sm:p-7 shadow-sm"
+            className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm"
           >
-            <div className="text-sm font-extrabold text-slate-500">The moment it clicked</div>
-            <div className="mt-2 text-lg font-extrabold text-slate-900">
-              The solution already existed — it just wasn’t easy to access.
-            </div>
-            <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-              We ordered a big bowl of jollof rice from a local home cook — and realised: authentic, great-value food is
-              nearby… but discovery + ordering needed to feel effortless.
+            <div
+              className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25"
+              style={{ background: BRAND_ORANGE }}
+            />
+            <div className="relative">
+              <div className="text-sm font-extrabold text-slate-500">The moment it clicked</div>
+              <div className="mt-2 text-lg font-extrabold text-slate-900">
+                The solution already existed — it just wasn’t easy to access.
+              </div>
+              <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
+                We ordered a big bowl of jollof rice from a local home cook — and realised: authentic, great-value food
+                is nearby… but discovery + ordering needed to feel effortless.
+              </div>
             </div>
           </motion.div>
 
+          {/* ✅ Card 2 — styled like Vision card (brown glow blob) */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.14 }}
-            className="rounded-3xl border border-slate-200 bg-white/75 backdrop-blur p-6 sm:p-7 shadow-sm"
+            className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm"
           >
-            <div className="text-sm font-extrabold text-slate-500">What PeerPlates is</div>
-            <div className="mt-2 text-lg font-extrabold text-slate-900">
-              A community-driven marketplace for home cooks & bakers.
-            </div>
-            <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-              Independent vendors sell authentic, affordable meals to nearby customers — built for speed, clarity, and trust.
+            <div
+              className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20"
+              style={{ background: BRAND_BROWN }}
+            />
+            <div className="relative">
+              <div className="text-sm font-extrabold text-slate-500">What PeerPlates is</div>
+              <div className="mt-2 text-lg font-extrabold text-slate-900">
+                A community-driven marketplace for home cooks & bakers.
+              </div>
+              <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
+                Independent vendors sell authentic, affordable meals to nearby customers — built for speed, clarity, and
+                trust.
+              </div>
             </div>
           </motion.div>
         </div>
       </PageShell>
 
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="border-t border-slate-200 py-10 text-sm text-slate-500">© {new Date().getFullYear()} PeerPlates</div>
+        <div className="border-t border-slate-200 py-10 text-sm text-slate-500">
+          © {new Date().getFullYear()} PeerPlates
+        </div>
       </div>
     </main>
   );
