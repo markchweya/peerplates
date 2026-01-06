@@ -162,86 +162,88 @@ export default function JoinClient({ referral }: { referral: string }) {
         <div className="border-b border-slate-200/60 bg-white">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45 }}
-              className="flex items-center gap-3"
+  initial={{ opacity: 0, y: -10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.45 }}
+  className="flex items-center gap-3 md:grid md:grid-cols-[1fr_auto_1fr] md:gap-3"
+>
+  {/* Logo (left) */}
+  <Link href="/" className="flex items-center gap-3 min-w-0 md:justify-self-start">
+    <span className="shrink-0">
+      <LogoCinematic size={56} wordScale={1} />
+    </span>
+  </Link>
+
+  {/* Desktop: dropdown (CENTERED) */}
+  <div className="pp-desktop-only hidden md:flex items-center justify-center" ref={desktopWrapRef}>
+    <div className="relative">
+      <button
+        type="button"
+        aria-label="Open menu"
+        onClick={() => setDesktopMenuOpen((v) => !v)}
+        className={["pp-tap", btnBase, btnGhost, "gap-2 cursor-pointer"].join(" ")}
+      >
+        Menu
+        <ChevronDown className={["h-5 w-5 pp-chevron", desktopMenuOpen ? "pp-open" : ""].join(" ")} />
+      </button>
+
+      <AnimatePresence>
+        {desktopMenuOpen ? (
+          <motion.div
+            key="desk-menu"
+        className="absolute left-1/2 -translate-x-1/2 mt-3 w-[92vw] max-w-[460px] origin-top z-[2000]"
+
+
+            initial={{ opacity: 0, y: 6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
+          >
+            <div
+              className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
+              style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
             >
-              {/* Logo (left) */}
-              <Link href="/" className="flex items-center gap-3 min-w-0">
-                <span className="shrink-0">
-                  <LogoCinematic size={56} wordScale={1} />
-                </span>
-              </Link>
-
-              {/* Desktop: dropdown */}
-              <div className="pp-desktop-only ml-auto hidden md:flex items-center gap-3" ref={desktopWrapRef}>
-                <div className="relative">
-                  <button
-                    type="button"
-                    aria-label="Open menu"
-                    onClick={() => setDesktopMenuOpen((v) => !v)}
-                    className={["pp-tap", btnBase, btnGhost, "gap-2 cursor-pointer"].join(" ")}
+              <div className="grid gap-2">
+                {navLinks.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setDesktopMenuOpen(false)}
+                    className={["w-full", btnBase, "px-6 py-3", btnGhost, "justify-start"].join(" ")}
                   >
-                    Menu
-                    <ChevronDown className={["h-5 w-5 pp-chevron", desktopMenuOpen ? "pp-open" : ""].join(" ")} />
-                  </button>
-
-                  <AnimatePresence>
-                    {desktopMenuOpen ? (
-                      <motion.div
-                        key="desk-menu"
-                        className="absolute right-0 mt-3 w-[320px] origin-top-right z-[2000]"
-                        initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                        transition={{ duration: 0.16, ease: "easeOut" }}
-                      >
-                        <div
-                          className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm"
-                          style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
-                        >
-                          <div className="grid gap-2">
-                            {navLinks.map((l) => (
-                              <Link
-                                key={l.href}
-                                href={l.href}
-                                onClick={() => setDesktopMenuOpen(false)}
-                                className={["w-full", btnBase, "px-5 py-3", btnGhost, "justify-start"].join(" ")}
-                              >
-                                {l.label}
-                              </Link>
-                            ))}
-                          </div>
-                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
-                        </div>
-                      </motion.div>
-                    ) : null}
-                  </AnimatePresence>
-                </div>
-
-                <Link href="/join" className={[btnBase, btnPrimary].join(" ")}>
-                  Join waitlist
-                </Link>
+                    {l.label}
+                  </Link>
+                ))}
               </div>
+              <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  </div>
 
-              {/* Mobile hamburger */}
-              <div className="pp-mobile-only md:hidden ml-auto shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(true)}
-                  className={[
-                    "pp-tap inline-flex items-center justify-center",
-                    "rounded-full border border-slate-200 bg-white",
-                    "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]",
-                    "text-slate-900",
-                  ].join(" ")}
-                  aria-label="Open menu"
-                >
-                  <HamburgerIcon className="h-5 w-5" />
-                </button>
-              </div>
-            </MotionDiv>
+  {/* Right spacer (keeps Menu perfectly centered on desktop) */}
+  <div className="hidden md:block" aria-hidden="true" />
+
+  {/* Mobile hamburger (unchanged) */}
+  <div className="pp-mobile-only md:hidden ml-auto shrink-0">
+    <button
+      type="button"
+      onClick={() => setMobileMenuOpen(true)}
+      className={[
+        "pp-tap inline-flex items-center justify-center",
+        "rounded-full border border-slate-200 bg-white",
+        "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]",
+        "text-slate-900",
+      ].join(" ")}
+      aria-label="Open menu"
+    >
+      <HamburgerIcon className="h-5 w-5" />
+    </button>
+  </div>
+</MotionDiv>
+
           </div>
         </div>
       </div>
