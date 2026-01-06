@@ -1,8 +1,19 @@
 // src/app/page.tsx
 "use client";
+import { useMotionTemplate } from "framer-motion";
+import TopGallery from "@/app/ui/TopGallery";
+
+
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+  useSpring,
+} from "framer-motion";
 
 const BRAND_ORANGE = "#fcb040";
 const BRAND_BROWN = "#8a6b43";
@@ -13,7 +24,6 @@ function rand01(i: number, salt = 0) {
   return x - Math.floor(x);
 }
 
-
 function cn(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
@@ -22,7 +32,6 @@ function clamp(n: number, a: number, b: number) {
 }
 const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
 
-/** ✅ BendingSpoons-style “seed → split → infinity loop” (recurring) */
 /** ✅ Food cinematic “seed → droplets → kettle + steam” (recurring) */
 function FoodCinematic({
   mode = "ambient", // "intro" draws + blooms; "ambient" breathes + steam flows
@@ -40,11 +49,8 @@ function FoodCinematic({
   const kettleLid = "M 360 170 C 392 142 456 142 488 170";
   const kettleKnob = { cx: 424, cy: 152, r: 10 };
 
-  const kettleHandle =
-    "M 548 220 C 602 214 636 250 636 286 C 636 322 606 350 560 344";
-
-  const kettleSpout =
-    "M 318 220 C 276 224 252 246 246 270 C 241 290 260 304 286 304";
+  const kettleHandle = "M 548 220 C 602 214 636 250 636 286 C 636 322 606 350 560 344";
+  const kettleSpout = "M 318 220 C 276 224 252 246 246 270 C 241 290 260 304 286 304";
 
   // Steam lines (separate paths for nicer animation)
   const steam1 = "M 370 138 C 352 118 352 98 370 78 C 388 58 388 38 370 18";
@@ -54,8 +60,7 @@ function FoodCinematic({
   const introDur = 5.1;
   const ambientDur = 10.5;
 
-  const commonSvg =
-    "w-[min(980px,92vw)] h-auto overflow-visible pointer-events-none select-none";
+  const commonSvg = "w-[min(980px,92vw)] h-auto overflow-visible pointer-events-none select-none";
 
   // Reduced motion: show a tasteful static kettle
   if (reduce) {
@@ -63,7 +68,14 @@ function FoodCinematic({
       <div className={cn("pointer-events-none", className)} aria-hidden="true">
         <svg viewBox="0 0 800 400" className={commonSvg}>
           <defs>
-            <linearGradient id="ppFoodGradStatic" x1="260" y1="90" x2="600" y2="340" gradientUnits="userSpaceOnUse">
+            <linearGradient
+              id="ppFoodGradStatic"
+              x1="260"
+              y1="90"
+              x2="600"
+              y2="340"
+              gradientUnits="userSpaceOnUse"
+            >
               <stop offset="0" stopColor={BRAND_ORANGE} stopOpacity="0.9" />
               <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="0.9" />
             </linearGradient>
@@ -87,11 +99,30 @@ function FoodCinematic({
           </defs>
 
           <g opacity="0.13" filter="url(#ppFoodGlowStatic)">
-            <path d={kettleOutline} fill="none" stroke="url(#ppFoodGradStatic)" strokeWidth="10" strokeLinecap="round" />
+            <path
+              d={kettleOutline}
+              fill="none"
+              stroke="url(#ppFoodGradStatic)"
+              strokeWidth="10"
+              strokeLinecap="round"
+            />
             <path d={kettleLid} fill="none" stroke="url(#ppFoodGradStatic)" strokeWidth="8" strokeLinecap="round" />
-            <path d={kettleHandle} fill="none" stroke="url(#ppFoodGradStatic)" strokeWidth="10" strokeLinecap="round" />
+            <path
+              d={kettleHandle}
+              fill="none"
+              stroke="url(#ppFoodGradStatic)"
+              strokeWidth="10"
+              strokeLinecap="round"
+            />
             <path d={kettleSpout} fill="none" stroke="url(#ppFoodGradStatic)" strokeWidth="9" strokeLinecap="round" />
-            <circle cx={kettleKnob.cx} cy={kettleKnob.cy} r={kettleKnob.r} fill="none" stroke="url(#ppFoodGradStatic)" strokeWidth="7" />
+            <circle
+              cx={kettleKnob.cx}
+              cy={kettleKnob.cy}
+              r={kettleKnob.r}
+              fill="none"
+              stroke="url(#ppFoodGradStatic)"
+              strokeWidth="7"
+            />
           </g>
         </svg>
       </div>
@@ -109,7 +140,14 @@ function FoodCinematic({
           transition={{ duration: 0.75, ease: easeOut }}
         >
           <defs>
-            <linearGradient id="ppFoodGradAmbient" x1="260" y1="90" x2="600" y2="340" gradientUnits="userSpaceOnUse">
+            <linearGradient
+              id="ppFoodGradAmbient"
+              x1="260"
+              y1="90"
+              x2="600"
+              y2="340"
+              gradientUnits="userSpaceOnUse"
+            >
               <stop offset="0" stopColor={BRAND_ORANGE} stopOpacity="1" />
               <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="1" />
             </linearGradient>
@@ -195,7 +233,7 @@ function FoodCinematic({
               key={idx}
               d={s.d}
               fill="none"
-              stroke={`url(#ppFoodGradAmbient)`}
+              stroke="url(#ppFoodGradAmbient)"
               strokeWidth={s.w}
               strokeLinecap="round"
               opacity={s.o}
@@ -222,7 +260,14 @@ function FoodCinematic({
     <div className={cn("pointer-events-none", className)} aria-hidden="true">
       <motion.svg viewBox="0 0 800 400" className={commonSvg}>
         <defs>
-          <linearGradient id="ppFoodGradIntro" x1="260" y1="90" x2="600" y2="340" gradientUnits="userSpaceOnUse">
+          <linearGradient
+            id="ppFoodGradIntro"
+            x1="260"
+            y1="90"
+            x2="600"
+            y2="340"
+            gradientUnits="userSpaceOnUse"
+          >
             <stop offset="0" stopColor={BRAND_ORANGE} stopOpacity="1" />
             <stop offset="1" stopColor={BRAND_BROWN} stopOpacity="1" />
           </linearGradient>
@@ -365,7 +410,6 @@ function FoodCinematic({
             }}
           />
 
-          {/* lid / handle / spout / knob appear with the kettle */}
           <motion.path
             d={kettleLid}
             fill="none"
@@ -434,14 +478,36 @@ function FoodCinematic({
           />
         ))}
 
-        {/* tiny “spark crumbs” near top of kettle */}
-  
-
+        {/* tiny “spark crumbs” (finishes the intro nicely — no highlights/blocks) */}
+        {Array.from({ length: 10 }).map((_, i) => {
+          const x = 400 + (rand01(i, 3) - 0.5) * 120;
+          const y = 150 + (rand01(i, 7) - 0.5) * 60;
+          const r = 1.2 + rand01(i, 11) * 2.0;
+          const delay = rand01(i, 19) * 0.35;
+          return (
+            <motion.circle
+              key={i}
+              cx={x}
+              cy={y}
+              r={r}
+              fill={BRAND_ORANGE}
+              opacity={0}
+              animate={{ opacity: [0, 0, 0.55, 0, 0], scale: [0.8, 0.8, 1.2, 1.4, 1.4] }}
+              transition={{
+                duration: introDur,
+                ease: "easeInOut",
+                times: [0, 0.46, 0.62, 0.78, 1],
+                repeat: Infinity,
+                delay,
+              }}
+              filter="url(#ppFoodGlowIntro)"
+            />
+          );
+        })}
       </motion.svg>
     </div>
   );
 }
-
 
 function FloatingDotsBackdrop({ zIndex = 0 }: { zIndex?: number }) {
   const reduce = useReducedMotion();
@@ -583,25 +649,13 @@ function FloatingDotsBackdrop({ zIndex = 0 }: { zIndex?: number }) {
     };
   }, [reduce]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none"
-      style={{ zIndex }}
-      aria-hidden="true"
-    />
-  );
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex }} aria-hidden="true" />;
 }
 
 function PeerPlatesWordmark({ compact = false }: { compact?: boolean }) {
   return (
     <div className="select-none text-center">
-      <div
-        className={cn(
-          "flex items-baseline justify-center gap-1",
-          compact ? "text-[34px]" : "text-[clamp(56px,8.5vw,86px)]"
-        )}
-      >
+      <div className={cn("flex items-baseline justify-center gap-1", compact ? "text-[34px]" : "text-[clamp(56px,8.5vw,86px)]")}>
         <span className="font-black tracking-tight text-slate-900">Peer</span>
         <span
           className="font-black tracking-tight"
@@ -620,6 +674,134 @@ function PeerPlatesWordmark({ compact = false }: { compact?: boolean }) {
         authentic • affordable • local
       </div>
     </div>
+  );
+}
+
+// ✅ Reversible scroll-in/out animation using IntersectionObserver
+function useInViewAmount<T extends HTMLElement>(amount = 0.55) {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const obs = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: amount });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [amount]);
+
+  return { ref, inView };
+}
+
+// ✅ “Eat better…” section
+function EatBetterSection() {
+  const { ref, inView } = useInViewAmount<HTMLElement>(0.35);
+
+  return (
+   <section
+  ref={ref}
+  className="
+    relative w-full
+    px-6
+    pt-24 pb-16
+    sm:pt-32 sm:pb-24
+    flex items - center
+    justify-center
+  "
+>
+
+      <motion.div
+        initial={false}
+        animate={
+          inView
+            ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }
+            : { opacity: 0, y: 22, scale: 0.985, filter: "blur(12px)" }
+        }
+        transition={{ duration: 0.75, ease: easeOut }}
+        className="w-full max-w-3xl text-center"
+      >
+        {/* Title “on its own” */}
+        <h2 className="text-[clamp(30px,4vw,54px)] font-black tracking-tight leading-[1.05]">
+          <span
+            style={{
+              backgroundImage: `linear-gradient(135deg, ${BRAND_ORANGE} 10%, ${BRAND_BROWN} 90%)`,
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            Eat better and back local:
+          </span>
+        </h2>
+
+        {/* Space between title and subtitle */}
+        <div className="h-5 sm:h-6" />
+
+        {/* Subtitle stays as-is */}
+        <p className="text-[clamp(18px,2.2vw,26px)] font-semibold leading-[1.25]">
+          <span
+            style={{
+              backgroundImage: `linear-gradient(135deg, ${BRAND_ORANGE} 12%, ${BRAND_BROWN} 88%)`,
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            authentic home-cooked meals from trusted cooks and bakers.
+          </span>
+        </p>
+
+        {/* Buttons below */}
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+          <a
+            href="/join"
+            className="inline-flex items-center justify-center rounded-2xl px-7 py-3.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] bg-[#fcb040] text-slate-900"
+          >
+            Join waitlist
+          </a>
+
+          <a
+            href="/queue"
+            className="inline-flex items-center justify-center rounded-2xl px-7 py-3.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50"
+          >
+            Check queue
+          </a>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
+
+
+
+/** Optional: next section example (pops/fades in/out the same way) */
+function NextSectionPlaceholder() {
+  const { ref, inView } = useInViewAmount<HTMLElement>(0.45);
+
+  return (
+    <section ref={ref} className="relative mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-20">
+      <motion.div
+        initial={false}
+        animate={
+          inView
+            ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }
+            : { opacity: 0, y: 28, scale: 0.985, filter: "blur(10px)" }
+        }
+        transition={{ duration: 0.6, ease: easeOut }}
+        className="rounded-[34px] border border-slate-200 bg-white p-6 sm:p-10"
+        style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.06)" }}
+      >
+        <div className="text-xs font-extrabold tracking-[0.22em] text-slate-500 uppercase">Next page</div>
+        <div className="mt-3 text-[clamp(22px,3vw,38px)] font-black tracking-tight text-slate-900">
+          This section pops in as you arrive
+        </div>
+        <p className="mt-3 max-w-2xl text-[15px] sm:text-[16px] font-semibold text-slate-600 leading-relaxed">
+          Replace this with your real content. It will fade out when you scroll away, and fade back in when you return.
+        </p>
+      </motion.div>
+    </section>
   );
 }
 
@@ -703,9 +885,28 @@ export default function Home() {
     []
   );
 
+  // ✅ HERO fade-out (PeerPlates + kettle) driven by scroll
+  const heroRef = useRef<HTMLElement | null>(null);
+  const { scrollYProgress: heroProg } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+
+  // Hold for a bit, then fade / lift / blur away
+  const heroOpacityRaw = useTransform(heroProg, [0, 0.55, 0.88, 1], [1, 1, 0.28, 0]);
+  const heroYRaw = useTransform(heroProg, [0, 1], [0, -26]);
+  const heroBlurRaw = useTransform(heroProg, [0, 1], [0, 12]);
+  
+
+  const heroOpacity = useSpring(heroOpacityRaw, { stiffness: 140, damping: 26, mass: 0.6 });
+  const heroY = useSpring(heroYRaw, { stiffness: 140, damping: 26, mass: 0.6 });
+  const heroBlur = useSpring(heroBlurRaw, { stiffness: 140, damping: 26, mass: 0.6 });
+  const heroBlurFilter = useMotionTemplate`blur(${heroBlur}px)`;
+
   return (
     <main className="min-h-screen bg-white text-slate-900 relative overflow-hidden">
-      
+      {/* Dots backdrop (behind everything) */}
+    
 
       {/* Subtle page glow (also fades in) */}
       <motion.div
@@ -786,21 +987,39 @@ export default function Home() {
         </div>
       </motion.div>
 
-      {/* Center hero logo (persistent) — with subtle “infinity” ambient breathing behind */}
-      <motion.div className="relative z-10" initial="hidden" animate={landed ? "show" : "hidden"} variants={wrap}>
-        <div className="min-h-[calc(100svh-110px)] flex items-center justify-center px-6">
-          <motion.div variants={pop} className="relative">
-            {/* ambient infinity behind the wordmark */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[56%] -z-10 opacity-[0.85]">
-              <FoodCinematic mode="ambient" />
-            </div>
+      {/* ✅ HERO (PeerPlates + kettle) — now fades OUT smoothly as you scroll */}
+      <motion.section
+        ref={heroRef}
+        className="relative z-10 min-h-[calc(100svh-110px)] flex items-center justify-center px-6"
+        initial="hidden"
+        animate={landed ? "show" : "hidden"}
+        variants={wrap}
+      >
+        <motion.div
+          variants={pop}
+          className="relative"
+          style={{
+            opacity: heroOpacity,
+            y: heroY,
+          filter: heroBlurFilter,
 
-            <PeerPlatesWordmark />
-          </motion.div>
-        </div>
-      </motion.div>
+          }}
+        >
+          {/* ambient kettle behind the wordmark */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[56%] -z-10 opacity-[0.85]">
+            <FoodCinematic mode="ambient" />
+          </div>
+          <PeerPlatesWordmark />
+        </motion.div>
+      </motion.section>
 
-      {/* Reload intro overlay: wordmark + BendingSpoons-ish “seed → infinity loop” recurring for the intro moment */}
+      {/* ✅ “Eat Better” section (own section, pushed up on mobile, fades in/out) */}
+      <EatBetterSection />
+<TopGallery />
+      {/* ✅ Next section (optional) */}
+      <NextSectionPlaceholder />
+
+      {/* Reload intro overlay */}
       <AnimatePresence initial={false}>
         {introOpen ? (
           <motion.div
@@ -813,7 +1032,6 @@ export default function Home() {
             transition={{ duration: 0.55, ease: easeOut }}
           >
             <div className="relative h-full w-full flex items-center justify-center px-6 overflow-hidden">
-              {/* centered cinematic morph */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <FoodCinematic mode="intro" className="opacity-[0.95]" />
               </div>
@@ -826,7 +1044,7 @@ export default function Home() {
               >
                 <PeerPlatesWordmark />
 
-                {/* “Open” ring expansion (keeps your existing “opens” feel) */}
+                {/* “Open” ring expansion */}
                 <motion.div
                   aria-hidden="true"
                   className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
