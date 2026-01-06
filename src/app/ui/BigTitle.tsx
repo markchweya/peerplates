@@ -12,13 +12,13 @@ export default function BigTitle({
   accentClassName?: string;
 }) {
   return (
-    <div className="pt-10 sm:pt-14">
+    <div className="pt-8 sm:pt-10">
       <motion.h1
-        initial={{ opacity: 0, y: 14 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: false, amount: 0.6 }}
-        transition={{ duration: 0.55 }}
-        className="tracking-tight leading-[0.92] font-extrabold text-[clamp(2.8rem,7vw,5.6rem)]"
+        initial={{ opacity: 0, y: 12, filter: "blur(8px)" }}
+        whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        viewport={{ once: true, amount: 0.65 }}
+        transition={{ duration: 0.55, ease: [0.2, 0.9, 0.2, 1] }}
+        className="tracking-tight leading-[0.92] font-extrabold text-[clamp(2.4rem,6.8vw,5.4rem)]"
       >
         <span className="text-slate-900">{lead} </span>
         <span className={accentClassName}>{accent}</span>

@@ -40,9 +40,7 @@ function isInteractiveTarget(target: EventTarget | null) {
   const el = target as HTMLElement | null;
   if (!el) return false;
   return Boolean(
-    el.closest(
-      'a,button,input,textarea,select,option,label,[role="button"],[role="link"],[data-no-pull]'
-    )
+    el.closest('a,button,input,textarea,select,option,label,[role="button"],[role="link"],[data-no-pull]')
   );
 }
 
@@ -134,7 +132,20 @@ function useCinematicSection(
       globalThis.removeEventListener("resize", schedule);
       if (raf != null) globalThis.cancelAnimationFrame(raf);
     };
-  }, [ref, enterStart, enterEnd, exitStart, exitEnd, yEnter, yExit, blurEnter, blurExit, oRaw, yRaw, bRaw]);
+  }, [
+    ref,
+    enterStart,
+    enterEnd,
+    exitStart,
+    exitEnd,
+    yEnter,
+    yExit,
+    blurEnter,
+    blurExit,
+    oRaw,
+    yRaw,
+    bRaw,
+  ]);
 
   return { opacity: o, y, filter };
 }
@@ -565,7 +576,7 @@ export default function Home() {
   const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
-  // ✅ Hero overlay scroll effect (gallery fades, text/card floats) — MOBILE ONLY for consistency
+  // ✅ Hero overlay scroll effect
   const galleryWrapRef = useRef<HTMLDivElement | null>(null);
   const { scrollYProgress: galleryP } = useScroll({
     target: galleryWrapRef,
@@ -575,7 +586,7 @@ export default function Home() {
   const galleryOpacityMV = useTransform(galleryP, [0, 0.25, 0.75, 1], [1, 0.92, 0.68, 0.42]);
   const galleryBlurMV = useTransform(galleryP, [0, 1], [0, 3]);
   const galleryScaleMV = useTransform(galleryP, [0, 1], [1, 0.985]);
-  const galleryFilterMV = useMotionTemplate`blur(${galleryBlurMV}px)`; // MotionValue<string>
+  const galleryFilterMV = useMotionTemplate`blur(${galleryBlurMV}px)`;
   const overlayYMV = useTransform(galleryP, [0, 0.35, 1], [0, -28, -96]);
 
   // =========================================================
@@ -1104,7 +1115,11 @@ export default function Home() {
               }}
             />
             <span className="text-xs font-extrabold text-slate-700">
-              {pullNow >= PULL_TRIGGER ? "Release to refresh" : wheelArmedRef.current ? "Pull again to refresh" : "Pull to refresh"}
+              {pullNow >= PULL_TRIGGER
+                ? "Release to refresh"
+                : wheelArmedRef.current
+                  ? "Pull again to refresh"
+                  : "Pull to refresh"}
             </span>
             <LoadingDots dotSize={4} />
           </div>
@@ -1186,8 +1201,8 @@ export default function Home() {
                       </div>
                     </motion.div>
 
-                    {/* Text card (mobile can float, desktop stays stable) */}
-                    <motion.div
+                    {/* ✅ FIX: sectionEnter must ONLY be spread onto a Motion component (NOT a plain div) */}
+                    <MotionDiv
                       style={{ y: isDesktop ? 0 : overlayYMV }}
                       className={cn("relative z-30 mt-6", isDesktop ? "sm:mt-8" : "sm:-mt-28 md:-mt-32")}
                       {...sectionEnter}
@@ -1254,7 +1269,7 @@ export default function Home() {
                           </MotionDiv>
                         </div>
                       </div>
-                    </motion.div>
+                    </MotionDiv>
                   </div>
                 </motion.div>
 

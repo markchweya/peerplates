@@ -293,7 +293,7 @@ export default function TopGallery({
           </div>
 
           <div className="mt-2 text-center text-[11px] font-semibold text-slate-500">
-          
+             ↔ 
           </div>
         </div>
       </div>
