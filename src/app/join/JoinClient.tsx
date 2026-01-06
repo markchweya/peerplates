@@ -221,7 +221,7 @@ const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(nu
                   </Link>
                 ))}
               </div>
-              <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+              <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap . Order.</div>
             </div>
           </motion.div>
         ) : null}
