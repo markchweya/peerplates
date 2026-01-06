@@ -1,3 +1,4 @@
+// ui/ FadeSection.tsx
 "use client";
 
 import { ReactNode, useRef } from "react";

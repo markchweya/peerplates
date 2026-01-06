@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { MotionDiv } from "@/app/ui/motion";
+import LogoCinematic from "@/app/ui/LogoCinematic";
 
 type RoleFilter = "all" | "consumer" | "vendor";
 type StatusFilter = "all" | "pending" | "reviewed" | "approved" | "rejected";
@@ -462,9 +463,13 @@ export default function AdminPage() {
             transition={{ duration: 0.45 }}
             className="flex items-center justify-between gap-4"
           >
-            <Link href="/" className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl" style={{ background: BRAND }} />
-              <div className="text-lg font-semibold tracking-tight">PeerPlates</div>
+            <Link href="/" className="flex items-center gap-3 min-w-0">
+              {/* Logo only (no menus) */}
+              <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
+                <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
+                  <LogoCinematic size={56} wordScale={1} />
+                </span>
+              </span>
             </Link>
             <div className="text-sm text-black/60 whitespace-nowrap">Admin</div>
           </MotionDiv>
@@ -527,9 +532,13 @@ export default function AdminPage() {
           transition={{ duration: 0.45 }}
           className="flex items-center justify-between gap-4"
         >
-          <Link href="/" className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl" style={{ background: BRAND }} />
-            <div className="text-lg font-semibold tracking-tight">PeerPlates</div>
+          <Link href="/" className="flex items-center gap-3 min-w-0">
+            {/* Logo only (no menus) */}
+            <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
+              <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
+                <LogoCinematic size={56} wordScale={1} />
+              </span>
+            </span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -715,9 +724,7 @@ export default function AdminPage() {
                         </span>
                       </td>
 
-                      <td className="p-3 whitespace-nowrap">
-                        {r.role === "vendor" ? r.vendor_queue_override ?? "—" : "—"}
-                      </td>
+                      <td className="p-3 whitespace-nowrap">{r.role === "vendor" ? r.vendor_queue_override ?? "—" : "—"}</td>
                       <td className="p-3 font-semibold whitespace-nowrap">
                         {r.role === "vendor" ? r.vendor_priority_score : points}
                       </td>
@@ -733,9 +740,7 @@ export default function AdminPage() {
                         )}
                       </td>
 
-                      <td className="p-3 text-black/60 whitespace-nowrap">
-                        {new Date(r.created_at).toLocaleString()}
-                      </td>
+                      <td className="p-3 text-black/60 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
 
                       {/* ✅ Answer cells: show "No" instead of dashes when empty */}
                       {answerKeys.map((k) => {

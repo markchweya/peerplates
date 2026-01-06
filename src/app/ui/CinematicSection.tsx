@@ -1,3 +1,4 @@
+// ui/ CinematicSection.tsx
 "use client";
 
 import { ReactNode, useMemo, useRef } from "react";
