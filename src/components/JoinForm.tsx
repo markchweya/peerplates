@@ -583,17 +583,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                 </span>
               </label>
 
-              <label className="flex items-start gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={marketingConsent}
-                  onChange={(e) => setMarketingConsent(e.target.checked)}
-                  className="mt-1 h-5 w-5 rounded border border-slate-300"
-                />
-                <span className="text-slate-900/80">
-                  I’d like to receive product updates and early access emails (optional).
-                </span>
-              </label>
+             
             </div>
 
             {error ? (
