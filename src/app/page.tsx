@@ -371,7 +371,7 @@ function PeerPlatesCinematicHero({ headerOffsetPx = 96 }: { headerOffsetPx?: num
               }}
             >
               Plates
-              <span
+              <motion.span
                 aria-hidden="true"
                 className="absolute inset-0 pointer-events-none"
                 style={{
@@ -503,16 +503,14 @@ export default function Home() {
     const apply = () => setIsDesktop(mq.matches);
     apply();
 
-    if (typeof mq.addEventListener === "function") {
-      mq.addEventListener("change", apply);
-      return () => mq.removeEventListener("change", apply);
-    } else {
-      // legacy Safari
-      // @ts-expect-error legacy
-      mq.addListener(apply);
-      // @ts-expect-error legacy
-      return () => mq.removeListener(apply);
-    }
+  if (typeof mq.addEventListener === "function") {
+  mq.addEventListener("change", apply);
+  return () => mq.removeEventListener("change", apply);
+} else {
+  // legacy Safari
+  return () => mq.removeListener(apply);
+}
+
   }, []);
 
   useEffect(() => {
@@ -605,10 +603,12 @@ export default function Home() {
   const pointerIdRef = useRef<number | null>(null);
   const capturedRef = useRef(false);
 
-  const wheelSettleTimer = useRef<number | null>(null);
+const wheelSettleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
   const wheelArmedRef = useRef(false);
-  const wheelArmTimerRef = useRef<number | null>(null);
+const wheelArmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const wheelEnergyRef = useRef(0);
 
   const atTopRef = useRef(false);
@@ -834,10 +834,14 @@ export default function Home() {
       if (!wheelArmedRef.current) {
         wheelArmedRef.current = true;
 
-        if (wheelArmTimerRef.current) globalThis.clearTimeout(wheelArmTimerRef.current);
-        wheelArmTimerRef.current = globalThis.setTimeout(() => {
-          resetWheelArm();
-        }, 700);
+       if (wheelArmTimerRef.current) {
+  globalThis.clearTimeout(wheelArmTimerRef.current);
+}
+
+wheelArmTimerRef.current = globalThis.setTimeout(() => {
+  resetWheelArm();
+}, 700);
+
 
         return;
       }
@@ -851,13 +855,14 @@ export default function Home() {
 
       const add = Math.min(16, mag * 0.16);
       setPull(pullRaw.get() + add);
+if (wheelSettleTimer.current !== null) {
+  globalThis.clearTimeout(wheelSettleTimer.current);
+}
 
-      if (wheelSettleTimer.current) globalThis.clearTimeout(wheelSettleTimer.current);
-      wheelSettleTimer.current = globalThis.setTimeout(() => {
-        const ok = pullRaw.get() >= PULL_TRIGGER && wheelEnergyRef.current >= 220;
-        if (ok) triggerMagicRefresh();
-        setPull(0);
-        resetWheelArm();
+wheelSettleTimer.current = globalThis.setTimeout(() => {
+  const ok = pullRaw.get() >= PULL_TRIGGER && wheelEnergyRef.current >= 220;
+  if (ok) triggerMagicRefresh();
+  resetWheelArm();
       }, 140);
     } else {
       resetWheelArm();
