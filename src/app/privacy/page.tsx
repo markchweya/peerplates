@@ -203,9 +203,9 @@ export default function PrivacyPage() {
    () => [
       { href: "/", label: "Home", variant: "ghost" as const },
       { href: "/mission", label: "Mission", variant: "ghost" as const },
-      { href: "/vision", label: "Vision", variant: "ghost" as const },
+        { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
       {href: "/faq", label: "FAQ", variant: "ghost" as const },
-      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
+    
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
       { href: "/join", label: "Join waitlist", variant: "primary" as const },
     ],

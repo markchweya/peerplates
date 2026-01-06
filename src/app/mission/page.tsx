@@ -205,11 +205,10 @@ export default function MissionPage() {
   const navLinks = useMemo(
    () => [
       { href: "/", label: "Home", variant: "ghost" as const },
-      { href: "/vision", label: "Vision", variant: "ghost" as const },
+       { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
       {href: "/faq", label: "FAQ", variant: "ghost" as const },
-      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
+     
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
-      { href: "/privacy", label: "Privacy", variant: "ghost" as const },
       { href: "/join", label: "Join waitlist", variant: "primary" as const },
     ],
     []
@@ -440,4 +439,6 @@ export default function MissionPage() {
       </div>
     </main>
   );
+
+  
 }
