@@ -1,9 +1,9 @@
 // src/app/page.tsx
 "use client";
+
 import { useMotionTemplate } from "framer-motion";
 import TopGallery from "@/app/ui/TopGallery";
-
-
+import PeerWorks from "@/app/ui/PeerWorks";
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
@@ -14,6 +14,7 @@ import {
   useTransform,
   useSpring,
 } from "framer-motion";
+
 
 const BRAND_ORANGE = "#fcb040";
 const BRAND_BROWN = "#8a6b43";
@@ -1016,6 +1017,10 @@ export default function Home() {
       {/* ✅ “Eat Better” section (own section, pushed up on mobile, fades in/out) */}
       <EatBetterSection />
 <TopGallery />
+
+  {/* ✅ HOW IT WORKS */}
+      <PeerWorks />
+      
       {/* ✅ Next section (optional) */}
       <NextSectionPlaceholder />
 
