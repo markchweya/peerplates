@@ -8,10 +8,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { MotionDiv } from "@/app/ui/motion";
 import LogoCinematic from "@/app/ui/LogoCinematic";
 
-
 const ORANGE = "#fcb040";
 const BROWN = "#8a6b43";
-
 
 type QueueResult = {
   email: string;
@@ -24,11 +22,9 @@ type QueueResult = {
   referral_link: string | null;
 };
 
-
 function cn(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
-
 
 function formatStatus(s: QueueResult["review_status"]) {
   if (s === "approved") return "Approved";
@@ -363,9 +359,13 @@ export default function QueuePage() {
       <div className="sticky top-0 z-[60] border-b border-black/10 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-3 min-w-0">
-            <Link href="/" className="flex items-center min-w-0 overflow-hidden">
-              <span className="shrink-0">
-                <LogoCinematic size={56} wordScale={1} />
+            {/* ✅ FIX: remove overflow-hidden from Link wrapper + ensure overflow-visible + tiny buffer
+                This prevents LogoCinematic being clipped during fade/slide/glow animations. */}
+            <Link href="/" className="flex items-center min-w-0">
+              <span className="min-w-0 max-w-[180px] sm:max-w-none overflow-visible">
+                <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
+                  <LogoCinematic size={56} wordScale={1} />
+                </span>
               </span>
             </Link>
 

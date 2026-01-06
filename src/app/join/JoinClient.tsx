@@ -112,11 +112,13 @@ export default function JoinClient({ referral }: { referral: string }) {
 
   const navLinks = useMemo(
     () => [
-      { href: "/", label: "Home" },
-      { href: "/mission", label: "Mission" },
-      { href: "/vision", label: "Vision" },
-      { href: "/food-safety", label: "Food safety" },
-      { href: "/queue", label: "Check queue" },
+      { href: "/", label: "Home", variant: "ghost" as const },
+      { href: "/mission", label: "Mission", variant: "ghost" as const },
+      { href: "/vision", label: "Vision", variant: "ghost" as const },
+      { href: "/faq", label: "FAQ", variant: "ghost" as const },
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
+      { href: "/queue", label: "Check queue", variant: "ghost" as const },
+      { href: "/privacy", label: "Privacy", variant: "ghost" as const },
     ],
     []
   );
@@ -220,8 +222,10 @@ export default function JoinClient({ referral }: { referral: string }) {
               className="flex items-center gap-3 min-w-0"
             >
               <Link href="/" className="flex items-center min-w-0">
-                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-hidden">
-                  <span className="inline-flex shrink-0">
+                {/* ✅ FIX: prevent LogoCinematic fade/glow clipping (same approach as Vision/Mission/Queue) */}
+                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
+                  {/* small vertical buffer so any filter/glow isn't cut by line-height */}
+                  <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
                     <LogoCinematic size={64} wordScale={1} />
                   </span>
                 </span>
