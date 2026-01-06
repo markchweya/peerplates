@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import React, { ReactNode, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
@@ -51,6 +51,26 @@ function HamburgerIcon({ open }: { open: boolean }) {
   );
 }
 
+function ChevronDown({ open }: { open: boolean }) {
+  return (
+    <motion.svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      initial={false}
+      animate={{ rotate: open ? 180 : 0 }}
+      transition={{ duration: 0.18, ease: "easeInOut" }}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </motion.svg>
+  );
+}
+
 function PageShell({
   kicker,
   title,
@@ -66,10 +86,17 @@ function PageShell({
 }) {
   return (
     <section className="relative">
+      {/* ✅ match Vision shading order */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/60 to-white" />
-        <div className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-20" style={{ background: "rgba(252,176,64,0.35)" }} />
-        <div className="absolute -right-44 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-20" style={{ background: "rgba(138,107,67,0.25)" }} />
+        <div
+          className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-20"
+          style={{ background: "rgba(138,107,67,0.25)" }}
+        />
+        <div
+          className="absolute -right-44 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-20"
+          style={{ background: "rgba(252,176,64,0.35)" }}
+        />
       </div>
 
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
@@ -88,7 +115,7 @@ function PageShell({
             {title}{" "}
             <span
               style={{
-                backgroundImage: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})`,
+                backgroundImage: `linear-gradient(90deg, ${BRAND_BROWN}, ${BRAND_ORANGE})`,
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
                 color: "transparent",
@@ -108,7 +135,9 @@ function PageShell({
 }
 
 export default function FoodSafetyPage() {
+  // ✅ EXACT same header behavior as Vision
   const [menuOpen, setMenuOpen] = useState(false);
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
@@ -129,8 +158,10 @@ export default function FoodSafetyPage() {
 
   useEffect(() => {
     if (isDesktop) setMenuOpen(false);
+    if (!isDesktop) setDesktopMenuOpen(false);
   }, [isDesktop]);
 
+  // Mobile menu: lock scroll + esc
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -148,14 +179,36 @@ export default function FoodSafetyPage() {
     };
   }, [menuOpen]);
 
+  // Desktop dropdown: esc + outside click
+  useEffect(() => {
+    if (!desktopMenuOpen) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDesktopMenuOpen(false);
+    };
+
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
+      if (t.closest("[data-desktop-menu-root]")) return;
+      setDesktopMenuOpen(false);
+    };
+
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onDown);
+    };
+  }, [desktopMenuOpen]);
+
   const navLinks = useMemo(
     () => [
-      { href: "/", label: "Home", variant: "ghost" as const },
-      { href: "/mission", label: "Mission", variant: "ghost" as const },
-      { href: "/vision", label: "Vision", variant: "ghost" as const },
-      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
-      { href: "/queue", label: "Check queue", variant: "ghost" as const },
-      { href: "/join", label: "Join waitlist", variant: "primary" as const },
+      { href: "/", label: "Home" },
+      { href: "/mission", label: "Mission" },
+      { href: "/vision", label: "Vision" },
+      { href: "/food-safety", label: "Food safety" },
+      { href: "/queue", label: "Check queue" },
     ],
     []
   );
@@ -167,27 +220,87 @@ export default function FoodSafetyPage() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* Header */}
+      {/* Header (EXACT Vision) */}
       <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
-            <MotionDiv initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex items-center gap-3 min-w-0">
-              <Link href="/" className="flex items-center min-w-0 overflow-hidden">
-                <span className="shrink-0">
-                  <LogoCinematic size={64} wordScale={1} />
-                </span>
-              </Link>
+            <MotionDiv
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="flex items-center gap-3 min-w-0"
+            >
+             <Link href="/" className="flex items-center min-w-0">
+  <span className="relative inline-flex items-center overflow-visible">
+    <LogoCinematic size={64} wordScale={1} />
+  </span>
+</Link>
 
-              {/* Desktop nav */}
+
+              {/* Desktop: dropdown + primary button */}
               <div className="hidden md:flex items-center gap-3 ml-auto">
-                {navLinks.map((l) => (
-                  <Link key={l.href} href={l.href} className={[btnBase, l.variant === "primary" ? btnPrimary : btnGhost].join(" ")}>
-                    {l.label}
-                  </Link>
-                ))}
+                <div className="relative" data-desktop-menu-root>
+                  <button
+                    type="button"
+                    onClick={() => setDesktopMenuOpen((v) => !v)}
+                    aria-label={desktopMenuOpen ? "Close menu" : "Open menu"}
+                    aria-expanded={desktopMenuOpen}
+                    className={cn(btnBase, btnGhost, "gap-2")}
+                    style={{ borderColor: "rgba(252,176,64,0.35)" }}
+                  >
+                    <span style={{ color: BRAND_BROWN }}>Menu</span>
+                    <span style={{ color: BRAND_ORANGE }}>
+                      <ChevronDown open={desktopMenuOpen} />
+                    </span>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {desktopMenuOpen ? (
+                      <motion.div
+                        key="desktop-menu"
+                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                        transition={{ duration: 0.16, ease: [0.2, 0.9, 0.2, 1] }}
+                        className="absolute right-0 mt-3 w-[320px] origin-top-right"
+                      >
+                        <div
+                          className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
+                          style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
+                        >
+                          <div className="grid gap-2">
+                            {navLinks.map((l) => (
+                              <Link
+                                key={l.href}
+                                href={l.href}
+                                onClick={() => setDesktopMenuOpen(false)}
+                                className={cn("w-full", btnBase, "px-5 py-3", btnGhost, "justify-start")}
+                              >
+                                {l.label}
+                              </Link>
+                            ))}
+                            <Link
+                              href="/join"
+                              onClick={() => setDesktopMenuOpen(false)}
+                              className={cn("w-full", btnBase, "px-5 py-3", btnPrimary, "justify-start")}
+                            >
+                              Join waitlist
+                            </Link>
+                          </div>
+
+                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+                        </div>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
+
+                <Link href="/join" className={cn(btnBase, btnPrimary)}>
+                  Join waitlist
+                </Link>
               </div>
 
-              {/* Mobile icon */}
+              {/* Mobile: hamburger */}
               {!isDesktop ? (
                 <div className="ml-auto shrink-0 relative md:hidden">
                   <button
@@ -198,9 +311,9 @@ export default function FoodSafetyPage() {
                     className={cn(
                       "inline-flex items-center justify-center",
                       "rounded-full border border-slate-200 bg-white/95 backdrop-blur",
-                      "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]",
-                      "text-slate-900"
+                      "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]"
                     )}
+                    style={{ color: BRAND_ORANGE, borderColor: "rgba(252,176,64,0.35)" }}
                   >
                     <HamburgerIcon open={menuOpen} />
                   </button>
@@ -209,7 +322,7 @@ export default function FoodSafetyPage() {
             </MotionDiv>
           </div>
 
-          {/* Mobile dropdown */}
+          {/* Mobile dropdown (EXACT Vision) */}
           {!isDesktop ? (
             <AnimatePresence initial={false}>
               {menuOpen ? (
@@ -223,19 +336,31 @@ export default function FoodSafetyPage() {
                 >
                   <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
                     <div className="mx-auto w-full max-w-[420px]">
-                      <div className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm" style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}>
+                      <div
+                        className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
+                        style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
+                      >
                         <div className="grid gap-2">
                           {navLinks.map((l) => (
                             <Link
                               key={l.href}
                               href={l.href}
                               onClick={() => setMenuOpen(false)}
-                              className={cn("w-full", btnBase, "px-5 py-3", l.variant === "primary" ? btnPrimary : btnGhost)}
+                              className={cn("w-full", btnBase, "px-5 py-3", btnGhost)}
                             >
                               {l.label}
                             </Link>
                           ))}
+
+                          <Link
+                            href="/join"
+                            onClick={() => setMenuOpen(false)}
+                            className={cn("w-full", btnBase, "px-5 py-3", btnPrimary)}
+                          >
+                            Join waitlist
+                          </Link>
                         </div>
+
                         <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
                       </div>
                     </div>
@@ -256,14 +381,22 @@ export default function FoodSafetyPage() {
         body="Food safety isn’t optional on PeerPlates — it’s the baseline. Customers can trust every order comes from a vendor who meets clear UK health & safety requirements."
       >
         <div className="grid gap-6 lg:grid-cols-2">
+          {/* ✅ Vision-style tinted container */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.08 }}
-            className="rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm"
+            className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm"
           >
+            <div
+              className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25"
+              style={{ background: BRAND_ORANGE }}
+            />
+
             <div className="text-sm font-extrabold text-slate-500">Before selling on PeerPlates</div>
-            <div className="mt-2 text-lg font-extrabold text-slate-900">Every vendor must:</div>
+            <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
+              Every vendor must:
+            </div>
 
             <ul className="mt-4 space-y-3 text-slate-600 font-semibold">
               {[
@@ -279,17 +412,26 @@ export default function FoodSafetyPage() {
             </ul>
           </motion.div>
 
+          {/* ✅ Vision-style tinted container */}
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.14 }}
-            className="rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm"
+            className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm"
           >
+            <div
+              className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20"
+              style={{ background: BRAND_BROWN }}
+            />
+
             <div className="text-sm font-extrabold text-slate-500">Ongoing support & standards</div>
-            <div className="mt-2 text-lg font-extrabold text-slate-900">Standards stay high as vendors scale.</div>
+            <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
+              Standards stay high as vendors scale.
+            </div>
 
             <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
-              Our team works closely with vendors as they grow — with priority onboarding, practical guidance, and clear resources on best-practice food safety, so quality remains consistent as businesses expand.
+              Our team works closely with vendors as they grow — with priority onboarding, practical guidance, and clear resources on
+              best-practice food safety, so quality remains consistent as businesses expand.
             </div>
 
             <div className="mt-6 flex items-center gap-3 text-sm font-extrabold text-slate-700">

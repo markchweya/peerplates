@@ -24,10 +24,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${sora.variable}`}
+      className={`${inter.variable} ${sora.variable} w-full overflow-x-hidden`}
       suppressHydrationWarning
     >
-      <body className="font-sans" suppressHydrationWarning>
+      <body
+        className="font-sans w-full overflow-x-hidden bg-white text-slate-900 antialiased"
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>
