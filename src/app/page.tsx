@@ -1,6 +1,8 @@
 // src/app/page.tsx
 "use client";
 import { useMotionTemplate } from "framer-motion";
+import TopGallery from "@/app/ui/TopGallery";
+
 
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
@@ -507,7 +509,148 @@ function FoodCinematic({
   );
 }
 
+function FloatingDotsBackdrop({ zIndex = 0 }: { zIndex?: number }) {
+  const reduce = useReducedMotion();
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const velRef = useRef(0);
+  const lastPtrRef = useRef<{ x: number; y: number; t: number } | null>(null);
+
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      const t = performance.now();
+      const p = lastPtrRef.current;
+      const x = e.clientX;
+      const y = e.clientY;
+
+      if (!p) {
+        lastPtrRef.current = { x, y, t };
+        return;
+      }
+
+      const dt = Math.max(8, t - p.t);
+      const dx = x - p.x;
+      const dy = y - p.y;
+      const dist = Math.hypot(dx, dy);
+      const v = (dist / dt) * 1000;
+
+      velRef.current = velRef.current * 0.84 + v * 0.16;
+      lastPtrRef.current = { x, y, t };
+    };
+
+    document.addEventListener("pointermove", onMove, { passive: true, capture: true });
+    return () => document.removeEventListener("pointermove", onMove, true);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = Math.max(1, Math.min(2, globalThis.devicePixelRatio || 1));
+
+    type Dot = { x: number; y: number; r: number; vx: number; vy: number; mix: number; wob: number };
+    const dots: Dot[] = [];
+
+    const mixColor = (mix: number, a: number) => {
+      const o = { r: 252, g: 176, b: 64 };
+      const b = { r: 138, g: 107, b: 67 };
+      const rr = Math.round(o.r * (1 - mix) + b.r * mix);
+      const gg = Math.round(o.g * (1 - mix) + b.g * mix);
+      const bb = Math.round(o.b * (1 - mix) + b.b * mix);
+      return `rgba(${rr},${gg},${bb},${a})`;
+    };
+
+    const seed = () => {
+      const w = Math.max(1, globalThis.innerWidth);
+      const h = Math.max(1, globalThis.innerHeight);
+
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const target = reduce ? 34 : Math.round(clamp((w * h) / 26000, 50, 120));
+      dots.length = 0;
+
+      for (let i = 0; i < target; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const base = reduce ? 0.010 : 0.016;
+        const sp = base * (0.65 + Math.random() * 1.25);
+
+        dots.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          r: reduce ? 1.6 + Math.random() * 1.2 : 1.8 + Math.random() * 1.6,
+          vx: Math.cos(ang) * sp,
+          vy: Math.sin(ang) * sp,
+          mix: Math.random(),
+          wob: Math.random() * 1000,
+        });
+      }
+    };
+
+    seed();
+    const onResize = () => seed();
+    globalThis.addEventListener("resize", onResize, { passive: true });
+
+    let raf = 0;
+    let lastT = performance.now();
+
+    const tick = () => {
+      raf = globalThis.requestAnimationFrame(tick);
+
+      const now = performance.now();
+      const dt = Math.min(40, now - lastT);
+      lastT = now;
+
+      const w = Math.max(1, globalThis.innerWidth);
+      const h = Math.max(1, globalThis.innerHeight);
+
+      const rawV = velRef.current;
+      const boost = reduce ? 1 : 1 + clamp(rawV / 850, 0, 3.2);
+
+      ctx.clearRect(0, 0, w, h);
+
+      for (const d of dots) {
+        d.wob += dt * 0.001;
+
+        const drift = reduce ? 0.00006 : 0.00010;
+        d.vx += Math.sin(d.wob * 1.8) * drift;
+        d.vy += Math.cos(d.wob * 1.6) * drift;
+
+        d.x += d.vx * dt * boost;
+        d.y += d.vy * dt * boost;
+
+        if (d.x < -20) d.x = w + 20;
+        if (d.x > w + 20) d.x = -20;
+        if (d.y < -20) d.y = h + 20;
+        if (d.y > h + 20) d.y = -20;
+
+        const a = reduce ? 0.35 : 0.42;
+
+        ctx.beginPath();
+        ctx.fillStyle = mixColor(d.mix, a);
+        ctx.shadowColor = mixColor(d.mix, reduce ? 0.18 : 0.22);
+        ctx.shadowBlur = reduce ? 6 : 10;
+        ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    };
+
+    raf = globalThis.requestAnimationFrame(tick);
+
+    return () => {
+      globalThis.cancelAnimationFrame(raf);
+      globalThis.removeEventListener("resize", onResize);
+    };
+  }, [reduce]);
+
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex }} aria-hidden="true" />;
+}
 
 function PeerPlatesWordmark({ compact = false }: { compact?: boolean }) {
   return (
@@ -556,10 +699,18 @@ function EatBetterSection() {
   const { ref, inView } = useInViewAmount<HTMLElement>(0.35);
 
   return (
-    <section
-      ref={ref}
-      className="relative w-full min-h-[100svh] flex items-start md:items-center justify-center px-6 pt-24 sm:pt-28 md:pt-0"
-    >
+   <section
+  ref={ref}
+  className="
+    relative w-full
+    px-6
+    pt-24 pb-16
+    sm:pt-32 sm:pb-24
+    flex items - center
+    justify-center
+  "
+>
+
       <motion.div
         initial={false}
         animate={
@@ -622,6 +773,8 @@ function EatBetterSection() {
     </section>
   );
 }
+
+
 
 /** Optional: next section example (pops/fades in/out the same way) */
 function NextSectionPlaceholder() {
@@ -862,7 +1015,7 @@ export default function Home() {
 
       {/* ✅ “Eat Better” section (own section, pushed up on mobile, fades in/out) */}
       <EatBetterSection />
-
+<TopGallery />
       {/* ✅ Next section (optional) */}
       <NextSectionPlaceholder />
 
