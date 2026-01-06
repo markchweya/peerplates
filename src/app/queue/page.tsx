@@ -8,6 +8,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { MotionDiv } from "@/app/ui/motion";
 import LogoCinematic from "@/app/ui/LogoCinematic";
 
+
+const ORANGE = "#fcb040";
+const BROWN = "#8a6b43";
+
+
 type QueueResult = {
   email: string;
   role: "consumer" | "vendor";
@@ -18,6 +23,12 @@ type QueueResult = {
   referral_code: string | null;
   referral_link: string | null;
 };
+
+
+function cn(...v: Array<string | false | undefined | null>) {
+  return v.filter(Boolean).join(" ");
+}
+
 
 function formatStatus(s: QueueResult["review_status"]) {
   if (s === "approved") return "Approved";
@@ -63,6 +74,26 @@ function HamburgerIcon({ open }: { open: boolean }) {
   );
 }
 
+function ChevronDown({ open }: { open: boolean }) {
+  return (
+    <motion.svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      initial={false}
+      animate={{ rotate: open ? 180 : 0 }}
+      transition={{ duration: 0.18, ease: "easeInOut" }}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </motion.svg>
+  );
+}
+
 const inputBase =
   "h-12 w-full rounded-2xl border border-[#fcb040] bg-white px-4 font-semibold text-black outline-none " +
   "focus:ring-4 focus:ring-[rgba(252,176,64,0.30)] placeholder:text-black/40";
@@ -78,6 +109,7 @@ const subtleBtn =
 export default function QueuePage() {
   // ---------- Responsive menu (hard guarantee: menu button never shows on desktop) ----------
   const [menuOpen, setMenuOpen] = useState(false);
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
@@ -98,6 +130,7 @@ export default function QueuePage() {
 
   useEffect(() => {
     if (isDesktop) setMenuOpen(false);
+    if (!isDesktop) setDesktopMenuOpen(false);
   }, [isDesktop]);
 
   // ✅ Updated menus (desktop + mobile)
@@ -136,6 +169,29 @@ export default function QueuePage() {
       window.removeEventListener("keydown", onKey);
     };
   }, [menuOpen]);
+
+  // Desktop dropdown: esc + outside click
+  useEffect(() => {
+    if (!desktopMenuOpen) return;
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDesktopMenuOpen(false);
+    };
+
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
+      if (t.closest("[data-desktop-menu-root]")) return;
+      setDesktopMenuOpen(false);
+    };
+
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onDown);
+    };
+  }, [desktopMenuOpen]);
 
   // ---------- Queue flow ----------
   const [step, setStep] = useState<"email" | "code">("email");
@@ -303,7 +359,7 @@ export default function QueuePage() {
         />
       </div>
 
-      {/* Header */}
+      {/* Header — updated to Vision/Join menu (dropdown on desktop + hamburger on mobile) */}
       <div className="sticky top-0 z-[60] border-b border-black/10 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -313,20 +369,75 @@ export default function QueuePage() {
               </span>
             </Link>
 
-            {/* Desktop nav */}
+            {/* Desktop: dropdown + join button */}
             <div className="hidden md:flex items-center gap-3 ml-auto">
-              {navLinks.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className={[btnBase, l.variant === "primary" ? btnPrimary : btnGhost].join(" ")}
+              <div className="relative" data-desktop-menu-root>
+                <button
+                  type="button"
+                  onClick={() => setDesktopMenuOpen((v) => !v)}
+                  aria-label={desktopMenuOpen ? "Close menu" : "Open menu"}
+                  aria-expanded={desktopMenuOpen}
+                  className={cn(btnBase, btnGhost, "gap-2")}
+                  style={{ borderColor: "rgba(252,176,64,0.35)" }}
                 >
-                  {l.label}
-                </Link>
-              ))}
+                  <span style={{ color: BROWN }}>Menu</span>
+                  <span style={{ color: ORANGE }}>
+                    <ChevronDown open={desktopMenuOpen} />
+                  </span>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {desktopMenuOpen ? (
+                    <motion.div
+                      key="desktop-menu"
+                      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.16, ease: [0.2, 0.9, 0.2, 1] }}
+                      className="absolute right-0 mt-3 w-[320px] origin-top-right"
+                    >
+                      <div
+                        className="rounded-[28px] border border-black/10 bg-white/92 backdrop-blur p-3 shadow-sm"
+                        style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
+                      >
+                        <div className="grid gap-2">
+                          {navLinks
+                            .filter((l) => l.href !== "/join")
+                            .map((l) => (
+                              <Link
+                                key={l.href}
+                                href={l.href}
+                                onClick={() => setDesktopMenuOpen(false)}
+                                className={cn("w-full", btnBase, "px-5 py-3", btnGhost, "justify-start")}
+                              >
+                                {l.label}
+                              </Link>
+                            ))}
+
+                          <Link
+                            href="/join"
+                            onClick={() => setDesktopMenuOpen(false)}
+                            className={cn("w-full", btnBase, "px-5 py-3", btnPrimary, "justify-start")}
+                          >
+                            Join waitlist
+                          </Link>
+                        </div>
+
+                        <div className="mt-3 text-center text-xs font-semibold text-black/45">
+                          Taste. Tap. Order.
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </div>
+
+              <Link href="/join" className={cn(btnBase, btnPrimary)}>
+                Join waitlist
+              </Link>
             </div>
 
-            {/* Mobile menu button (hamburger only) */}
+            {/* Mobile hamburger */}
             {!isDesktop ? (
               <div className="ml-auto shrink-0 relative md:hidden">
                 <button
@@ -508,7 +619,9 @@ export default function QueuePage() {
               )}
 
               {step === "email" ? (
-                <div className="text-xs text-black/50">You’ll receive an email from PeerPlates with a one-time 6-digit code.</div>
+                <div className="text-xs text-black/50">
+                  You’ll receive an email from PeerPlates with a one-time 6-digit code.
+                </div>
               ) : null}
             </div>
           ) : (

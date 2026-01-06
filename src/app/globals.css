@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  /* ✅ lock the app to a light look (your UI is designed light) */
+  color-scheme: light;
+
   --brand: #fcb040;
   --background: #ffffff;
   --foreground: #0a0a0a;
@@ -23,21 +26,12 @@
     "Courier New", monospace;
 }
 
-/* If you later build a real dark theme, keep this. It won't affect bg-white sections. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0b0b0b;
-    --foreground: #ffffff;
-    --muted: rgba(255, 255, 255, 0.7);
-    --border: rgba(255, 255, 255, 0.16);
-    --ring: rgba(252, 176, 64, 0.45);
-  }
-}
-
 html,
 body {
   height: 100%;
+  width: 100%;
   overflow-x: hidden;
+  background: #ffffff;
 }
 
 body {
@@ -92,47 +86,44 @@ select {
 }
 
 /* -------------------------------------------------
-   ✅ Cinematic scrollbar:
-   - very subtle (not screaming “browser”)
-   - orange only on hover/active
+   ✅ Cinematic scrollbar (no black lane):
+   - track is subtle light tint (NOT transparent)
+   - thumb orange
 -------------------------------------------------- */
 
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(252, 176, 64, 0.45) transparent;
+  scrollbar-color: rgba(252, 176, 64, 0.55) rgba(2, 6, 23, 0.04);
 }
 
 /* WebKit */
 ::-webkit-scrollbar {
-  width: 10px;   /* keep enough width so it’s usable */
+  width: 10px;
   height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(2, 6, 23, 0.04); /* ✅ no transparent track */
 }
 
-/* “pill thumb”, subtle by default */
 ::-webkit-scrollbar-thumb {
   background-color: rgba(252, 176, 64, 0.28);
   border-radius: 999px;
-  border: 3px solid transparent;
+  border: 3px solid rgba(2, 6, 23, 0.04);
   background-clip: padding-box;
 }
 
-/* pop on hover */
 ::-webkit-scrollbar-thumb:hover {
   background-color: rgba(252, 176, 64, 0.7);
 }
 
-/* pop more while dragging */
 ::-webkit-scrollbar-thumb:active {
   background-color: rgba(252, 176, 64, 0.95);
 }
 
 ::-webkit-scrollbar-corner {
-  background: transparent;
+  background: rgba(2, 6, 23, 0.04);
 }
 
 @media (max-width: 640px) {
