@@ -149,7 +149,7 @@ export default function Home() {
             desc: "Orders close when you say so.Choose how far in advance customers must order — so you’ve got time to prep and don’t get overloaded.",
           },
           {
-            image: "/images/gallery/gallery9.jpeg",
+            image: "/images/gallery/gallery99.jpeg",
             kicker: "Order management",
             title: "Your kitchen. Your rules. Set slots. Cap orders. Keep control.",
             subtitle: "",
