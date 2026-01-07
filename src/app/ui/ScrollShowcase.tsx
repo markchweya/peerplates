@@ -190,11 +190,13 @@ export default function ScrollShowcase({
                   cardRefs.current[idx] = el;
                 }}
                 className={[
-                  "snap-start",
-                  "shrink-0",
-                  "w-[86vw] sm:w-[520px] lg:w-[560px]",
-                  "h-full", // ✅ allow stretch
-                ].join(" ")}
+  "snap-start",
+  "shrink-0",
+  "w-[86vw] sm:w-[520px] lg:w-[560px]",
+  "self-stretch",
+  "flex",
+].join(" ")}
+
               >
                 <ShowcaseCard item={it} tilt={tilt} />
               </div>
