@@ -418,10 +418,10 @@ export default function JoinClient({ referral }: { referral: string }) {
                 </div>
                 <div className="min-w-0">
                   <div className="text-xl font-extrabold">Consumer</div>
-                  <div className="mt-1 text-slate-900/70 font-semibold">Buy food • Refer friends • Move up</div>
+                  <div className="mt-1 text-slate-900/70 font-semibold"></div>
                 </div>
               </div>
-              <div className="mt-6 h-[2px] w-36 bg-slate-200 group-hover:w-44 transition-all" />
+            
             </Link>
 
             <Link
@@ -435,10 +435,10 @@ export default function JoinClient({ referral }: { referral: string }) {
                 </div>
                 <div className="min-w-0">
                   <div className="text-xl font-extrabold">Vendor</div>
-                  <div className="mt-1 text-slate-900/70 font-semibold">Sell food • Review • Queue position</div>
+                  <div className="mt-1 text-slate-900/70 font-semibold"></div>
                 </div>
               </div>
-              <div className="mt-6 h-[2px] w-36 bg-slate-200 group-hover:w-44 transition-all" />
+             
             </Link>
           </div>
 

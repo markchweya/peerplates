@@ -1,4 +1,4 @@
-// ui/ LogoCinematic.tsx
+// ui/LogoCinematic.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -113,15 +113,13 @@ export default function LogoCinematic({
   wordScale = 1,
   className = "",
   forceOpen = false, // ✅ ADD THIS
-  
 }: {
   size?: number;
   wordScale?: number;
   className?: string;
   forceOpen?: boolean;
 }) {
-const [active, setActive] = useState(forceOpen);
-
+  const [active, setActive] = useState(forceOpen);
   const [canHover, setCanHover] = useState(true);
 
   const previewTimer = useRef<number | null>(null);
@@ -208,13 +206,13 @@ const [active, setActive] = useState(forceOpen);
     });
   }, [targets, size, wordScale]);
 
-const onEnter = () => {
-  if (forceOpen) return;
-  userInteracted.current = true;
-  clearPreviewTimer();
-  if (!canHover) return;
-  setActive(true);
-};
+  const onEnter = () => {
+    if (forceOpen) return;
+    userInteracted.current = true;
+    clearPreviewTimer();
+    if (!canHover) return;
+    setActive(true);
+  };
 
   const onLeave = () => {
     userInteracted.current = true;
@@ -273,7 +271,8 @@ const onEnter = () => {
             width={size}
             height={size}
             priority
-            className="block h-full w-full rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.10)]"
+            // ✅ removed rounded corners ONLY on the logo image
+            className="block h-full w-full shadow-[0_10px_30px_rgba(15,23,42,0.10)]"
           />
         </motion.div>
 
@@ -331,7 +330,7 @@ const onEnter = () => {
                 filter: "blur(12px)",
                 transition: {
                   duration: WORD_EXIT_DUR,
-                  delay: 0, // ✅ NO exit delay (this was the main problem)
+                  delay: 0, // ✅ NO exit delay
                   ease: EASE,
                 },
               }}
