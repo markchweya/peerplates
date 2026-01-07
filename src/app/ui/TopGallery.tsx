@@ -17,7 +17,8 @@ export default function TopGallery() {
     },
   };
 
-  const img = "relative rounded-3xl overflow-hidden shadow-sm";
+  // ❌ removed rounded-3xl
+  const img = "relative overflow-hidden shadow-sm";
 
   return (
     <section className="relative w-full bg-white py-12 sm:py-14">
