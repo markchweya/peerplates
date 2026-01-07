@@ -68,6 +68,23 @@ function EatBetterSection() {
         <p className="text-[clamp(18px,2.2vw,26px)] font-semibold leading-[1.25] text-slate-700">
           authentic home-cooked meals from trusted cooks and bakers.
         </p>
+
+        {/* ✅ FIX: add the buttons back */}
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+          <a
+            href="/join"
+            className="inline-flex items-center justify-center rounded-2xl px-7 py-3.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] bg-[#fcb040] text-slate-900"
+          >
+            Join waitlist
+          </a>
+
+          <a
+            href="/queue"
+            className="inline-flex items-center justify-center rounded-2xl px-7 py-3.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50"
+          >
+            Check queue
+          </a>
+        </div>
       </motion.div>
     </section>
   );
@@ -77,7 +94,11 @@ function EatBetterSection() {
 export default function Home() {
   return (
     <main className="min-h-screen bg-white text-slate-900 relative overflow-hidden">
-      <LogoFullScreen />
+      {/* ✅ Fix: force the fullscreen logo area to render with square corners */}
+      <div className="rounded-none" style={{ borderRadius: 0 }}>
+        <LogoFullScreen />
+      </div>
+
       <EatBetterSection />
       <TopGallery />
 

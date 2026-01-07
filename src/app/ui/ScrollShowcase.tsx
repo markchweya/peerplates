@@ -41,12 +41,9 @@ export default function ScrollShowcase({
 
   const isRTL = direction === "rtl";
 
-  const snapClass = snap
-    ? "snap-x snap-mandatory scroll-smooth"
-    : "scroll-smooth";
+  const snapClass = snap ? "snap-x snap-mandatory scroll-smooth" : "scroll-smooth";
 
-  const trackPadding =
-    "px-4 sm:px-6 lg:px-8"; // matches your page paddings nicely
+  const trackPadding = "px-4 sm:px-6 lg:px-8"; // matches your page paddings nicely
 
   const orderedItems = useMemo(() => {
     if (!isRTL) return items;
@@ -61,7 +58,7 @@ export default function ScrollShowcase({
     // newIndex = (items.length - 1) - oldIndex
     return nav.map((n) => ({
       ...n,
-      index: Math.max(0, (items.length - 1) - n.index),
+      index: Math.max(0, items.length - 1 - n.index),
     }));
   }, [nav, isRTL, items.length]);
 
@@ -139,9 +136,7 @@ export default function ScrollShowcase({
             App Previews
           </h2>
 
-          <p className="mt-4 text-base sm:text-lg leading-relaxed text-slate-600 font-semibold">
-            {subheading}
-          </p>
+          <p className="mt-4 text-base sm:text-lg leading-relaxed text-slate-600 font-semibold">{subheading}</p>
         </div>
 
         {/* Nav pills */}
@@ -181,6 +176,7 @@ export default function ScrollShowcase({
               "pb-4",
               snapClass,
               "[-webkit-overflow-scrolling:touch]",
+              "items-stretch", // ✅ make all cards same height
             ].join(" ")}
             style={{
               direction: isRTL ? "rtl" : "ltr",
@@ -197,6 +193,7 @@ export default function ScrollShowcase({
                   "snap-start",
                   "shrink-0",
                   "w-[86vw] sm:w-[520px] lg:w-[560px]",
+                  "h-full", // ✅ allow stretch
                 ].join(" ")}
               >
                 <ShowcaseCard item={it} tilt={tilt} />
@@ -221,14 +218,16 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
 
   const tiltStyle = tilt
     ? {
-        transform: hovered ? "perspective(900px) rotateX(2deg) rotateY(-3deg)" : "perspective(900px) rotateX(0deg) rotateY(0deg)",
+        transform: hovered
+          ? "perspective(900px) rotateX(2deg) rotateY(-3deg)"
+          : "perspective(900px) rotateX(0deg) rotateY(0deg)",
         transition: "transform 180ms ease",
       }
     : undefined;
 
   return (
     <motion.div
-      className="group relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/90 backdrop-blur shadow-sm"
+      className="group relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/90 backdrop-blur shadow-sm h-full min-h-[640px] flex flex-col" // ✅ equal height baseline + fill
       style={{
         boxShadow: "0 18px 60px rgba(2,6,23,0.08)",
         ...tiltStyle,
@@ -241,7 +240,7 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
       transition={{ duration: 0.5, ease: [0.2, 0.9, 0.2, 1] }}
     >
       {/* Image */}
-      <div className="relative h-[420px] sm:h-[460px] bg-slate-50">
+      <div className="relative h-[420px] sm:h-[460px] bg-slate-50 shrink-0">
         {/* IMPORTANT: keep "contain" so screenshots never look zoomed */}
         <img
           src={item.image}
@@ -263,20 +262,17 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
       </div>
 
       {/* Copy */}
-      <div className="p-6 sm:p-7">
-        <div className="text-xs font-extrabold tracking-[0.22em] text-slate-500 uppercase">
-          {item.kicker}
-        </div>
+      <div className="p-6 sm:p-7 flex-1 flex flex-col">
+        <div className="text-xs font-extrabold tracking-[0.22em] text-slate-500 uppercase">{item.kicker}</div>
 
-        <div className="mt-3 text-[18px] sm:text-[20px] font-extrabold text-slate-900 leading-snug">
-          {item.title}
-        </div>
+        <div className="mt-3 text-[18px] sm:text-[20px] font-extrabold text-slate-900 leading-snug">{item.title}</div>
 
         <div className="mt-2 text-slate-700 font-semibold">{item.subtitle}</div>
 
-        <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-          {item.desc}
-        </div>
+        <div className="mt-3 text-slate-600 font-semibold leading-relaxed">{item.desc}</div>
+
+        {/* ✅ keeps bottom spacing consistent even when text is short */}
+        <div className="mt-auto" />
       </div>
     </motion.div>
   );
