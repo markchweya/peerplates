@@ -112,12 +112,16 @@ export default function LogoCinematic({
   size = 56,
   wordScale = 1,
   className = "",
+  forceOpen = false, // ✅ ADD THIS
+  
 }: {
   size?: number;
   wordScale?: number;
   className?: string;
+  forceOpen?: boolean;
 }) {
-  const [active, setActive] = useState(false);
+const [active, setActive] = useState(forceOpen);
+
   const [canHover, setCanHover] = useState(true);
 
   const previewTimer = useRef<number | null>(null);
@@ -204,12 +208,13 @@ export default function LogoCinematic({
     });
   }, [targets, size, wordScale]);
 
-  const onEnter = () => {
-    userInteracted.current = true;
-    clearPreviewTimer();
-    if (!canHover) return;
-    setActive(true);
-  };
+const onEnter = () => {
+  if (forceOpen) return;
+  userInteracted.current = true;
+  clearPreviewTimer();
+  if (!canHover) return;
+  setActive(true);
+};
 
   const onLeave = () => {
     userInteracted.current = true;
