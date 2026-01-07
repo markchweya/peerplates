@@ -4,6 +4,7 @@
 import LogoFullScreen from "@/app/ui/LogoFullScreen";
 import TopGallery from "@/app/ui/TopGallery";
 import PeerWorks from "@/app/ui/PeerWorks";
+import ScrollShowcase from "@/app/ui/ScrollShowcase";
 
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -79,7 +80,97 @@ export default function Home() {
       <LogoFullScreen />
       <EatBetterSection />
       <TopGallery />
+
+      {/* HOW IT WORKS (your section) */}
       <PeerWorks />
+
+      {/* APP PREVIEWS (below How it works) */}
+      <ScrollShowcase
+        heading="App Previews"
+        subheading="See how PeerPlates makes ordering and managing home-cooked food effortless."
+        direction="ltr"
+        snap={true}
+        tilt={false}
+        nav={[
+          { label: "Ordering", index: 0 },
+          { label: "Storefront", index: 2 },
+          { label: "Vendor", index: 3 },
+          { label: "Analytics", index: 4 },
+          { label: "Operations", index: 6 },
+        ]}
+        items={[
+          {
+            image: "/images/gallery/gallery1.jpeg",
+            kicker: "Highlights",
+            title: "TikTok-style scroll experience, built for ordering.",
+            subtitle: "",
+            desc: 'Discover home-cooked meals in short, shoppable videos — tap “Add to cart” straight from the video.',
+          },
+          {
+            image: "/images/gallery/gallery2.jpeg",
+            kicker: "Highlights",
+            title: "Highlights that make choosing effortless.",
+            subtitle: "",
+            desc: "Short, snackable previews that help you decide in seconds — perfect for busy students.",
+          },
+          {
+            image: "/images/gallery/gallery3.jpeg",
+            kicker: "Menu",
+            title: "No back-and-forth. Just orders.",
+            subtitle: "",
+            desc: "A proper storefront for home-cooked meals: browse categories, see prices upfront, and checkout in seconds.",
+          },
+          {
+            image: "/images/gallery/gallery4.jpeg",
+            kicker: "Vendor profiles",
+            title: "Grow your community.",
+            subtitle: "",
+            desc: "Build a loyal following with your own vendor profile — customers can follow, view your posts, and stay updated on your collection days and latest drops.",
+          },
+          {
+            image: "/images/gallery/gallery5.jpeg",
+            kicker: "Analytics",
+            title: "Eliminate the guesswork — PeerPlates tracks it for you.",
+            subtitle: "",
+            desc: "Orders, revenue, customer activity, peak times — all in one clean dashboard.",
+          },
+          {
+            image: "/images/gallery/gallery6.png",
+            kicker: "Analytics",
+            title: "Know what's working",
+            subtitle: "",
+            desc: "See what's moving fastest — and double down on the dishes that drive revenue",
+          },
+          {
+            image: "/images/gallery/gallery7.jpeg",
+            kicker: "Vendor control",
+            title: "Set a cutoff. Stay in control.",
+            subtitle: "Orders close when you say so.",
+            desc: "Choose how far in advance customers must order — so you’ve got time to prep and don’t get overloaded.",
+          },
+          {
+            image: "/images/gallery/gallery9.png",
+            kicker: "Your kitchen. Your rules.",
+            title: "Set slots. Cap orders. Keep control.",
+            subtitle: "You decide when you’re taking orders and when you’re not.",
+            desc: "PeerPlates fits around your life — not the other way round.",
+          },
+          {
+            image: "/images/gallery/gallery10.png",
+            kicker: "Order management",
+            title: "Stay organised. Avoid mix-ups.",
+            subtitle: "Filter by pickup date — today, this week, or any day.",
+            desc: "Filter orders by pickup date so you can track what’s due today, this week, or a specific day — and make sure each order goes to the right customer.",
+          },
+        ]}
+      />
+
+      {/* Footer */}
+      <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mt-10 sm:mt-12 border-t border-slate-200 pt-6 pb-10 text-sm text-slate-500">
+          © {new Date().getFullYear()} PeerPlates
+        </div>
+      </div>
     </main>
   );
 }
