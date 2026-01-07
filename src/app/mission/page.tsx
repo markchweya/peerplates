@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import React, { ReactNode, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import React, { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useInView } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import { MotionDiv } from "@/app/ui/motion";
@@ -13,6 +13,8 @@ const BRAND_BROWN = "#8a6b43";
 function cn(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
+
+const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
 
 /** Hamburger icon (3 lines) that animates into an X when open */
 function HamburgerIcon({ open }: { open: boolean }) {
@@ -71,6 +73,91 @@ function ChevronDown({ open }: { open: boolean }) {
   );
 }
 
+/** Vendor icon: chef hat only (NO person) */
+function ChefHatIcon(props: React.SVGProps<SVGSVGElement>) {
+  const { className = "", ...rest } = props;
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true" {...rest}>
+      <path
+        d="M7.4 10.4c-1.7 0-3.1-1.3-3.1-2.9 0-1.4 1.1-2.6 2.6-2.8
+           .3-1.7 1.9-3.1 4-3.1 1.1 0 2.1.4 2.9 1.1
+           .8-.7 1.8-1.1 2.9-1.1 2.1 0 3.7 1.4 4 3.1
+           1.5.2 2.6 1.4 2.6 2.8 0 1.6-1.4 2.9-3.1 2.9H7.4Z"
+        fill="currentColor"
+        opacity="0.98"
+      />
+      <path
+        d="M7.4 10.4h13.2v3.2c0 .7-.5 1.2-1.2 1.2H8.6c-.7 0-1.2-.5-1.2-1.2v-3.2Z"
+        fill="currentColor"
+        opacity="0.98"
+      />
+      <path
+        d="M10 11.2v2.6M12 11.2v2.6M14 11.2v2.6"
+        stroke="rgba(255,255,255,0.55)"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function CustomerIcon(props: React.SVGProps<SVGSVGElement>) {
+  const { className = "", ...rest } = props;
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true" {...rest}>
+      <path
+        d="M12 13.7c-3.2 0-5.8 2.2-5.8 4.9V20h11.6v-1.4c0-2.7-2.6-4.9-5.8-4.9Z"
+        fill="currentColor"
+        opacity="0.98"
+      />
+      <path
+        d="M12 13.2c2 0 3.6-1.6 3.6-3.5S14 6.2 12 6.2 8.4 7.8 8.4 9.7 10 13.2 12 13.2Z"
+        fill="currentColor"
+        opacity="0.98"
+      />
+    </svg>
+  );
+}
+
+/**
+ * ✅ Scroll fade wrapper:
+ * - Fades in when section enters viewport
+ * - Fades out when section leaves viewport (down OR up)
+ * - Re-fades in when scrolling back
+ */
+function ScrollFade({
+  children,
+  className = "",
+  amount = 0.55,
+  y = 18,
+  blur = 10,
+}: {
+  children: ReactNode;
+  className?: string;
+  amount?: number;
+  y?: number;
+  blur?: number;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const inView = useInView(ref, { amount, margin: "0px 0px -10% 0px" });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={false}
+      animate={
+        inView
+          ? { opacity: 1, y: 0, filter: "blur(0px)" }
+          : { opacity: 0, y, filter: `blur(${blur}px)` }
+      }
+      transition={{ duration: 0.55, ease: easeOut }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 function PageShell({
   kicker,
   title,
@@ -100,12 +187,8 @@ function PageShell({
       </div>
 
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: [0.2, 0.9, 0.2, 1] }}
-          className="mx-auto max-w-4xl"
-        >
+        {/* ✅ now scroll-reactive (in/out) */}
+        <ScrollFade className="mx-auto max-w-4xl" amount={0.6} y={16} blur={12}>
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/75 px-5 py-2.5 text-sm font-extrabold text-slate-700 shadow-sm backdrop-blur">
             <span className="h-2 w-2 rounded-full" style={{ background: BRAND_ORANGE }} />
             {kicker}
@@ -128,7 +211,7 @@ function PageShell({
           <p className="mt-5 text-base sm:text-lg leading-relaxed text-slate-600 font-semibold">{body}</p>
 
           {children ? <div className="mt-10">{children}</div> : null}
-        </motion.div>
+        </ScrollFade>
       </div>
     </section>
   );
@@ -203,11 +286,10 @@ export default function MissionPage() {
   }, [desktopMenuOpen]);
 
   const navLinks = useMemo(
-   () => [
+    () => [
       { href: "/", label: "Home", variant: "ghost" as const },
-       { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
-      {href: "/faq", label: "FAQ", variant: "ghost" as const },
-     
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
+      { href: "/faq", label: "FAQ", variant: "ghost" as const },
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
       { href: "/join", label: "Join waitlist", variant: "primary" as const },
     ],
@@ -269,7 +351,7 @@ export default function MissionPage() {
                         initial={{ opacity: 0, y: 10, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                        transition={{ duration: 0.16, ease: [0.2, 0.9, 0.2, 1] }}
+                        transition={{ duration: 0.16, ease: easeOut }}
                         className="absolute right-0 mt-3 w-[320px] origin-top-right"
                       >
                         <div
@@ -339,7 +421,7 @@ export default function MissionPage() {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: [0.2, 0.9, 0.2, 1] }}
+                  transition={{ duration: 0.22, ease: easeOut }}
                   className="md:hidden overflow-hidden"
                 >
                   <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
@@ -383,62 +465,122 @@ export default function MissionPage() {
       {/* spacer */}
       <div className="h-[84px]" />
 
+      {/* ===================== */}
+      {/* Mission */}
+      {/* ===================== */}
       <PageShell
         kicker="Mission"
         title="Why we started"
         highlight="PeerPlates."
         body="University life moves fast — and cooking proper meals consistently just wasn’t realistic. Takeaways were expensive, meal-prep often felt like poor value… and not the kind of food we actually craved."
       >
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* ✅ Vision-style tinted container */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.08 }}
-            className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm"
-          >
-            <div
-              className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25"
-              style={{ background: BRAND_ORANGE }}
-            />
-            <div className="text-sm font-extrabold text-slate-500">The moment it clicked</div>
-            <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
-              The solution already existed — it just wasn’t easy to access.
+        <div className="grid gap-6 md:grid-cols-2 items-stretch">
+          {/* ✅ Card fades in/out on scroll */}
+          <ScrollFade amount={0.45} y={16} blur={10}>
+            <div className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm">
+              <div
+                className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25"
+                style={{ background: BRAND_ORANGE }}
+              />
+              <div className="text-sm font-extrabold text-slate-500">The moment it clicked</div>
+              <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
+                The solution already existed — it just wasn’t easy to access.
+              </div>
+              <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
+                We ordered a big bowl of jollof rice from a local home cook — and realised: authentic, great-value food
+                is nearby… but discovery + ordering needed to feel effortless.
+              </div>
             </div>
-            <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-              We ordered a big bowl of jollof rice from a local home cook — and realised: authentic, great-value food is
-              nearby… but discovery + ordering needed to feel effortless.
-            </div>
-          </motion.div>
+          </ScrollFade>
 
-          {/* ✅ Vision-style tinted container */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.14 }}
-            className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm"
-          >
-            <div
-              className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20"
-              style={{ background: BRAND_BROWN }}
-            />
-            <div className="text-sm font-extrabold text-slate-500">What PeerPlates is</div>
-            <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
-              A community-driven marketplace for home cooks &amp; bakers.
+          {/* ✅ Card fades in/out on scroll */}
+         <ScrollFade amount={0.45} y={16} blur={10} className="h-full">
+  <div className="relative h-full flex flex-col overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm">
+    ...
+              <div
+                className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20"
+                style={{ background: BRAND_BROWN }}
+              />
+              <div className="text-sm font-extrabold text-slate-500">What PeerPlates is</div>
+              <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
+                A community-driven marketplace for home cooks &amp; bakers.
+              </div>
+              <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
+                Independent vendors sell authentic, affordable meals to nearby customers — built for speed, clarity, and
+                trust.
+              </div>
             </div>
-            <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-              Independent vendors sell authentic, affordable meals to nearby customers — built for speed, clarity, and
-              trust.
+          </ScrollFade>
+        </div>
+      </PageShell>
+
+      {/* ===================== */}
+      {/* Vision (under Mission) */}
+      {/* ===================== */}
+      <PageShell
+        kicker="Vision"
+        title="Our mission is"
+        highlight="two-sided."
+        body="We’re building a platform that works for both sides of the marketplace — vendors and customers — with the same level of care."
+      >
+        <div className="grid gap-6 md:grid-cols-2 items-stretch">
+          {/* ✅ Card fades in/out on scroll */}
+          <ScrollFade amount={0.45} y={16} blur={10}>
+            <div className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm">
+              <div
+                className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25"
+                style={{ background: BRAND_ORANGE }}
+              />
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-12 w-12 rounded-2xl border border-slate-200 bg-white/80 flex items-center justify-center shadow-sm"
+                  style={{ boxShadow: "0 16px 40px rgba(252,176,64,0.18)" }}
+                >
+                  <ChefHatIcon className="h-7 w-7" style={{ color: BRAND_ORANGE }} />
+                </div>
+                <div className="text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
+                  For vendors
+                </div>
+              </div>
+              <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
+                To empower local food entrepreneurs with the tools, visibility, and support to grow — turning passion
+                into meaningful income.
+              </div>
             </div>
-          </motion.div>
+          </ScrollFade>
+
+          {/* ✅ Card fades in/out on scroll */}
+          <ScrollFade amount={0.45} y={16} blur={10}>
+            <div className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm">
+              <div
+                className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20"
+                style={{ background: BRAND_BROWN }}
+              />
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-12 w-12 rounded-2xl border border-slate-200 bg-white/80 flex items-center justify-center shadow-sm"
+                  style={{ boxShadow: "0 16px 40px rgba(138,107,67,0.16)" }}
+                >
+                  <CustomerIcon className="h-7 w-7" style={{ color: BRAND_BROWN }} />
+                </div>
+                <div className="text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
+                  For customers
+                </div>
+              </div>
+              <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
+                To make it easy to find great-value, home-cooked meals that taste authentic — made with real warmth, not
+                factory production.
+              </div>
+            </div>
+          </ScrollFade>
         </div>
       </PageShell>
 
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="border-t border-slate-200 py-10 text-sm text-slate-500">© {new Date().getFullYear()} PeerPlates</div>
+        <div className="border-t border-slate-200 py-10 text-sm text-slate-500">
+          © {new Date().getFullYear()} PeerPlates
+        </div>
       </div>
     </main>
   );
-
-  
 }
