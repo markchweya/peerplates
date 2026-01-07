@@ -81,9 +81,10 @@ export default function LogoFullScreen({
       const angle = (i / 72) * Math.PI * 2;
       const radius = 14 + (i % 7) * 3;
 
-      const spreadX =
-        (isMobile ? 120 : 200) +
-        (Math.sin(i * 12.9898) * 0.5 + 0.5) * 140;
+     const spreadX =
+  (isMobile ? 180 : 320) +
+  (Math.sin(i * 12.9898) * 0.5 + 0.5) * 200;
+
 
       const spreadY =
         (Math.cos(i * 78.233) * 0.5 - 0.25) * 90;
@@ -102,24 +103,25 @@ export default function LogoFullScreen({
 
   return (
     /* 🔒 FULLSCREEN LOCK — NEXT SECTION HIDDEN UNTIL SCROLL */
-    <section className="relative h-screen w-screen flex items-center justify-center overflow-hidden">
-      <motion.div
-        className={[
-          "relative inline-flex items-center select-none",
-          className,
-        ].join(" ")}
-        initial={{ opacity: 0, scale: 0.82, filter: "blur(18px)" }}
-        animate={
-          mounted
-            ? { opacity: 1, scale: 1, filter: "blur(0px)" }
-            : undefined
-        }
-        transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
-      >
+ <section className="relative h-screen w-screen flex items-center justify-center overflow-hidden">
+  <div className="relative -translate-y-6 sm:-translate-y-8 translate-x-[56px] sm:translate-x-[96px]"></div>
+    <motion.div
+      className={[
+        "relative inline-flex items-center select-none",
+        className,
+      ].join(" ")}
+      initial={{ opacity: 0, scale: 0.82, filter: "blur(18px)" }}
+      animate={
+        mounted
+          ? { opacity: 1, scale: 1, filter: "blur(0px)" }
+          : undefined
+      }
+      transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
+    >
         {/* LOGO ICON */}
         <div className="relative" style={{ width: size, height: size }}>
           <motion.div
-            className="absolute -inset-3 rounded-[22px]"
+      className="absolute -inset-3 rounded-[22px] translate-x-8 sm:translate-x-25"
             animate={{ opacity: 0.9, filter: "blur(10px)" }}
             transition={{ duration: 0.6, ease: "easeOut" }}
             style={{
@@ -191,10 +193,10 @@ export default function LogoFullScreen({
         </div>
 
         {/* WORDMARK */}
-        <div
-          className="relative ml-4"
-          style={{ width: 520 * wordScale }}
-        >
+      <div
+  className="relative ml-4 translate-x-[72px] sm:translate-x-[120px]"
+  style={{ width: 520 * wordScale }}
+>
           <motion.div
             initial={{ opacity: 0, y: 10, filter: "blur(12px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
