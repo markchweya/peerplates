@@ -146,6 +146,7 @@ export default function LogoFullScreen({
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  /* Header state (embedded here) */
   const [menuOpen, setMenuOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -155,29 +156,47 @@ export default function LogoFullScreen({
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  // Mobile (<=640) detection — with fallback for older Safari
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
     const update = () => setIsMobile(mq.matches);
     update();
 
-    mq.addEventListener?.("change", update);
-    return () => mq.removeEventListener?.("change", update);
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", update);
+      return () => mq.removeEventListener("change", update);
+    } else {
+      // @ts-ignore
+      mq.addListener(update);
+      // @ts-ignore
+      return () => mq.removeListener(update);
+    }
   }, []);
 
+  // Desktop (>=768) detection — with fallback for older Safari
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const apply = () => setIsDesktop(mq.matches);
     apply();
 
-    mq.addEventListener?.("change", apply);
-    return () => mq.removeEventListener?.("change", apply);
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", apply);
+      return () => mq.removeEventListener("change", apply);
+    } else {
+      // @ts-ignore
+      mq.addListener(apply);
+      // @ts-ignore
+      return () => mq.removeListener(apply);
+    }
   }, []);
 
+  // Close menus when switching modes
   useEffect(() => {
     if (isDesktop) setMenuOpen(false);
     if (!isDesktop) setDesktopMenuOpen(false);
   }, [isDesktop]);
 
+  // Lock scroll while mobile menu is open
   useEffect(() => {
     if (!menuOpen) return;
     const prev = document.body.style.overflow;
@@ -227,44 +246,8 @@ export default function LogoFullScreen({
   );
 
   return (
-    <section className="relative isolate h-screen w-screen flex items-center justify-center overflow-hidden">
-      {/* ======= BACKGROUND SHADING (Mission/Vision-style) ======= */}
-   <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-  {/* Clean soft wash (Mission/Vision feel) */}
-  <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/60 to-white" />
-
- 
- {/* Ultra-subtle brand warmth (but it ENDS in pure white) */}
-<div
-  className="absolute inset-0"
-  style={{
-    background: `
-      linear-gradient(
-        180deg,
-        rgba(255,255,255,1) 0%,
-        rgba(255,247,230,0.45) 22%,
-        rgba(252,176,64,0.05) 62%,
-        rgba(255,255,255,1) 100%
-      )
-    `,
-  }}
-/>
-
-{/* ✅ Feather-to-white so the next section doesn’t create a visible split */}
-<div className="absolute bottom-0 left-0 right-0 h-56 bg-gradient-to-b from-transparent to-white" />
-
-
-  {/* Very light blobs (just a hint) */}
-  <div
-    className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-[0.08]"
-    style={{ background: "rgba(138,107,67,0.30)" }}
-  />
-  <div
-    className="absolute -right-44 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-[0.08]"
-    style={{ background: "rgba(252,176,64,0.35)" }}
-  />
-</div>
-      {/* ================= HEADER ================= */}
+    <section className="relative h-screen w-screen flex items-center justify-center overflow-hidden">
+      {/* ================= HEADER (INSIDE INTRO) ================= */}
       <div className="fixed top-0 left-0 right-0 z-[9999] pointer-events-auto">
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur">
           <div className="mx-auto max-w-6xl px-5 py-4 flex items-center">
@@ -275,6 +258,7 @@ export default function LogoFullScreen({
                 width={44}
                 height={44}
                 priority
+                className="rounded-2xl"
               />
             </Link>
 
@@ -372,17 +356,15 @@ export default function LogoFullScreen({
         </div>
       </div>
 
-      {/* ================= INTRO CONTENT ================= */}
+      {/* ================= INTRO CONTENT (UNCHANGED) ================= */}
       <motion.div
         className={[
-          "relative z-10 inline-flex items-center select-none",
+          "relative inline-flex items-center select-none",
           "max-sm:flex-col max-sm:items-center",
           className,
         ].join(" ")}
         initial={{ opacity: 0, scale: 0.82, filter: "blur(18px)" }}
-        animate={
-          mounted ? { opacity: 1, scale: 1, filter: "blur(0px)" } : undefined
-        }
+        animate={mounted ? { opacity: 1, scale: 1, filter: "blur(0px)" } : undefined}
         transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
       >
         {/* LOGO ICON — NEVER VISIBLE */}
@@ -394,6 +376,7 @@ export default function LogoFullScreen({
               width={size}
               height={size}
               priority
+              className="rounded-2xl"
             />
           </motion.div>
 
@@ -420,7 +403,9 @@ export default function LogoFullScreen({
                 }}
                 initial={{ opacity: 0, x: 0, y: 0 }}
                 animate={
-                  mounted ? { opacity: 1, x: pt.tx, y: pt.ty } : { opacity: 0 }
+                  mounted
+                    ? { opacity: 1, x: pt.tx, y: pt.ty }
+                    : { opacity: 0 }
                 }
                 transition={{
                   opacity: { duration: 0.45, delay: pt.d, ease: "easeOut" },
