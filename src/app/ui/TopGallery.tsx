@@ -17,8 +17,8 @@ export default function TopGallery() {
     },
   };
 
-  // ❌ removed rounded-3xl
-  const img = "relative overflow-hidden shadow-sm";
+  // ✅ very slight rounded corners
+  const img = "relative overflow-hidden rounded-lg shadow-sm";
 
   return (
     <section className="relative w-full bg-white py-12 sm:py-14">
@@ -80,7 +80,7 @@ export default function TopGallery() {
             className={`col-span-12 aspect-[21/9] ${img}`}
           >
             <Image
-              src="/images/gallery/gallery15.png"
+              src="/images/gallery/gallery16.jpeg"
               alt="Cinnamon rolls"
               fill
               className="object-cover"
@@ -141,7 +141,7 @@ export default function TopGallery() {
             className={`aspect-[4/3] ${img}`}
           >
             <Image
-              src="/images/gallery/gallery15.png"
+              src="/images/gallery/gallery16.jpeg"
               alt="Cinnamon rolls"
               fill
               className="object-cover"
