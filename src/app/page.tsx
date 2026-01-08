@@ -112,13 +112,7 @@ export default function Home() {
         direction="ltr"
         snap={true}
         tilt={false}
-        nav={[
-          { label: "Ordering", index: 0 },
-          { label: "Storefront", index: 2 },
-          { label: "Vendor", index: 3 },
-          { label: "Analytics", index: 4 },
-          { label: "Operations", index: 6 },
-        ]}
+     
         items={[
           {
             image: "/images/gallery/gallery1.jpeg",
