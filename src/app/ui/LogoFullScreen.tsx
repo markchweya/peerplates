@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
@@ -181,10 +181,105 @@ export default function LogoFullScreen({
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
+  // ✅ header fade on scroll (works even if page can't scroll — via wheel/touch direction)
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const downAccumRef = useRef<number>(0);
+  const lastYRef = useRef<number>(0);
+  const touchYRef = useRef<number | null>(null);
+
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(raf);
   }, []);
+
+  // keep header visible when any menu is open
+  useEffect(() => {
+    if (menuOpen || desktopMenuOpen) setHeaderHidden(false);
+  }, [menuOpen, desktopMenuOpen]);
+
+  // ✅ hide on scroll-down intent, show on scroll-up intent
+  useEffect(() => {
+    lastYRef.current = window.scrollY || 0;
+
+    const show = () => {
+      downAccumRef.current = 0;
+      setHeaderHidden(false);
+    };
+
+    const hideAfterThreshold = (deltaDown: number) => {
+      downAccumRef.current += deltaDown;
+      if (!headerHidden && downAccumRef.current > 18) setHeaderHidden(true);
+    };
+
+    // 1) Real scroll (if page is scrollable)
+    const onScroll = () => {
+      if (menuOpen || desktopMenuOpen) return;
+
+      const y = window.scrollY || 0;
+
+      // always show near top
+      if (y <= 8) {
+        if (headerHidden) show();
+        lastYRef.current = y;
+        return;
+      }
+
+      const last = lastYRef.current;
+      const delta = y - last;
+      lastYRef.current = y;
+
+      if (Math.abs(delta) < 2) return;
+
+      if (delta < 0) show();
+      else hideAfterThreshold(delta);
+    };
+
+    // 2) Wheel intent (works even if no scrolling happens because of h-screen/overflow-hidden)
+    const onWheel = (e: WheelEvent) => {
+      if (menuOpen || desktopMenuOpen) return;
+
+      const dy = e.deltaY;
+      if (Math.abs(dy) < 2) return;
+
+      if (dy < 0) show();
+      else hideAfterThreshold(dy);
+    };
+
+    // 3) Touch intent
+    const onTouchStart = (e: TouchEvent) => {
+      if (!e.touches?.[0]) return;
+      touchYRef.current = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (menuOpen || desktopMenuOpen) return;
+      const t = e.touches?.[0];
+      if (!t) return;
+
+      const prev = touchYRef.current;
+      touchYRef.current = t.clientY;
+
+      if (prev == null) return;
+      const dy = prev - t.clientY; // finger up => dy positive => user scrolling down
+      if (Math.abs(dy) < 2) return;
+
+      if (dy < 0) show();
+      else hideAfterThreshold(dy);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [menuOpen, desktopMenuOpen, headerHidden]);
 
   // Mobile (<=640) detection — with fallback for older Safari
   useEffect(() => {
@@ -297,7 +392,7 @@ export default function LogoFullScreen({
 
   const navLinks = useMemo(
     () => [
-        {href: "/mission", label: "Mission", variant: "ghost" as const },
+      { href: "/mission", label: "Mission", variant: "ghost" as const },
       { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
       { href: "/faq", label: "FAQ", variant: "ghost" as const },
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
@@ -308,14 +403,25 @@ export default function LogoFullScreen({
 
   const btnBase =
     "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
-  const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
+  const btnGhost =
+    "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
   return (
     <section className="relative h-screen w-screen flex items-center justify-center overflow-hidden">
       {/* ================= HEADER (EXACT Mission/Vision) ================= */}
-      <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
-        <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+      <motion.div
+        ref={headerRef}
+        className="fixed top-0 left-0 right-0 z-[100]"
+        initial={false}
+        animate={{ opacity: headerHidden ? 0 : 1 }}
+        transition={{ duration: 0.22, ease: easeOut }}
+        style={{
+          willChange: "opacity",
+          pointerEvents: headerHidden ? "none" : "auto",
+        }}
+      >
+        <div className="pointer-events-auto border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
               initial={{ opacity: 0, y: -10 }}
@@ -328,9 +434,7 @@ export default function LogoFullScreen({
               className="flex items-center gap-3 min-w-0"
             >
               <Link href="/" className="flex items-center min-w-0">
-                {/* ✅ FIX (same as Vision): remove any clipping during fade/slide/glow */}
                 <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
-                  {/* give the logo a tiny vertical buffer so filters/glow never get cut */}
                   <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
                     <LogoCinematic size={64} wordScale={1} />
                   </span>
@@ -374,7 +478,13 @@ export default function LogoFullScreen({
                                 key={l.href}
                                 href={l.href}
                                 onClick={() => setDesktopMenuOpen(false)}
-                                className={cn("w-full", btnBase, "px-5 py-3", btnGhost, "justify-start")}
+                                className={cn(
+                                  "w-full",
+                                  btnBase,
+                                  "px-5 py-3",
+                                  btnGhost,
+                                  "justify-start"
+                                )}
                               >
                                 {l.label}
                               </Link>
@@ -382,13 +492,21 @@ export default function LogoFullScreen({
                             <Link
                               href="/join"
                               onClick={() => setDesktopMenuOpen(false)}
-                              className={cn("w-full", btnBase, "px-5 py-3", btnPrimary, "justify-start")}
+                              className={cn(
+                                "w-full",
+                                btnBase,
+                                "px-5 py-3",
+                                btnPrimary,
+                                "justify-start"
+                              )}
                             >
                               Join waitlist
                             </Link>
                           </div>
 
-                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+                            Taste. Tap. Order.
+                          </div>
                         </div>
                       </motion.div>
                     ) : null}
@@ -413,7 +531,10 @@ export default function LogoFullScreen({
                       "rounded-full border border-slate-200 bg-white/95 backdrop-blur",
                       "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]"
                     )}
-                    style={{ color: BRAND_ORANGE, borderColor: "rgba(252,176,64,0.35)" }}
+                    style={{
+                      color: BRAND_ORANGE,
+                      borderColor: "rgba(252,176,64,0.35)",
+                    }}
                   >
                     <HamburgerIcon open={menuOpen} />
                   </button>
@@ -461,7 +582,9 @@ export default function LogoFullScreen({
                           </Link>
                         </div>
 
-                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
+                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+                          Taste. Tap. Order.
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -470,7 +593,7 @@ export default function LogoFullScreen({
             </AnimatePresence>
           ) : null}
         </div>
-      </div>
+      </motion.div>
 
       {/* ================= INTRO CONTENT (UNCHANGED) ================= */}
       <motion.div
@@ -538,7 +661,10 @@ export default function LogoFullScreen({
         </div>
 
         {/* WORDMARK */}
-        <div className="relative ml-4 max-sm:ml-0 max-sm:mt-4 max-sm:text-center" style={{ width: 520 * wordScale }}>
+        <div
+          className="relative ml-4 max-sm:ml-0 max-sm:mt-4 max-sm:text-center"
+          style={{ width: 520 * wordScale }}
+        >
           <motion.div
             variants={wordmarkVariants}
             initial="hidden"
