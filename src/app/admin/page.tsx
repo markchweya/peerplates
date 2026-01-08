@@ -10,6 +10,10 @@ type RoleFilter = "all" | "consumer" | "vendor";
 type StatusFilter = "all" | "pending" | "reviewed" | "approved" | "rejected";
 type ReviewStatus = "pending" | "reviewed" | "approved" | "rejected";
 
+// ✅ ONLY THE SECTIONS TO FIX (admin table + vendor filters + Entry type)
+// Goal: remove bus/minutes and replace with postcode_area
+
+// 1) Entry type: remove bus_minutes, add postcode_area
 type Entry = {
   id: string;
   role: "consumer" | "vendor";
@@ -19,7 +23,6 @@ type Entry = {
   is_student: boolean | null;
   university: string | null;
 
-  // ✅ no any
   answers: Record<string, unknown>;
 
   referral_code: string | null;
@@ -36,7 +39,7 @@ type Entry = {
 
   // vendor clean columns
   instagram_handle?: string | null;
-  bus_minutes?: number | null;
+  postcode_area?: string | null; // ✅ NEW
   compliance_readiness?: string[] | null;
   top_cuisines?: string[] | null;
   delivery_area?: string | null;
@@ -51,6 +54,7 @@ type Entry = {
 
   score?: number;
 };
+
 
 const BRAND = "#fcb040";
 const SECRET_KEY = "peerplates_admin_secret";
@@ -193,7 +197,7 @@ export default function AdminPage() {
   const [q, setQ] = useState("");
 
   // Vendor-only filters
-  const [maxBusMinutes, setMaxBusMinutes] = useState("");
+  
   const [hasInstagram, setHasInstagram] = useState<"" | "true" | "false">("");
   const [compliance, setCompliance] = useState("");
 
@@ -220,16 +224,16 @@ export default function AdminPage() {
     }
   }, []);
 
-  useEffect(() => {
-    // if user leaves vendor, clear vendor-only filters
-    if (role !== "vendor") {
-      setMaxBusMinutes("");
-      setHasInstagram("");
-      setCompliance("");
-    }
-    setOffset(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role]);
+  // reset vendor-only filters
+useEffect(() => {
+  if (role !== "vendor") {
+    
+    setHasInstagram("");
+    setCompliance("");
+  }
+  setOffset(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [role]);
 
   // Build compliance options from the actual data (so filtering is usable)
   const complianceOptions = useMemo(() => {
@@ -258,23 +262,27 @@ export default function AdminPage() {
 
   const tableColCount = 10 /* fixed cols */ + answerKeys.length + 1 /* Action */;
 
-  const queryString = useMemo(() => {
-    const sp = new URLSearchParams();
-    if (role !== "all") sp.set("role", role);
-    if (status !== "all") sp.set("status", status);
-    if (q.trim()) sp.set("q", q.trim());
+ // 3) queryString builder: remove max_bus_minutes
+const queryString = useMemo(() => {
+  const sp = new URLSearchParams();
+  if (role !== "all") sp.set("role", role);
+  if (status !== "all") sp.set("status", status);
+  if (q.trim()) sp.set("q", q.trim());
 
-    if (showVendorFilters) {
-      const mbm = maxBusMinutes.trim();
-      if (mbm) sp.set("max_bus_minutes", mbm);
-      if (hasInstagram) sp.set("has_instagram", hasInstagram);
-      if (compliance.trim()) sp.set("compliance", compliance.trim());
-    }
+  if (showVendorFilters) {
+    // ❌ remove max bus minutes
+    // const mbm = maxBusMinutes.trim();
+    // if (mbm) sp.set("max_bus_minutes", mbm);
 
-    sp.set("limit", String(limit));
-    sp.set("offset", String(offset));
-    return sp.toString();
-  }, [role, status, q, showVendorFilters, maxBusMinutes, hasInstagram, compliance, limit, offset]);
+    if (hasInstagram) sp.set("has_instagram", hasInstagram);
+    if (compliance.trim()) sp.set("compliance", compliance.trim());
+  }
+
+  sp.set("limit", String(limit));
+  sp.set("offset", String(offset));
+  return sp.toString();
+}, [role, status, q, showVendorFilters, hasInstagram, compliance, limit, offset]);
+
 
   const fetchRows = async () => {
     setErr("");
@@ -599,47 +607,37 @@ export default function AdminPage() {
                 ]}
               />
 
-              {showVendorFilters ? (
-                <>
-                  <input
-                    value={maxBusMinutes}
-                    onChange={(e) => {
-                      setOffset(0);
-                      setMaxBusMinutes(e.target.value);
-                    }}
-                    placeholder="Max bus min"
-                    inputMode="numeric"
-                    className={controlBase}
-                  />
+{showVendorFilters ? (
+  <>
+    <BrandSelect<"" | "true" | "false">
+      value={hasInstagram}
+      onChange={(v) => {
+        setHasInstagram(v);
+        setOffset(0);
+      }}
+      options={[
+        { value: "", label: "Has IG: All" },
+        { value: "true", label: "Has IG: Yes" },
+        { value: "false", label: "Has IG: No" },
+      ]}
+    />
 
-                  <BrandSelect<"" | "true" | "false">
-                    value={hasInstagram}
-                    onChange={(v) => {
-                      setHasInstagram(v);
-                      setOffset(0);
-                    }}
-                    options={[
-                      { value: "", label: "Has IG: All" },
-                      { value: "true", label: "Has IG: Yes" },
-                      { value: "false", label: "Has IG: No" },
-                    ]}
-                  />
+    <BrandSelect<string>
+      value={compliance}
+      onChange={(v) => {
+        setCompliance(v);
+        setOffset(0);
+      }}
+      options={[
+        { value: "", label: "Compliance: All" },
+        ...complianceOptions.map((c) => ({ value: c, label: c })),
+      ]}
+    />
+  </>
+) : (
+  <div className="hidden lg:block lg:col-span-3" />
+)}
 
-                  <BrandSelect<string>
-                    value={compliance}
-                    onChange={(v) => {
-                      setCompliance(v);
-                      setOffset(0);
-                    }}
-                    options={[
-                      { value: "", label: "Compliance: All" },
-                      ...complianceOptions.map((c) => ({ value: c, label: c })),
-                    ]}
-                  />
-                </>
-              ) : (
-                <div className="hidden lg:block lg:col-span-3" />
-              )}
 
               <input
                 value={q}
@@ -660,31 +658,32 @@ export default function AdminPage() {
           {/* Table */}
           <div className="mt-4 overflow-auto rounded-2xl border border-black/10">
             <table className="w-full text-sm table-auto min-w-max">
-              <thead className="bg-black/5 text-black/80 sticky top-0 z-10">
-                <tr>
-                  <th className="p-3 text-left whitespace-nowrap">Role</th>
-                  <th className="p-3 text-left whitespace-nowrap">Name</th>
-                  <th className="p-3 text-left whitespace-nowrap">Email</th>
+          
+<thead className="bg-black/5 text-black/80 sticky top-0 z-10">
+  <tr>
+    <th className="p-3 text-left whitespace-nowrap">Role</th>
+    <th className="p-3 text-left whitespace-nowrap">Name</th>
+    <th className="p-3 text-left whitespace-nowrap">Email</th>
 
-                  <th className="p-3 text-left whitespace-nowrap">Bus</th>
-                  <th className="p-3 text-left whitespace-nowrap">IG</th>
+    {/* ✅ replace Bus with Postcode */}
+    <th className="p-3 text-left whitespace-nowrap">Postcode</th>
+    <th className="p-3 text-left whitespace-nowrap">IG</th>
 
-                  <th className="p-3 text-left whitespace-nowrap">Status</th>
-                  <th className="p-3 text-left whitespace-nowrap">Override</th>
-                  <th className="p-3 text-left whitespace-nowrap">Score</th>
-                  <th className="p-3 text-left whitespace-nowrap">Referrals</th>
-                  <th className="p-3 text-left whitespace-nowrap">Created</th>
+    <th className="p-3 text-left whitespace-nowrap">Status</th>
+    <th className="p-3 text-left whitespace-nowrap">Override</th>
+    <th className="p-3 text-left whitespace-nowrap">Score</th>
+    <th className="p-3 text-left whitespace-nowrap">Referrals</th>
+    <th className="p-3 text-left whitespace-nowrap">Created</th>
 
-                  {/* ✅ Every answer becomes its own column */}
-                  {answerKeys.map((k) => (
-                    <th key={k} className="p-3 text-left whitespace-nowrap">
-                      {k}
-                    </th>
-                  ))}
+    {answerKeys.map((k) => (
+      <th key={k} className="p-3 text-left whitespace-nowrap">
+        {k}
+      </th>
+    ))}
 
-                  <th className="p-3 text-right whitespace-nowrap">Action</th>
-                </tr>
-              </thead>
+    <th className="p-3 text-right whitespace-nowrap">Action</th>
+  </tr>
+</thead>
 
               <tbody className="[&>tr:nth-child(even)]:bg-black/[0.02]">
                 {rows.map((r) => {
@@ -707,9 +706,12 @@ export default function AdminPage() {
                         {r.email}
                       </td>
 
-                      <td className="p-3 text-black/70 whitespace-nowrap">
-                        {typeof r.bus_minutes === "number" ? `${r.bus_minutes} min` : "—"}
-                      </td>
+
+                     <td className="p-3 text-black/70 whitespace-nowrap">
+  {safeStr(r.postcode_area).trim() ? safeStr(r.postcode_area).trim() : "No"}
+</td>
+
+
 
                       {/* Always Yes/No (never blank) */}
                       <td className="p-3 text-black/70 whitespace-nowrap">{hasIgVal ? "Yes" : "No"}</td>
@@ -829,12 +831,13 @@ export default function AdminPage() {
               {selected.role === "vendor" ? (
                 <div className="mt-5 grid gap-2 rounded-3xl border border-[#fcb040] bg-white p-4">
                   <div className="text-sm font-extrabold">Vendor summary</div>
-                  <div className="text-sm text-black/80">
-                    <span className="font-semibold">Bus:</span>{" "}
-                    {typeof selected.bus_minutes === "number" ? `${selected.bus_minutes} min` : "—"}{" "}
-                    <span className="text-black/40">•</span> <span className="font-semibold">IG:</span>{" "}
-                    {safeStr(selected.instagram_handle).trim() ? safeStr(selected.instagram_handle) : "No"}
-                  </div>
+                 <div className="text-sm text-black/80">
+<span className="font-semibold">Postcode:</span>{" "}
+{safeStr(selected.postcode_area).trim() ? safeStr(selected.postcode_area).trim() : "No"}
+
+  <span className="text-black/40">•</span> <span className="font-semibold">IG:</span>{" "}
+  {safeStr(selected.instagram_handle).trim() ? safeStr(selected.instagram_handle) : "No"}
+</div>
                   <div className="text-sm text-black/80">
                     <span className="font-semibold">Compliance:</span> {joinArr(selected.compliance_readiness) || "—"}
                   </div>

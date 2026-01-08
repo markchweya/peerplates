@@ -38,7 +38,7 @@ create table if not exists public.waitlist_entries (
   reviewed_at timestamptz,
   reviewed_by text,
 
-  -- ✅ Queue lookup (public code users can paste)
+  -- Queue lookup (public code users can paste)
   queue_code text unique,
 
   -- Consent
@@ -61,12 +61,8 @@ create table if not exists public.waitlist_entries (
   updated_at timestamptz not null default now()
 );
 
--- 3) Ensure columns exist even if table already existed
+-- 3) Ensure columns exist even if table already existed (idempotent)
 alter table public.waitlist_entries
-  add column if not exists postcode_area text;
-
-  create index if not exists waitlist_entries_postcode_area_idx
-  on public.waitlist_entries (postcode_area);
   -- consent (safe)
   add column if not exists accepted_marketing boolean not null default false,
   add column if not exists marketing_consent boolean not null default false,
@@ -83,7 +79,9 @@ alter table public.waitlist_entries
   -- extracted columns (safe)
   add column if not exists compliance_readiness text[] not null default '{}'::text[],
   add column if not exists instagram_handle text,
-  add column if not exists bus_minutes integer,
+
+  -- ✅ postcode (new)
+  add column if not exists postcode_area text,
 
   -- NOTE: city exists in your current schema; leaving it harmless even if unused
   add column if not exists city text,
@@ -92,8 +90,14 @@ alter table public.waitlist_entries
   add column if not exists delivery_area text,
   add column if not exists dietary_preferences text[] not null default '{}'::text[],
 
-  -- ✅ queue_code
+  -- queue_code (safe)
   add column if not exists queue_code text;
+
+-- 3b) Remove legacy bus/minutes stuff if present (idempotent)
+alter table public.waitlist_entries
+  drop column if exists bus_minutes;
+
+drop index if exists waitlist_entries_bus_minutes_idx;
 
 -- 4) Indexes
 create index if not exists waitlist_entries_role_created_at_idx
@@ -110,6 +114,9 @@ create index if not exists waitlist_entries_queue_code_idx
 
 create index if not exists waitlist_entries_city_idx
   on public.waitlist_entries (city);
+
+create index if not exists waitlist_entries_postcode_area_idx
+  on public.waitlist_entries (postcode_area);
 
 create index if not exists waitlist_entries_vendor_order_idx
   on public.waitlist_entries (vendor_queue_override, vendor_priority_score desc, created_at asc)
@@ -140,24 +147,6 @@ before update on public.waitlist_entries
 for each row execute function public.set_updated_at();
 
 -- 6) Sync extracted columns from answers JSON -> real columns
--- =========================
--- PATCH: postcode_area + remove bus/minutes
--- Apply AFTER your current schema.sql has run
--- =========================
-
--- 1) Add postcode_area column (extracted)
-alter table public.waitlist_entries
-  add column if not exists postcode_area text;
-
--- Optional index for filtering / vendor proximity logic
-create index if not exists waitlist_entries_postcode_area_idx
-  on public.waitlist_entries (postcode_area);
-
--- 2) Remove bus/minutes column (extracted)
-alter table public.waitlist_entries
-  drop column if exists bus_minutes;
-
--- 3) Replace sync function: remove bus_minutes logic + add postcode_area extraction
 create or replace function public.sync_waitlist_extracted_columns()
 returns trigger
 language plpgsql
@@ -182,7 +171,7 @@ begin
       ''
     );
 
-  -- ✅ postcode_area (store only first segment, uppercase)
+  -- ✅ postcode_area (store first segment only, uppercase)
   new.postcode_area :=
     nullif(
       upper(split_part(trim(coalesce(v->>'postcode_area', v->>'postcode', '')), ' ', 1)),
@@ -223,7 +212,31 @@ begin
 end;
 $$;
 
--- 4) Backfill: re-run trigger extraction for existing rows
+drop trigger if exists sync_waitlist_extracted_columns on public.waitlist_entries;
+create trigger sync_waitlist_extracted_columns
+before insert or update of answers on public.waitlist_entries
+for each row execute function public.sync_waitlist_extracted_columns();
+
+-- 7) Referral RPC used by your API
+create or replace function public.increment_referral_stats(
+  p_referrer_id uuid,
+  p_points integer
+)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  update public.waitlist_entries
+  set
+    referrals_count = coalesce(referrals_count, 0) + 1,
+    referral_points = coalesce(referral_points, 0) + greatest(coalesce(p_points,0), 0)
+  where id = p_referrer_id
+    and role = 'consumer';
+end;
+$$;
+
+-- 8) Backfill extracted columns for existing rows (forces trigger to populate)
 update public.waitlist_entries
 set answers = coalesce(answers, '{}'::jsonb)
 where answers is not null;
@@ -231,7 +244,6 @@ where answers is not null;
 update public.waitlist_entries
 set answers = answers
 where true;
-
 
 -- 9) Optional RLS (leave off unless you’re ready to write policies)
 -- alter table public.waitlist_entries enable row level security;
