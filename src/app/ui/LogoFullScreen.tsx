@@ -325,30 +325,23 @@ export default function LogoFullScreen({
 
   const targets = useMemo(() => makeWordTargets(), []);
 
-  /**
-   * ✅ FIX 1: particles no longer fly to the screen edge.
-   * They orbit around the centered logo within a tight ring.
-   */
   const particles = useMemo<Particle[]>(() => {
     if (!mounted) return [];
     const count = isMobile ? 34 : 64;
 
-    // ring size (tight)
     const ringOuter = isMobile ? 180 : 260;
     const ringInner = isMobile ? 95 : 135;
 
     return targets.slice(0, count).map((_, i) => {
       const t = (i / count) * Math.PI * 2;
 
-      // small per-particle "radius wobble" (still tight)
       const wobble = (Math.sin(i * 12.9898) * 0.5 + 0.5) * 22;
-      const ringR = ringInner + ((i % 7) / 6) * (ringOuter - ringInner) + wobble * 0.22;
+      const ringR =
+        ringInner + ((i % 7) / 6) * (ringOuter - ringInner) + wobble * 0.22;
 
-      // final target offsets (around logo, not corners)
       const tx = Math.cos(t) * ringR;
       const ty = Math.sin(t) * ringR * 0.66;
 
-      // starting position near the logo edge
       const sx = size / 2 + Math.cos(t) * (size * 0.24);
       const sy = size / 2 + Math.sin(t) * (size * 0.24);
 
@@ -382,22 +375,56 @@ export default function LogoFullScreen({
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
   return (
-    <section className="relative h-screen w-screen flex items-center justify-center overflow-hidden">
+    <section className="relative isolate h-screen w-screen flex items-center justify-center overflow-hidden">
       {/* subtle background glow */}
-      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/70 to-white" />
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        {/* ✅ lighter / whiter base, orange-led, very subtle brown for depth */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(900px 520px at 50% 45%,
+                rgba(252,176,64,0.22) 0%,
+                rgba(252,176,64,0.10) 42%,
+                rgba(255,255,255,0.00) 72%),
+
+              radial-gradient(720px 420px at 18% 28%,
+                rgba(252,176,64,0.16) 0%,
+                rgba(252,176,64,0.06) 48%,
+                rgba(255,255,255,0.00) 78%),
+
+              radial-gradient(760px 520px at 82% 72%,
+                rgba(138,107,67,0.12) 0%,
+                rgba(138,107,67,0.05) 52%,
+                rgba(255,255,255,0.00) 78%),
+
+              linear-gradient(180deg,
+                rgba(255,255,255,1) 0%,
+                rgba(251,248,242,1) 55%,
+                rgba(255,255,255,1) 100%)
+            `,
+          }}
+        />
+
+        {/* ✅ slight overall darkening (much less than before) */}
+        <div className="absolute inset-0 bg-slate-950/5" />
+
+        {/* ✅ animated glows (reduced brown, more orange) */}
         <motion.div
-          className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-25"
-          style={{ background: "rgba(252,176,64,0.28)" }}
+          className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-18"
+          style={{ background: "rgba(252,176,64,0.40)" }}
           animate={{ x: [0, 60, 0], y: [0, 22, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute -right-52 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-20"
-          style={{ background: "rgba(138,107,67,0.18)" }}
+          className="absolute -right-52 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-12"
+          style={{ background: "rgba(138,107,67,0.26)" }}
           animate={{ x: [0, -64, 0], y: [0, -24, 0] }}
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
         />
+
+        {/* ✅ hides the “split” into the next white section */}
+        <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-b from-transparent to-white" />
       </div>
 
       {/* ================= HEADER ================= */}
@@ -583,7 +610,7 @@ export default function LogoFullScreen({
 
       {/* ================= CENTER LOGO ================= */}
       <motion.div
-        className={cn("relative select-none", className)}
+        className={cn("relative z-10 select-none", className)}
         initial={{ opacity: 0, scale: 0.82, filter: "blur(18px)" }}
         animate={mounted ? { opacity: 1, scale: 1, filter: "blur(0px)" } : undefined}
         transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
@@ -591,7 +618,7 @@ export default function LogoFullScreen({
         <div className="relative grid place-items-center" style={{ width: size, height: size }}>
           {/* ✅ circles removed */}
 
-          {/* ✅ FIX 2: NO rounded edges. No rounded wrapper. No clipping. */}
+          {/* ✅ NO rounded edges. No rounded wrapper. No clipping. */}
           <motion.div
             className="relative"
             initial={{ opacity: 0, scale: 0.86 }}
@@ -613,7 +640,7 @@ export default function LogoFullScreen({
         </div>
 
         <motion.div
-          className="mt-5 text-center text-sm font-extrabold text-slate-600"
+          className="mt-5 text-center text-sm font-extrabold text-slate-700"
           initial={{ opacity: 0, y: 8 }}
           animate={mounted ? { opacity: 1, y: 0 } : undefined}
           transition={{ duration: 0.45, delay: 0.55, ease: easeOut }}
