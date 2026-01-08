@@ -48,13 +48,14 @@ export const vendorQuestions = [
     ],
   },
 
-  // ✅ now handled as “Closest campus” + dropdown minutes in JoinForm (same key)
+  // Postcode area
   {
-    key: "campus_bus",
-    label: "Closest campus",
+    key: "postcode_area",
+    label: "What’s your postcode area? (e.g., NG1, NG7)",
     required: true,
     type: "text",
-    placeholder: "e.g. Jubilee Campus",
+    helper:
+      "Postcode area only — not your full address. This helps us understand proximity to campuses and prioritise nearby vendors.",
   },
 
   {

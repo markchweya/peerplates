@@ -63,6 +63,10 @@ create table if not exists public.waitlist_entries (
 
 -- 3) Ensure columns exist even if table already existed
 alter table public.waitlist_entries
+  add column if not exists postcode_area text;
+
+  create index if not exists waitlist_entries_postcode_area_idx
+  on public.waitlist_entries (postcode_area);
   -- consent (safe)
   add column if not exists accepted_marketing boolean not null default false,
   add column if not exists marketing_consent boolean not null default false,
@@ -136,6 +140,24 @@ before update on public.waitlist_entries
 for each row execute function public.set_updated_at();
 
 -- 6) Sync extracted columns from answers JSON -> real columns
+-- =========================
+-- PATCH: postcode_area + remove bus/minutes
+-- Apply AFTER your current schema.sql has run
+-- =========================
+
+-- 1) Add postcode_area column (extracted)
+alter table public.waitlist_entries
+  add column if not exists postcode_area text;
+
+-- Optional index for filtering / vendor proximity logic
+create index if not exists waitlist_entries_postcode_area_idx
+  on public.waitlist_entries (postcode_area);
+
+-- 2) Remove bus/minutes column (extracted)
+alter table public.waitlist_entries
+  drop column if exists bus_minutes;
+
+-- 3) Replace sync function: remove bus_minutes logic + add postcode_area extraction
 create or replace function public.sync_waitlist_extracted_columns()
 returns trigger
 language plpgsql
@@ -160,6 +182,13 @@ begin
       ''
     );
 
+  -- ✅ postcode_area (store only first segment, uppercase)
+  new.postcode_area :=
+    nullif(
+      upper(split_part(trim(coalesce(v->>'postcode_area', v->>'postcode', '')), ' ', 1)),
+      ''
+    );
+
   -- compliance_readiness
   if jsonb_typeof(v->'compliance_readiness') = 'array' then
     new.compliance_readiness :=
@@ -170,13 +199,6 @@ begin
 
   -- instagram_handle
   new.instagram_handle := nullif(trim(coalesce(v->>'instagram_handle','')), '');
-
-  -- bus_minutes
-  begin
-    new.bus_minutes := nullif(trim(coalesce(v->>'bus_minutes','')), '')::int;
-  exception when others then
-    new.bus_minutes := null;
-  end;
 
   -- top_cuisines (try two keys)
   if jsonb_typeof(v->'top_cuisines') = 'array' then
@@ -201,31 +223,7 @@ begin
 end;
 $$;
 
-drop trigger if exists sync_waitlist_extracted_columns on public.waitlist_entries;
-create trigger sync_waitlist_extracted_columns
-before insert or update of answers on public.waitlist_entries
-for each row execute function public.sync_waitlist_extracted_columns();
-
--- 7) Referral RPC used by your API
-create or replace function public.increment_referral_stats(
-  p_referrer_id uuid,
-  p_points integer
-)
-returns void
-language plpgsql
-security definer
-as $$
-begin
-  update public.waitlist_entries
-  set
-    referrals_count = coalesce(referrals_count, 0) + 1,
-    referral_points = coalesce(referral_points, 0) + greatest(coalesce(p_points,0), 0)
-  where id = p_referrer_id
-    and role = 'consumer';
-end;
-$$;
-
--- 8) Backfill extracted columns for existing rows (forces trigger to populate)
+-- 4) Backfill: re-run trigger extraction for existing rows
 update public.waitlist_entries
 set answers = coalesce(answers, '{}'::jsonb)
 where answers is not null;
@@ -233,6 +231,7 @@ where answers is not null;
 update public.waitlist_entries
 set answers = answers
 where true;
+
 
 -- 9) Optional RLS (leave off unless you’re ready to write policies)
 -- alter table public.waitlist_entries enable row level security;
