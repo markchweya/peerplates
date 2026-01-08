@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
@@ -29,6 +29,14 @@ type Particle = {
   d: number;
 };
 
+function cn(...v: Array<string | false | undefined | null>) {
+  return v.filter(Boolean).join(" ");
+}
+
+const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
+
+const px = (n: number) => `${Math.round(n * 1000) / 1000}px`;
+
 function makeWordTargets(): Array<{ x: number; y: number }> {
   const pts: Array<{ x: number; y: number }> = [];
   const line = (x1: number, y1: number, x2: number, y2: number, n: number) => {
@@ -56,8 +64,6 @@ function makeWordTargets(): Array<{ x: number; y: number }> {
 
   return pts;
 }
-
-const px = (n: number) => `${Math.round(n * 1000) / 1000}px`;
 
 /* =======================
    VARIANTS (TYPED)
@@ -100,12 +106,6 @@ const taglineVariants: Variants = {
     },
   },
 };
-
-function cn(...v: Array<string | false | undefined | null>) {
-  return v.filter(Boolean).join(" ");
-}
-
-const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
 
 /** Hamburger icon (3 lines) that animates into an X when open */
 function HamburgerIcon({ open }: { open: boolean }) {
@@ -181,13 +181,16 @@ export default function LogoFullScreen({
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
-  // ✅ header fade on scroll (works even if page can't scroll — via wheel/touch direction)
-  const headerRef = useRef<HTMLDivElement | null>(null);
+  // ✅ Header show/hide
   const [headerHidden, setHeaderHidden] = useState(false);
   const downAccumRef = useRef<number>(0);
   const lastYRef = useRef<number>(0);
+
+  // ✅ Touch tracking (X + Y) so horizontal swipes don't affect header
+  const touchXRef = useRef<number | null>(null);
   const touchYRef = useRef<number | null>(null);
 
+  // mount
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(raf);
@@ -198,7 +201,8 @@ export default function LogoFullScreen({
     if (menuOpen || desktopMenuOpen) setHeaderHidden(false);
   }, [menuOpen, desktopMenuOpen]);
 
-  // ✅ hide on scroll-down intent, show on scroll-up intent
+  // ✅ Hide on vertical down intent, show only on vertical up intent.
+  // ✅ Ignore horizontal-dominant wheel/touch gestures (side scroll in your showcase).
   useEffect(() => {
     lastYRef.current = window.scrollY || 0;
 
@@ -212,7 +216,6 @@ export default function LogoFullScreen({
       if (!headerHidden && downAccumRef.current > 18) setHeaderHidden(true);
     };
 
-    // 1) Real scroll (if page is scrollable)
     const onScroll = () => {
       if (menuOpen || desktopMenuOpen) return;
 
@@ -235,21 +238,26 @@ export default function LogoFullScreen({
       else hideAfterThreshold(delta);
     };
 
-    // 2) Wheel intent (works even if no scrolling happens because of h-screen/overflow-hidden)
     const onWheel = (e: WheelEvent) => {
       if (menuOpen || desktopMenuOpen) return;
 
-      const dy = e.deltaY;
-      if (Math.abs(dy) < 2) return;
+      const dx = e.deltaX || 0;
+      const dy = e.deltaY || 0;
+
+      // Ignore horizontal-dominant trackpad gestures
+      if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
+
+      if (Math.abs(dy) < 4) return;
 
       if (dy < 0) show();
       else hideAfterThreshold(dy);
     };
 
-    // 3) Touch intent
     const onTouchStart = (e: TouchEvent) => {
-      if (!e.touches?.[0]) return;
-      touchYRef.current = e.touches[0].clientY;
+      const t = e.touches?.[0];
+      if (!t) return;
+      touchXRef.current = t.clientX;
+      touchYRef.current = t.clientY;
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -257,12 +265,21 @@ export default function LogoFullScreen({
       const t = e.touches?.[0];
       if (!t) return;
 
-      const prev = touchYRef.current;
+      const prevX = touchXRef.current;
+      const prevY = touchYRef.current;
+
+      touchXRef.current = t.clientX;
       touchYRef.current = t.clientY;
 
-      if (prev == null) return;
-      const dy = prev - t.clientY; // finger up => dy positive => user scrolling down
-      if (Math.abs(dy) < 2) return;
+      if (prevX == null || prevY == null) return;
+
+      const dx = prevX - t.clientX;
+      const dy = prevY - t.clientY; // finger up => dy positive => user scrolls down
+
+      // Ignore horizontal-dominant swipes
+      if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
+
+      if (Math.abs(dy) < 4) return;
 
       if (dy < 0) show();
       else hideAfterThreshold(dy);
@@ -392,26 +409,24 @@ export default function LogoFullScreen({
 
   const navLinks = useMemo(
     () => [
-      { href: "/mission", label: "Mission", variant: "ghost" as const },
-      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
-      { href: "/faq", label: "FAQ", variant: "ghost" as const },
-      { href: "/queue", label: "Check queue", variant: "ghost" as const },
-      { href: "/join", label: "Join waitlist", variant: "primary" as const },
+      { href: "/mission", label: "Mission" },
+      { href: "/food-safety", label: "Food safety" },
+      { href: "/faq", label: "FAQ" },
+      { href: "/queue", label: "Check queue" },
+      { href: "/join", label: "Join waitlist" },
     ],
     []
   );
 
   const btnBase =
     "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
-  const btnGhost =
-    "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
+  const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
   return (
     <section className="relative h-screen w-screen flex items-center justify-center overflow-hidden">
       {/* ================= HEADER (EXACT Mission/Vision) ================= */}
       <motion.div
-        ref={headerRef}
         className="fixed top-0 left-0 right-0 z-[100]"
         initial={false}
         animate={{ opacity: headerHidden ? 0 : 1 }}
@@ -426,11 +441,7 @@ export default function LogoFullScreen({
             <MotionDiv
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{
-                duration: 1.1,
-                ease: [0.25, 0.1, 0.25, 1],
-              }}
+              transition={{ duration: 0.4 }}
               className="flex items-center gap-3 min-w-0"
             >
               <Link href="/" className="flex items-center min-w-0">
@@ -478,13 +489,7 @@ export default function LogoFullScreen({
                                 key={l.href}
                                 href={l.href}
                                 onClick={() => setDesktopMenuOpen(false)}
-                                className={cn(
-                                  "w-full",
-                                  btnBase,
-                                  "px-5 py-3",
-                                  btnGhost,
-                                  "justify-start"
-                                )}
+                                className={cn("w-full", btnBase, "px-5 py-3", btnGhost, "justify-start")}
                               >
                                 {l.label}
                               </Link>
@@ -492,13 +497,7 @@ export default function LogoFullScreen({
                             <Link
                               href="/join"
                               onClick={() => setDesktopMenuOpen(false)}
-                              className={cn(
-                                "w-full",
-                                btnBase,
-                                "px-5 py-3",
-                                btnPrimary,
-                                "justify-start"
-                              )}
+                              className={cn("w-full", btnBase, "px-5 py-3", btnPrimary, "justify-start")}
                             >
                               Join waitlist
                             </Link>
@@ -543,7 +542,7 @@ export default function LogoFullScreen({
             </MotionDiv>
           </div>
 
-          {/* Mobile dropdown (EXACT Vision) */}
+          {/* Mobile dropdown */}
           {!isDesktop ? (
             <AnimatePresence initial={false}>
               {menuOpen ? (
@@ -595,7 +594,7 @@ export default function LogoFullScreen({
         </div>
       </motion.div>
 
-      {/* ================= INTRO CONTENT (UNCHANGED) ================= */}
+      {/* ================= INTRO CONTENT ================= */}
       <motion.div
         className={[
           "relative inline-flex items-center select-none",
@@ -644,16 +643,8 @@ export default function LogoFullScreen({
                 animate={mounted ? { opacity: 1, x: pt.tx, y: pt.ty } : { opacity: 0 }}
                 transition={{
                   opacity: { duration: 0.45, delay: pt.d, ease: "easeOut" },
-                  x: {
-                    duration: 0.9,
-                    delay: pt.d + 0.15,
-                    ease: [0.16, 1, 0.3, 1],
-                  },
-                  y: {
-                    duration: 0.9,
-                    delay: pt.d + 0.15,
-                    ease: [0.16, 1, 0.3, 1],
-                  },
+                  x: { duration: 0.9, delay: pt.d + 0.15, ease: [0.16, 1, 0.3, 1] },
+                  y: { duration: 0.9, delay: pt.d + 0.15, ease: [0.16, 1, 0.3, 1] },
                 }}
               />
             ))}
@@ -661,10 +652,7 @@ export default function LogoFullScreen({
         </div>
 
         {/* WORDMARK */}
-        <div
-          className="relative ml-4 max-sm:ml-0 max-sm:mt-4 max-sm:text-center"
-          style={{ width: 520 * wordScale }}
-        >
+        <div className="relative ml-4 max-sm:ml-0 max-sm:mt-4 max-sm:text-center" style={{ width: 520 * wordScale }}>
           <motion.div
             variants={wordmarkVariants}
             initial="hidden"
