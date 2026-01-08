@@ -27,6 +27,10 @@ const logoWordmarkFont = Lobster({
  * FIX:
  * - Word exit previously inherited the enter delay, making dots leave earlier.
  * - Now word exit has NO delay, and particle exit duration matches word exit duration.
+ *
+ * ADD:
+ * - Optional scroll retract: hide on scroll down, show on scroll up.
+ *   (Does nothing unless `retractOnScroll` is true.)
  */
 
 type Particle = {
@@ -112,15 +116,22 @@ export default function LogoCinematic({
   size = 56,
   wordScale = 1,
   className = "",
-  forceOpen = false, // ✅ ADD THIS
+  forceOpen = false, // ✅ existing
+  retractOnScroll = false, // ✅ ADD: opt-in scroll retract
 }: {
   size?: number;
   wordScale?: number;
   className?: string;
   forceOpen?: boolean;
+  retractOnScroll?: boolean;
 }) {
   const [active, setActive] = useState(forceOpen);
   const [canHover, setCanHover] = useState(true);
+
+  // ✅ retract state (independent of “active”)
+  const [retracted, setRetracted] = useState(false);
+  const lastYRef = useRef<number>(0);
+  const downAccumRef = useRef<number>(0);
 
   const previewTimer = useRef<number | null>(null);
   const hasAutoPlayed = useRef(false);
@@ -154,6 +165,45 @@ export default function LogoCinematic({
   useEffect(() => {
     return () => clearPreviewTimer();
   }, []);
+
+  // ✅ Scroll retract (opt-in)
+  useEffect(() => {
+    if (!retractOnScroll) return;
+
+    lastYRef.current = window.scrollY || 0;
+
+    const onScroll = () => {
+      const y = window.scrollY || 0;
+
+      // show at very top
+      if (y <= 8) {
+        downAccumRef.current = 0;
+        if (retracted) setRetracted(false);
+        lastYRef.current = y;
+        return;
+      }
+
+      const last = lastYRef.current;
+      const delta = y - last;
+      lastYRef.current = y;
+
+      if (Math.abs(delta) < 2) return;
+
+      if (delta < 0) {
+        // up => show immediately
+        downAccumRef.current = 0;
+        if (retracted) setRetracted(false);
+        return;
+      }
+
+      // down => hide after threshold
+      downAccumRef.current += delta;
+      if (!retracted && downAccumRef.current > 18) setRetracted(true);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [retractOnScroll, retracted]);
 
   // Auto preview once on mount/refresh
   useEffect(() => {
@@ -231,13 +281,24 @@ export default function LogoCinematic({
   };
 
   return (
-    <div
+    <motion.div
       className={["relative inline-flex items-center select-none", className].join(" ")}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
       onClick={onTapPreview}
       role="button"
       aria-label="PeerPlates logo"
+      // ✅ retract animation
+      initial={false}
+      animate={{
+        y: retracted ? -18 : 0,
+        opacity: retracted ? 0 : 1,
+        scale: retracted ? 0.98 : 1,
+        filter: retracted ? "blur(6px)" : "blur(0px)",
+        pointerEvents: retracted ? ("none" as const) : ("auto" as const),
+      }}
+      transition={{ duration: 0.22, ease: [0.2, 0.9, 0.2, 1] }}
+      style={{ willChange: "transform, opacity, filter" }}
     >
       {/* Anchor = the logo itself */}
       <div className="relative" style={{ width: size, height: size }}>
@@ -361,6 +422,6 @@ export default function LogoCinematic({
           ) : null}
         </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 }
