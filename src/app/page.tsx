@@ -171,7 +171,7 @@ export default function Home() {
             desc: "You decide when you’re taking orders and when you’re not. PeerPlates fits around your life — not the other way round.",
           },
           {
-            image: "/images/gallery/gallery10.png",
+            image: "/images/gallery/gallery10 copy.jpeg",
             kicker: "Order management",
             title: "Stay organised. Avoid mix-ups.",
             subtitle: "",

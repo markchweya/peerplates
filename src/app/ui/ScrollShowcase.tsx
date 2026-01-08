@@ -241,27 +241,48 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
       viewport={{ once: true, amount: 0.35 }}
       transition={{ duration: 0.5, ease: [0.2, 0.9, 0.2, 1] }}
     >
-      {/* Image */}
-      <div className="relative h-[420px] sm:h-[460px] bg-slate-50 shrink-0">
-        {/* IMPORTANT: keep "contain" so screenshots never look zoomed */}
-        <img
-          src={item.image}
-          alt={item.title}
-          className="h-full w-full object-contain"
-          loading="lazy"
-          draggable={false}
-        />
 
-        {/* Soft glow overlays */}
-        <div
-          className="pointer-events-none absolute -left-14 -top-14 h-56 w-56 rounded-full blur-3xl opacity-20"
-          style={{ background: "rgba(252,176,64,0.32)" }}
-        />
-        <div
-          className="pointer-events-none absolute -right-16 -bottom-16 h-60 w-60 rounded-full blur-3xl opacity-15"
-          style={{ background: "rgba(138,107,67,0.30)" }}
-        />
-      </div>
+{/* Image */}
+<div className="relative h-[420px] sm:h-[460px] shrink-0 overflow-hidden rounded-t-[34px]">
+  {/* ✅ Calm brand gradient per-card (white + orange + brown) */}
+  <div
+    className="absolute inset-0"
+    style={{
+      background:
+        "linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(252,176,64,0.18) 42%, rgba(138,107,67,0.16) 100%)",
+    }}
+  />
+
+  {/* ✅ Optional soft “paper sheen” to keep it classy */}
+  <div
+    className="pointer-events-none absolute inset-0 opacity-[0.55]"
+    style={{
+      background:
+        "radial-gradient(900px 520px at 22% 18%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 55%)",
+      mixBlendMode: "soft-light",
+    }}
+  />
+
+  {/* IMPORTANT: keep "contain" so screenshots never look zoomed */}
+  <img
+    src={item.image}
+    alt={item.title}
+    className="relative z-10 h-full w-full object-contain"
+    loading="lazy"
+    draggable={false}
+  />
+
+  {/* Soft glow overlays (keep, but calmer) */}
+  <div
+    className="pointer-events-none absolute -left-14 -top-14 h-56 w-56 rounded-full blur-3xl opacity-15"
+    style={{ background: "rgba(252,176,64,0.22)" }}
+  />
+  <div
+    className="pointer-events-none absolute -right-16 -bottom-16 h-60 w-60 rounded-full blur-3xl opacity-12"
+    style={{ background: "rgba(138,107,67,0.20)" }}
+  />
+</div>
+
 
       {/* Copy */}
       <div className="p-6 sm:p-7 flex-1 flex flex-col">
