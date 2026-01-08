@@ -3,8 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { AnimatePresence, motion, type Variants } from "framer-motion";
-import { Lobster } from "next/font/google";
+import { AnimatePresence, motion } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import { MotionDiv } from "@/app/ui/motion";
@@ -12,12 +11,6 @@ import { MotionDiv } from "@/app/ui/motion";
 const BRAND_HEX = "#fcb040";
 const BRAND_BROWN = "#8a6b43";
 const BRAND_ORANGE = "#fcb040";
-
-const logoWordmarkFont = Lobster({
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-});
 
 type Particle = {
   id: number;
@@ -34,7 +27,6 @@ function cn(...v: Array<string | false | undefined | null>) {
 }
 
 const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
-
 const px = (n: number) => `${Math.round(n * 1000) / 1000}px`;
 
 function makeWordTargets(): Array<{ x: number; y: number }> {
@@ -64,48 +56,6 @@ function makeWordTargets(): Array<{ x: number; y: number }> {
 
   return pts;
 }
-
-/* =======================
-   VARIANTS (TYPED)
-======================= */
-
-const wordmarkVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    y: 14,
-    scale: 0.98,
-    filter: "blur(14px)",
-  },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    filter: "blur(0px)",
-    transition: {
-      duration: 0.6,
-      ease: [0.16, 1, 0.3, 1],
-      delay: 0.75,
-    },
-  },
-};
-
-const taglineVariants: Variants = {
-  hidden: {
-    opacity: 0,
-    y: 6,
-    filter: "blur(10px)",
-  },
-  show: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: {
-      duration: 0.45,
-      ease: "easeOut",
-      delay: 0.9,
-    },
-  },
-};
 
 /** Hamburger icon (3 lines) that animates into an X when open */
 function HamburgerIcon({ open }: { open: boolean }) {
@@ -165,32 +115,29 @@ function ChevronDown({ open }: { open: boolean }) {
 }
 
 export default function LogoFullScreen({
-  size = 56,
-  wordScale = 1,
+  size = 130,
   className = "",
 }: {
   size?: number;
-  wordScale?: number;
   className?: string;
 }) {
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  /* Header state (embedded here) */
+  /* Header state */
   const [menuOpen, setMenuOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
-  // ✅ Header show/hide
+  // Header show/hide
   const [headerHidden, setHeaderHidden] = useState(false);
   const downAccumRef = useRef<number>(0);
   const lastYRef = useRef<number>(0);
 
-  // ✅ Touch tracking (X + Y) so horizontal swipes don't affect header
+  // Touch tracking (X + Y) so horizontal swipes don't affect header
   const touchXRef = useRef<number | null>(null);
   const touchYRef = useRef<number | null>(null);
 
-  // mount
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(raf);
@@ -202,7 +149,7 @@ export default function LogoFullScreen({
   }, [menuOpen, desktopMenuOpen]);
 
   // ✅ Hide on vertical down intent, show only on vertical up intent.
-  // ✅ Ignore horizontal-dominant wheel/touch gestures (side scroll in your showcase).
+  // ✅ Ignore horizontal-dominant wheel/touch gestures.
   useEffect(() => {
     lastYRef.current = window.scrollY || 0;
 
@@ -221,7 +168,6 @@ export default function LogoFullScreen({
 
       const y = window.scrollY || 0;
 
-      // always show near top
       if (y <= 8) {
         if (headerHidden) show();
         lastYRef.current = y;
@@ -244,9 +190,8 @@ export default function LogoFullScreen({
       const dx = e.deltaX || 0;
       const dy = e.deltaY || 0;
 
-      // Ignore horizontal-dominant trackpad gestures
+      // Ignore horizontal-dominant gestures (trackpad side scroll)
       if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
-
       if (Math.abs(dy) < 4) return;
 
       if (dy < 0) show();
@@ -274,11 +219,10 @@ export default function LogoFullScreen({
       if (prevX == null || prevY == null) return;
 
       const dx = prevX - t.clientX;
-      const dy = prevY - t.clientY; // finger up => dy positive => user scrolls down
+      const dy = prevY - t.clientY; // finger up => dy positive => scroll down intent
 
       // Ignore horizontal-dominant swipes
       if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
-
       if (Math.abs(dy) < 4) return;
 
       if (dy < 0) show();
@@ -298,7 +242,7 @@ export default function LogoFullScreen({
     };
   }, [menuOpen, desktopMenuOpen, headerHidden]);
 
-  // Mobile (<=640) detection — with fallback for older Safari
+  // Mobile (<=640)
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
     const update = () => setIsMobile(mq.matches);
@@ -315,7 +259,7 @@ export default function LogoFullScreen({
     }
   }, []);
 
-  // Desktop (>=768) detection — with fallback for older Safari
+  // Desktop (>=768)
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const apply = () => setIsDesktop(mq.matches);
@@ -381,31 +325,44 @@ export default function LogoFullScreen({
 
   const targets = useMemo(() => makeWordTargets(), []);
 
+  /**
+   * ✅ FIX 1: particles no longer fly to the screen edge.
+   * They orbit around the centered logo within a tight ring.
+   */
   const particles = useMemo<Particle[]>(() => {
     if (!mounted) return [];
-    const count = isMobile ? 36 : 72;
+    const count = isMobile ? 34 : 64;
+
+    // ring size (tight)
+    const ringOuter = isMobile ? 180 : 260;
+    const ringInner = isMobile ? 95 : 135;
 
     return targets.slice(0, count).map((_, i) => {
-      const angle = (i / count) * Math.PI * 2;
-      const radius = 14 + (i % 7) * 3;
+      const t = (i / count) * Math.PI * 2;
 
-      const spreadX = isMobile
-        ? 80 + (Math.sin(i * 12.9898) * 0.5 + 0.5) * 70
-        : 320 + (Math.sin(i * 12.9898) * 0.5 + 0.5) * 200;
+      // small per-particle "radius wobble" (still tight)
+      const wobble = (Math.sin(i * 12.9898) * 0.5 + 0.5) * 22;
+      const ringR = ringInner + ((i % 7) / 6) * (ringOuter - ringInner) + wobble * 0.22;
 
-      const spreadY = (Math.cos(i * 78.233) * 0.5 - 0.25) * (isMobile ? 50 : 90);
+      // final target offsets (around logo, not corners)
+      const tx = Math.cos(t) * ringR;
+      const ty = Math.sin(t) * ringR * 0.66;
+
+      // starting position near the logo edge
+      const sx = size / 2 + Math.cos(t) * (size * 0.24);
+      const sy = size / 2 + Math.sin(t) * (size * 0.24);
 
       return {
         id: i,
-        sx: size / 2 + Math.cos(angle) * radius,
-        sy: size / 2 + Math.sin(angle) * radius,
-        tx: spreadX * wordScale,
-        ty: spreadY * wordScale,
+        sx,
+        sy,
+        tx,
+        ty,
         r: 4 + (i % 3),
-        d: i * 0.018,
+        d: i * 0.012,
       };
     });
-  }, [targets, size, wordScale, isMobile, mounted]);
+  }, [targets, size, isMobile, mounted]);
 
   const navLinks = useMemo(
     () => [
@@ -420,12 +377,30 @@ export default function LogoFullScreen({
 
   const btnBase =
     "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
-  const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
+  const btnGhost =
+    "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
   return (
     <section className="relative h-screen w-screen flex items-center justify-center overflow-hidden">
-      {/* ================= HEADER (EXACT Mission/Vision) ================= */}
+      {/* subtle background glow */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/70 to-white" />
+        <motion.div
+          className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-25"
+          style={{ background: "rgba(252,176,64,0.28)" }}
+          animate={{ x: [0, 60, 0], y: [0, 22, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -right-52 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-20"
+          style={{ background: "rgba(138,107,67,0.18)" }}
+          animate={{ x: [0, -64, 0], y: [0, -24, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
+      {/* ================= HEADER ================= */}
       <motion.div
         className="fixed top-0 left-0 right-0 z-[100]"
         initial={false}
@@ -452,7 +427,7 @@ export default function LogoFullScreen({
                 </span>
               </Link>
 
-              {/* Desktop: dropdown + primary button */}
+              {/* Desktop */}
               <div className="hidden md:flex items-center gap-3 ml-auto">
                 <div className="relative" data-desktop-menu-root>
                   <button
@@ -489,7 +464,13 @@ export default function LogoFullScreen({
                                 key={l.href}
                                 href={l.href}
                                 onClick={() => setDesktopMenuOpen(false)}
-                                className={cn("w-full", btnBase, "px-5 py-3", btnGhost, "justify-start")}
+                                className={cn(
+                                  "w-full",
+                                  btnBase,
+                                  "px-5 py-3",
+                                  btnGhost,
+                                  "justify-start"
+                                )}
                               >
                                 {l.label}
                               </Link>
@@ -497,7 +478,13 @@ export default function LogoFullScreen({
                             <Link
                               href="/join"
                               onClick={() => setDesktopMenuOpen(false)}
-                              className={cn("w-full", btnBase, "px-5 py-3", btnPrimary, "justify-start")}
+                              className={cn(
+                                "w-full",
+                                btnBase,
+                                "px-5 py-3",
+                                btnPrimary,
+                                "justify-start"
+                              )}
                             >
                               Join waitlist
                             </Link>
@@ -517,7 +504,7 @@ export default function LogoFullScreen({
                 </Link>
               </div>
 
-              {/* Mobile: hamburger */}
+              {/* Mobile */}
               {!isDesktop ? (
                 <div className="ml-auto shrink-0 relative md:hidden">
                   <button
@@ -594,93 +581,45 @@ export default function LogoFullScreen({
         </div>
       </motion.div>
 
-      {/* ================= INTRO CONTENT ================= */}
+      {/* ================= CENTER LOGO ================= */}
       <motion.div
-        className={[
-          "relative inline-flex items-center select-none",
-          "max-sm:flex-col max-sm:items-center",
-          className,
-        ].join(" ")}
+        className={cn("relative select-none", className)}
         initial={{ opacity: 0, scale: 0.82, filter: "blur(18px)" }}
         animate={mounted ? { opacity: 1, scale: 1, filter: "blur(0px)" } : undefined}
         transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* LOGO ICON — NEVER VISIBLE */}
-        <div className="relative" style={{ width: size, height: size }}>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0 }}>
+        <div className="relative grid place-items-center" style={{ width: size, height: size }}>
+          {/* ✅ circles removed */}
+
+          {/* ✅ FIX 2: NO rounded edges. No rounded wrapper. No clipping. */}
+          <motion.div
+            className="relative"
+            initial={{ opacity: 0, scale: 0.86 }}
+            animate={mounted ? { opacity: 1, scale: 1 } : undefined}
+            transition={{ duration: 0.55, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              boxShadow: "0 18px 60px rgba(2,6,23,0.12), 0 0 0 1px rgba(252,176,64,0.12)",
+            }}
+          >
             <Image
               src="/images/brand/logo.png"
               alt="PeerPlates logo"
               width={size}
               height={size}
               priority
-              className="rounded-2xl"
+              className="block"
             />
           </motion.div>
-
-          {/* PARTICLES */}
-          <div className="absolute inset-0 pointer-events-none">
-            {particles.map((pt) => (
-              <motion.span
-                key={pt.id}
-                className="absolute rounded-full will-change-transform"
-                style={{
-                  width: px(pt.r),
-                  height: px(pt.r),
-                  left: px(pt.sx),
-                  top: px(pt.sy),
-                  background: `
-                    radial-gradient(
-                      circle at 30% 30%,
-                      #ffffff 0%,
-                      ${BRAND_HEX} 45%,
-                      ${BRAND_HEX} 60%,
-                      ${BRAND_BROWN} 90%
-                    )
-                  `,
-                }}
-                initial={{ opacity: 0, x: 0, y: 0 }}
-                animate={mounted ? { opacity: 1, x: pt.tx, y: pt.ty } : { opacity: 0 }}
-                transition={{
-                  opacity: { duration: 0.45, delay: pt.d, ease: "easeOut" },
-                  x: { duration: 0.9, delay: pt.d + 0.15, ease: [0.16, 1, 0.3, 1] },
-                  y: { duration: 0.9, delay: pt.d + 0.15, ease: [0.16, 1, 0.3, 1] },
-                }}
-              />
-            ))}
-          </div>
         </div>
 
-        {/* WORDMARK */}
-        <div className="relative ml-4 max-sm:ml-0 max-sm:mt-4 max-sm:text-center" style={{ width: 520 * wordScale }}>
-          <motion.div
-            variants={wordmarkVariants}
-            initial="hidden"
-            animate={mounted ? "show" : "hidden"}
-            className="flex flex-col max-sm:items-center"
-          >
-            <div
-              className={logoWordmarkFont.className}
-              style={{
-                fontSize: `${34 * wordScale}px`,
-                letterSpacing: "-0.02em",
-              }}
-            >
-              <span className="text-slate-900">Peer</span>
-              <span style={{ color: BRAND_HEX }}>Plates</span>
-            </div>
-
-            <motion.div
-              variants={taglineVariants}
-              initial="hidden"
-              animate={mounted ? "show" : "hidden"}
-              className="mt-1 font-semibold text-slate-600"
-              style={{ fontSize: `${15 * wordScale}px` }}
-            >
-              authentic • affordable • local
-            </motion.div>
-          </motion.div>
-        </div>
+        <motion.div
+          className="mt-5 text-center text-sm font-extrabold text-slate-600"
+          initial={{ opacity: 0, y: 8 }}
+          animate={mounted ? { opacity: 1, y: 0 } : undefined}
+          transition={{ duration: 0.45, delay: 0.55, ease: easeOut }}
+        >
+          Taste. Tap. Order.
+        </motion.div>
       </motion.div>
     </section>
   );
