@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { ReactNode, useEffect, useMemo, useState } from "react";
+import React, { ReactNode, useEffect, useMemo, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
@@ -140,6 +140,12 @@ export default function FoodSafetyPage() {
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
+  // ✅ header fade out on scroll down, fade back in on scroll up
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const downAccumRef = useRef<number>(0);
+  const lastYRef = useRef<number>(0);
+  const touchYRef = useRef<number | null>(null);
+
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const apply = () => setIsDesktop(mq.matches);
@@ -160,6 +166,90 @@ export default function FoodSafetyPage() {
     if (isDesktop) setMenuOpen(false);
     if (!isDesktop) setDesktopMenuOpen(false);
   }, [isDesktop]);
+
+  // keep header visible when any menu is open
+  useEffect(() => {
+    if (menuOpen || desktopMenuOpen) setHeaderHidden(false);
+  }, [menuOpen, desktopMenuOpen]);
+
+  useEffect(() => {
+    lastYRef.current = window.scrollY || 0;
+
+    const show = () => {
+      downAccumRef.current = 0;
+      setHeaderHidden(false);
+    };
+
+    const hideAfterThreshold = (deltaDown: number) => {
+      downAccumRef.current += deltaDown;
+      if (!headerHidden && downAccumRef.current > 18) setHeaderHidden(true);
+    };
+
+    const onScroll = () => {
+      if (menuOpen || desktopMenuOpen) return;
+
+      const y = window.scrollY || 0;
+
+      // always show near top
+      if (y <= 8) {
+        if (headerHidden) show();
+        lastYRef.current = y;
+        return;
+      }
+
+      const last = lastYRef.current;
+      const delta = y - last;
+      lastYRef.current = y;
+
+      if (Math.abs(delta) < 2) return;
+
+      if (delta < 0) show();
+      else hideAfterThreshold(delta);
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (menuOpen || desktopMenuOpen) return;
+
+      const dy = e.deltaY;
+      if (Math.abs(dy) < 2) return;
+
+      if (dy < 0) show();
+      else hideAfterThreshold(dy);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (!e.touches?.[0]) return;
+      touchYRef.current = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (menuOpen || desktopMenuOpen) return;
+      const t = e.touches?.[0];
+      if (!t) return;
+
+      const prev = touchYRef.current;
+      touchYRef.current = t.clientY;
+
+      if (prev == null) return;
+      const dy = prev - t.clientY; // finger up => dy positive => down intent
+      if (Math.abs(dy) < 2) return;
+
+      if (dy < 0) show();
+      else hideAfterThreshold(dy);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [menuOpen, desktopMenuOpen, headerHidden]);
 
   // Mobile menu: lock scroll + esc
   useEffect(() => {
@@ -203,10 +293,10 @@ export default function FoodSafetyPage() {
   }, [desktopMenuOpen]);
 
   const navLinks = useMemo(
-   () => [
+    () => [
       { href: "/", label: "Home", variant: "ghost" as const },
       { href: "/mission", label: "Mission", variant: "ghost" as const },
-      {href: "/faq", label: "FAQ", variant: "ghost" as const },
+      { href: "/faq", label: "FAQ", variant: "ghost" as const },
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
       { href: "/join", label: "Join waitlist", variant: "primary" as const },
     ],
@@ -221,7 +311,16 @@ export default function FoodSafetyPage() {
   return (
     <main className="min-h-screen bg-white text-slate-900">
       {/* Header (EXACT Vision) */}
-      <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
+      <motion.div
+        className="fixed top-0 left-0 right-0 z-[100]"
+        initial={false}
+        animate={{ opacity: headerHidden ? 0 : 1 }}
+        transition={{ duration: 0.22, ease: [0.2, 0.9, 0.2, 1] }}
+        style={{
+          willChange: "opacity",
+          pointerEvents: headerHidden ? "none" : "auto",
+        }}
+      >
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
@@ -230,12 +329,11 @@ export default function FoodSafetyPage() {
               transition={{ duration: 0.4 }}
               className="flex items-center gap-3 min-w-0"
             >
-             <Link href="/" className="flex items-center min-w-0">
-  <span className="relative inline-flex items-center overflow-visible">
-    <LogoCinematic size={64} wordScale={1} />
-  </span>
-</Link>
-
+              <Link href="/" className="flex items-center min-w-0">
+                <span className="relative inline-flex items-center overflow-visible">
+                  <LogoCinematic size={64} wordScale={1} />
+                </span>
+              </Link>
 
               {/* Desktop: dropdown + primary button */}
               <div className="hidden md:flex items-center gap-3 ml-auto">
@@ -370,7 +468,7 @@ export default function FoodSafetyPage() {
             </AnimatePresence>
           ) : null}
         </div>
-      </div>
+      </motion.div>
 
       <div className="h-[84px]" />
 
@@ -430,8 +528,8 @@ export default function FoodSafetyPage() {
             </div>
 
             <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
-              Our team works closely with vendors as they grow — with priority onboarding, practical guidance, and clear resources on
-              best-practice food safety, so quality remains consistent as businesses expand.
+              Our team works closely with vendors as they grow — with priority onboarding, practical guidance, and clear
+              resources on best-practice food safety, so quality remains consistent as businesses expand.
             </div>
 
             <div className="mt-6 flex items-center gap-3 text-sm font-extrabold text-slate-700">
@@ -443,7 +541,9 @@ export default function FoodSafetyPage() {
       </PageShell>
 
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="border-t border-slate-200 py-10 text-sm text-slate-500">© {new Date().getFullYear()} PeerPlates</div>
+        <div className="border-t border-slate-200 py-10 text-sm text-slate-500">
+          © {new Date().getFullYear()} PeerPlates
+        </div>
       </div>
     </main>
   );
