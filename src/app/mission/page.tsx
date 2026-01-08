@@ -608,7 +608,7 @@ export default function MissionPage() {
         {/* Vision (under Mission) */}
         {/* ===================== */}
         <PageShell
-          kicker="Vision"
+          kicker=""
           title="Our mission is"
           highlight="two-sided."
           body="We’re building a platform that works for both sides of the marketplace — vendors and customers — with the same level of care."
