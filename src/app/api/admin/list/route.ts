@@ -44,9 +44,6 @@ export async function GET(req: Request) {
     const q = (searchParams.get("q") || "").trim();
 
     // Vendor-only filters
-    const maxBusMinutesRaw = (searchParams.get("max_bus_minutes") || "").trim();
-    const maxBusMinutes = maxBusMinutesRaw ? Number(maxBusMinutesRaw) : null;
-
     const hasInstagram = toBool(searchParams.get("has_instagram"));
     const compliance = (searchParams.get("compliance") || "").trim(); // exact label match inside compliance_readiness[]
 
@@ -79,7 +76,7 @@ export async function GET(req: Request) {
 
           // vendor clean columns
           "instagram_handle",
-          "bus_minutes",
+          "postcode_area",
           "compliance_readiness",
           "top_cuisines",
           "delivery_area",
@@ -105,10 +102,6 @@ export async function GET(req: Request) {
 
     // Apply vendor-only filters ONLY when role is explicitly vendor
     if (role === "vendor") {
-      if (typeof maxBusMinutes === "number" && Number.isFinite(maxBusMinutes)) {
-        query = query.lte("bus_minutes", maxBusMinutes);
-      }
-
       if (hasInstagram === true) {
         query = query.not("instagram_handle", "is", null).neq("instagram_handle", "");
       } else if (hasInstagram === false) {

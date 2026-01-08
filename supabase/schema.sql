@@ -38,7 +38,7 @@ create table if not exists public.waitlist_entries (
   reviewed_at timestamptz,
   reviewed_by text,
 
-  -- ✅ Queue lookup (public code users can paste)
+  -- Queue lookup (public code users can paste)
   queue_code text unique,
 
   -- Consent
@@ -61,7 +61,7 @@ create table if not exists public.waitlist_entries (
   updated_at timestamptz not null default now()
 );
 
--- 3) Ensure columns exist even if table already existed
+-- 3) Ensure columns exist even if table already existed (idempotent)
 alter table public.waitlist_entries
   -- consent (safe)
   add column if not exists accepted_marketing boolean not null default false,
@@ -79,7 +79,9 @@ alter table public.waitlist_entries
   -- extracted columns (safe)
   add column if not exists compliance_readiness text[] not null default '{}'::text[],
   add column if not exists instagram_handle text,
-  add column if not exists bus_minutes integer,
+
+  -- ✅ postcode (new)
+  add column if not exists postcode_area text,
 
   -- NOTE: city exists in your current schema; leaving it harmless even if unused
   add column if not exists city text,
@@ -88,8 +90,14 @@ alter table public.waitlist_entries
   add column if not exists delivery_area text,
   add column if not exists dietary_preferences text[] not null default '{}'::text[],
 
-  -- ✅ queue_code
+  -- queue_code (safe)
   add column if not exists queue_code text;
+
+-- 3b) Remove legacy bus/minutes stuff if present (idempotent)
+alter table public.waitlist_entries
+  drop column if exists bus_minutes;
+
+drop index if exists waitlist_entries_bus_minutes_idx;
 
 -- 4) Indexes
 create index if not exists waitlist_entries_role_created_at_idx
@@ -106,6 +114,9 @@ create index if not exists waitlist_entries_queue_code_idx
 
 create index if not exists waitlist_entries_city_idx
   on public.waitlist_entries (city);
+
+create index if not exists waitlist_entries_postcode_area_idx
+  on public.waitlist_entries (postcode_area);
 
 create index if not exists waitlist_entries_vendor_order_idx
   on public.waitlist_entries (vendor_queue_override, vendor_priority_score desc, created_at asc)
@@ -160,6 +171,13 @@ begin
       ''
     );
 
+  -- ✅ postcode_area (store first segment only, uppercase)
+  new.postcode_area :=
+    nullif(
+      upper(split_part(trim(coalesce(v->>'postcode_area', v->>'postcode', '')), ' ', 1)),
+      ''
+    );
+
   -- compliance_readiness
   if jsonb_typeof(v->'compliance_readiness') = 'array' then
     new.compliance_readiness :=
@@ -170,13 +188,6 @@ begin
 
   -- instagram_handle
   new.instagram_handle := nullif(trim(coalesce(v->>'instagram_handle','')), '');
-
-  -- bus_minutes
-  begin
-    new.bus_minutes := nullif(trim(coalesce(v->>'bus_minutes','')), '')::int;
-  exception when others then
-    new.bus_minutes := null;
-  end;
 
   -- top_cuisines (try two keys)
   if jsonb_typeof(v->'top_cuisines') = 'array' then

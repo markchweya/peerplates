@@ -8,7 +8,10 @@ import { MotionDiv } from "@/app/ui/motion";
 import SelectField from "@/components/fields/SelectField";
 import LogoCinematic from "@/app/ui/LogoCinematic";
 
-type QuestionType =
+// ✅ FIX: your `QuestionType` name is either missing OR misspelled as `QuestionTyp`.
+// Put this *directly above* `export type Question = { ... }` and ensure the spelling matches.
+
+export type QuestionType =
   | "text"
   | "email"
   | "tel"
@@ -22,20 +25,24 @@ export type Question = {
   key: string;
   label: string;
   required?: boolean;
+
+  // ✅ must be EXACTLY `QuestionType` (not `QuestionTyp`)
   type?: QuestionType;
+
   placeholder?: string;
   options?: string[];
 
-  // checkbox groups
   maxSelections?: number;
 
-  // file questions
   accept?: string[];
   helpText?: string;
 
-  // backend upload field key override
+  // ✅ add this for your postcode helper
+  helper?: string;
+
   uploadKey?: string;
 };
+
 
 type Props = {
   role: "consumer" | "vendor";
@@ -386,6 +393,9 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
               {questions.map((q) => {
                 if (shouldHideQuestion(q)) return null;
 
+                const helperText = q.helper ?? q.helpText;
+
+
                 const t = q.type || "text";
                 const val = answers[q.key];
 
@@ -436,19 +446,139 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                   );
                 }
 
-                if (t === "select") {
-                  return (
-                    <SelectField
-                      key={q.key}
-                      label={q.label}
-                      required={q.required}
-                      value={String(val ?? "")}
-                      onChange={(v) => setAnswer(q.key, v)}
-                      options={q.options || []}
-                      placeholder={q.placeholder || "Select…"}
-                    />
-                  );
-                }
+             // ✅ 3) REPLACE ONLY these render blocks to show helperText
+
+if (t === "select") {
+  return (
+    <div key={q.key} className="grid gap-2">
+      <SelectField
+        label={q.label}
+        required={q.required}
+        value={String(val ?? "")}
+        onChange={(v) => setAnswer(q.key, v)}
+        options={q.options || []}
+        placeholder={q.placeholder || "Select…"}
+      />
+      {helperText ? <div className="text-xs text-slate-900/60">{helperText}</div> : null}
+    </div>
+  );
+}
+
+if (t === "checkboxes") {
+  const arr = Array.isArray(val) ? val : [];
+  const opts = q.options || [];
+  return (
+    <div key={q.key} className="grid gap-2">
+      <label className="text-sm font-semibold">
+        {q.label} {q.required ? "*" : ""}
+        {typeof q.maxSelections === "number" ? (
+          <span className="ml-2 text-xs text-slate-500">(max {q.maxSelections})</span>
+        ) : null}
+      </label>
+
+      <div className={`${cardBase} grid gap-2`}>
+        {opts.map((opt) => {
+          const checked = arr.includes(opt);
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => toggleCheckbox(q.key, opt, opts, q.maxSelections)}
+              className={[
+                "flex items-center justify-between rounded-2xl border px-4 py-3 text-left font-semibold transition",
+                checked
+                  ? "border-[#fcb040] bg-[#fcb040] text-slate-900"
+                  : "border-[#fcb040] bg-white text-slate-900 hover:-translate-y-[1px]",
+              ].join(" ")}
+            >
+              <span className="pr-3">{opt}</span>
+              <span
+                className={[
+                  "inline-flex h-6 w-6 items-center justify-center rounded-full border",
+                  checked ? "border-slate-900 bg-white" : "border-[#fcb040] bg-white",
+                ].join(" ")}
+                aria-hidden="true"
+              >
+                {checked ? <span className="h-2.5 w-2.5 rounded-full bg-slate-900" /> : null}
+              </span>
+            </button>
+          );
+        })}
+        <div className="text-xs text-slate-900/60">You can select multiple options.</div>
+      </div>
+
+      {helperText ? <div className="text-xs text-slate-900/60">{helperText}</div> : null}
+    </div>
+  );
+}
+
+if (t === "file") {
+  const accept = (q.accept || [".pdf", ".jpg", ".jpeg", ".png"]).join(",");
+  const uploadKey = q.uploadKey || q.key;
+
+  return (
+    <div key={q.key} className="grid gap-2">
+      <label className="text-sm font-semibold">
+        {q.label} {q.required ? "*" : ""}
+      </label>
+
+      <div className={`${cardBase} grid gap-2`}>
+        <input
+          type="file"
+          accept={accept}
+          className="block w-full rounded-2xl border border-[#fcb040] bg-white px-4 py-3 font-semibold text-slate-900 file:mr-4 file:rounded-xl file:border-0 file:bg-[#fcb040] file:px-4 file:py-2 file:font-extrabold file:text-slate-900"
+          onChange={(e) => {
+            const f = e.target.files?.[0] || null;
+            setFiles((prev) => ({ ...prev, [uploadKey]: f }));
+          }}
+        />
+
+        {helperText ? <div className="text-xs text-slate-900/60">{helperText}</div> : null}
+
+        {files[uploadKey] ? (
+          <div className="text-xs font-semibold">
+            Selected: <span className="font-mono">{files[uploadKey]!.name}</span>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+if (t === "textarea") {
+  return (
+    <div key={q.key} className="grid gap-2">
+      <label className="text-sm font-semibold">
+        {q.label} {q.required ? "*" : ""}
+      </label>
+      <textarea
+        value={String(val ?? "")}
+        onChange={(e) => setAnswer(q.key, e.target.value)}
+        className={textareaBase}
+        placeholder={q.placeholder || ""}
+      />
+      {helperText ? <div className="text-xs text-slate-900/60">{helperText}</div> : null}
+    </div>
+  );
+}
+
+// default text/email/tel/number...
+return (
+  <div key={q.key} className="grid gap-2">
+    <label className="text-sm font-semibold">
+      {q.label} {q.required ? "*" : ""}
+    </label>
+    <input
+      value={String(val ?? "")}
+      onChange={(e) => setAnswer(q.key, e.target.value)}
+      className={inputBase}
+      placeholder={q.placeholder || ""}
+      type={t === "number" ? "number" : t}
+      inputMode={t === "number" ? "numeric" : undefined}
+    />
+    {helperText ? <div className="text-xs text-slate-900/60">{helperText}</div> : null}
+  </div>
+);
 
                 if (t === "checkboxes") {
                   const arr = Array.isArray(val) ? val : [];

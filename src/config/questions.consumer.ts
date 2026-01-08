@@ -101,7 +101,7 @@ export const consumerQuestions = [
   // Travel by bus
   {
     key: "bus_travel_time",
-    label: "Furthest you’d realistically travel by bus to pick up food",
+    label: "Furthest you’d realistically travel by bus for pickup (one-way)",
     required: true,
     type: "select" as const,
     options: [
@@ -111,6 +111,16 @@ export const consumerQuestions = [
       "30–40 minutes",
       "40+ minutes",
     ],
+  },
+
+  // Postcode area
+  {
+    key: "postcode_area",
+    label: "What’s your postcode area? (e.g., NG1, NG7)",
+    required: true,
+    type: "text" as const,
+    helper:
+      "Postcode area only — not your full address. This helps us understand proximity to campuses and prioritise nearby vendors.",
   },
 
   // Attribution
