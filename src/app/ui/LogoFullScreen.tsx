@@ -297,7 +297,7 @@ export default function LogoFullScreen({
 
   const navLinks = useMemo(
     () => [
-      { href: "/", label: "Home", variant: "ghost" as const },
+        {href: "/mission", label: "Our mission", variant: "ghost" as const },
       { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
       { href: "/faq", label: "FAQ", variant: "ghost" as const },
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
