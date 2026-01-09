@@ -1,3 +1,4 @@
+// src/app/food-safety/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -13,6 +14,8 @@ const BRAND_BROWN = "#8a6b43";
 function cn(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
+
+const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
 
 /** Hamburger icon (3 lines) that animates into an X when open */
 function HamburgerIcon({ open }: { open: boolean }) {
@@ -106,8 +109,6 @@ function PageShell({
           transition={{ duration: 0.55, ease: [0.2, 0.9, 0.2, 1] }}
           className="mx-auto max-w-4xl"
         >
-        
-
           <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.8rem,6vw,4.6rem)] text-slate-900">
             {title}{" "}
             <span
@@ -137,38 +138,24 @@ export default function FoodSafetyPage() {
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
+  // ✅ (needed for hamburger visibility on phones)
+  const [isMobile, setIsMobile] = useState(false);
+
   // ✅ header fade out on scroll down, fade back in on scroll up
   const [headerHidden, setHeaderHidden] = useState(false);
   const downAccumRef = useRef<number>(0);
   const lastYRef = useRef<number>(0);
+
+  // Touch tracking (X + Y) — to match LogoFullScreen behavior
+  const touchXRef = useRef<number | null>(null);
   const touchYRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const apply = () => setIsDesktop(mq.matches);
-    apply();
-
-    if (typeof mq.addEventListener === "function") {
-      mq.addEventListener("change", apply);
-      return () => mq.removeEventListener("change", apply);
-    } else {
-      // @ts-ignore
-      mq.addListener(apply);
-      // @ts-ignore
-      return () => mq.removeListener(apply);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isDesktop) setMenuOpen(false);
-    if (!isDesktop) setDesktopMenuOpen(false);
-  }, [isDesktop]);
 
   // keep header visible when any menu is open
   useEffect(() => {
     if (menuOpen || desktopMenuOpen) setHeaderHidden(false);
   }, [menuOpen, desktopMenuOpen]);
 
+  // ✅ hide on down intent, show on up intent (match LogoFullScreen exactly)
   useEffect(() => {
     lastYRef.current = window.scrollY || 0;
 
@@ -207,16 +194,21 @@ export default function FoodSafetyPage() {
     const onWheel = (e: WheelEvent) => {
       if (menuOpen || desktopMenuOpen) return;
 
-      const dy = e.deltaY;
-      if (Math.abs(dy) < 2) return;
+      const dx = e.deltaX || 0;
+      const dy = e.deltaY || 0;
+
+      if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
+      if (Math.abs(dy) < 4) return;
 
       if (dy < 0) show();
       else hideAfterThreshold(dy);
     };
 
     const onTouchStart = (e: TouchEvent) => {
-      if (!e.touches?.[0]) return;
-      touchYRef.current = e.touches[0].clientY;
+      const t = e.touches?.[0];
+      if (!t) return;
+      touchXRef.current = t.clientX;
+      touchYRef.current = t.clientY;
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -224,12 +216,19 @@ export default function FoodSafetyPage() {
       const t = e.touches?.[0];
       if (!t) return;
 
-      const prev = touchYRef.current;
+      const prevX = touchXRef.current;
+      const prevY = touchYRef.current;
+
+      touchXRef.current = t.clientX;
       touchYRef.current = t.clientY;
 
-      if (prev == null) return;
-      const dy = prev - t.clientY; // finger up => dy positive => down intent
-      if (Math.abs(dy) < 2) return;
+      if (prevX == null || prevY == null) return;
+
+      const dx = prevX - t.clientX;
+      const dy = prevY - t.clientY;
+
+      if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
+      if (Math.abs(dy) < 4) return;
 
       if (dy < 0) show();
       else hideAfterThreshold(dy);
@@ -247,6 +246,45 @@ export default function FoodSafetyPage() {
       window.removeEventListener("touchmove", onTouchMove);
     };
   }, [menuOpen, desktopMenuOpen, headerHidden]);
+
+  // ✅ Mobile (<=640)
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", update);
+      return () => mq.removeEventListener("change", update);
+    } else {
+      // @ts-ignore
+      mq.addListener(update);
+      // @ts-ignore
+      return () => mq.removeListener(update);
+    }
+  }, []);
+
+  // Desktop (>=768)
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", apply);
+      return () => mq.removeEventListener("change", apply);
+    } else {
+      // @ts-ignore
+      mq.addListener(apply);
+      // @ts-ignore
+      return () => mq.removeListener(apply);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isDesktop) setMenuOpen(false);
+    if (!isDesktop) setDesktopMenuOpen(false);
+  }, [isDesktop]);
 
   // Mobile menu: lock scroll + esc
   useEffect(() => {
@@ -289,13 +327,14 @@ export default function FoodSafetyPage() {
     };
   }, [desktopMenuOpen]);
 
+  // ✅ DO NOT CHANGE THIS PART (kept exactly)
   const navLinks = useMemo(
     () => [
       { href: "/", label: "Home", variant: "ghost" as const },
       { href: "/mission", label: "Mission", variant: "ghost" as const },
       { href: "/faq", label: "FAQ", variant: "ghost" as const },
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
-      { href: "/join", label: "Join waitlist", variant: "primary" as const },
+   
     ],
     []
   );
@@ -305,34 +344,35 @@ export default function FoodSafetyPage() {
   const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
+  // ✅ keep hamburger visible on phones (don’t let wordmark push it off-screen)
+  const logoWordScale = isMobile ? 0 : 1;
+
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* Header (EXACT Vision) */}
+      {/* Header (use LogoFullScreen header/menu UI) */}
       <motion.div
         className="fixed top-0 left-0 right-0 z-[100]"
         initial={false}
-        animate={{ opacity: headerHidden ? 0 : 1 }}
-        transition={{ duration: 0.22, ease: [0.2, 0.9, 0.2, 1] }}
+        animate={{ opacity: headerHidden ? 0 : 1, y: headerHidden ? -10 : 0 }}
+        transition={{ duration: 0.22, ease: easeOut }}
         style={{
-          willChange: "opacity",
+          willChange: "opacity, transform",
           pointerEvents: headerHidden ? "none" : "auto",
         }}
       >
-        <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
+        <div className="pointer-events-auto">
+          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pt-4">
             <MotionDiv
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="flex items-center gap-3 min-w-0"
+              className="flex items-center gap-3"
             >
-              <Link href="/" className="flex items-center min-w-0">
-                <span className="relative inline-flex items-center overflow-visible">
-                  <LogoCinematic size={64} wordScale={1} />
-                </span>
+              <Link href="/" className="flex items-center">
+                <LogoCinematic size={60} wordScale={logoWordScale} />
               </Link>
 
-              {/* Desktop: dropdown + primary button */}
+              {/* Desktop */}
               <div className="hidden md:flex items-center gap-3 ml-auto">
                 <div className="relative" data-desktop-menu-root>
                   <button
@@ -340,8 +380,12 @@ export default function FoodSafetyPage() {
                     onClick={() => setDesktopMenuOpen((v) => !v)}
                     aria-label={desktopMenuOpen ? "Close menu" : "Open menu"}
                     aria-expanded={desktopMenuOpen}
-                    className={cn(btnBase, btnGhost, "gap-2")}
-                    style={{ borderColor: "rgba(252,176,64,0.35)" }}
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold transition hover:-translate-y-[1px] whitespace-nowrap",
+                      "border border-slate-200/70 bg-white/60 backdrop-blur text-slate-900 hover:bg-white/75",
+                      "gap-2"
+                    )}
+                    style={{ borderColor: "rgba(252,176,64,0.30)" }}
                   >
                     <span style={{ color: BRAND_BROWN }}>Menu</span>
                     <span style={{ color: BRAND_ORANGE }}>
@@ -353,14 +397,14 @@ export default function FoodSafetyPage() {
                     {desktopMenuOpen ? (
                       <motion.div
                         key="desktop-menu"
-                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.985 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                        transition={{ duration: 0.16, ease: [0.2, 0.9, 0.2, 1] }}
+                        exit={{ opacity: 0, y: 8, scale: 0.985 }}
+                        transition={{ duration: 0.16, ease: easeOut }}
                         className="absolute right-0 mt-3 w-[320px] origin-top-right"
                       >
                         <div
-                          className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
+                          className="rounded-[26px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
                           style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
                         >
                           <div className="grid gap-2">
@@ -369,7 +413,12 @@ export default function FoodSafetyPage() {
                                 key={l.href}
                                 href={l.href}
                                 onClick={() => setDesktopMenuOpen(false)}
-                                className={cn("w-full", btnBase, "px-5 py-3", btnGhost, "justify-start")}
+                                className={cn(
+                                  "w-full",
+                                  "rounded-2xl px-5 py-3 font-extrabold",
+                                  "border border-slate-200 bg-white/80 hover:bg-white",
+                                  "transition"
+                                )}
                               >
                                 {l.label}
                               </Link>
@@ -377,25 +426,33 @@ export default function FoodSafetyPage() {
                             <Link
                               href="/join"
                               onClick={() => setDesktopMenuOpen(false)}
-                              className={cn("w-full", btnBase, "px-5 py-3", btnPrimary, "justify-start")}
+                              className={cn(
+                                "w-full",
+                                "rounded-2xl px-5 py-3 font-extrabold",
+                                "bg-[#fcb040] text-slate-900 hover:opacity-95"
+                              )}
                             >
                               Join waitlist
                             </Link>
                           </div>
-
-                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
                         </div>
                       </motion.div>
                     ) : null}
                   </AnimatePresence>
                 </div>
 
-                <Link href="/join" className={cn(btnBase, btnPrimary)}>
+                <Link
+                  href="/join"
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold transition hover:-translate-y-[1px] whitespace-nowrap",
+                    "bg-[#fcb040] text-slate-900 hover:opacity-95"
+                  )}
+                >
                   Join waitlist
                 </Link>
               </div>
 
-              {/* Mobile: hamburger */}
+              {/* Mobile */}
               {!isDesktop ? (
                 <div className="ml-auto shrink-0 relative md:hidden">
                   <button
@@ -405,34 +462,35 @@ export default function FoodSafetyPage() {
                     aria-expanded={menuOpen}
                     className={cn(
                       "inline-flex items-center justify-center",
-                      "rounded-full border border-slate-200 bg-white/95 backdrop-blur",
-                      "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]"
+                      "rounded-full border border-slate-200/70 bg-white/60 backdrop-blur",
+                      "h-10 w-10 transition hover:-translate-y-[1px]"
                     )}
-                    style={{ color: BRAND_ORANGE, borderColor: "rgba(252,176,64,0.35)" }}
+                    style={{
+                      color: BRAND_ORANGE,
+                      borderColor: "rgba(252,176,64,0.30)",
+                    }}
                   >
                     <HamburgerIcon open={menuOpen} />
                   </button>
                 </div>
               ) : null}
             </MotionDiv>
-          </div>
 
-          {/* Mobile dropdown (EXACT Vision) */}
-          {!isDesktop ? (
-            <AnimatePresence initial={false}>
-              {menuOpen ? (
-                <motion.div
-                  key="mobile-menu"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: [0.2, 0.9, 0.2, 1] }}
-                  className="md:hidden overflow-hidden"
-                >
-                  <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
-                    <div className="mx-auto w-full max-w-[420px]">
+            {/* Mobile dropdown */}
+            {!isDesktop ? (
+              <AnimatePresence initial={false}>
+                {menuOpen ? (
+                  <motion.div
+                    key="mobile-menu"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: easeOut }}
+                    className="md:hidden overflow-hidden"
+                  >
+                    <div className="pt-3">
                       <div
-                        className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
+                        className="rounded-[26px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
                         style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
                       >
                         <div className="grid gap-2">
@@ -441,29 +499,35 @@ export default function FoodSafetyPage() {
                               key={l.href}
                               href={l.href}
                               onClick={() => setMenuOpen(false)}
-                              className={cn("w-full", btnBase, "px-5 py-3", btnGhost)}
+                              className={cn(
+                                "w-full",
+                                "rounded-2xl px-5 py-3 font-extrabold",
+                                "border border-slate-200 bg-white/80 hover:bg-white",
+                                "transition"
+                              )}
                             >
                               {l.label}
                             </Link>
                           ))}
-
                           <Link
                             href="/join"
                             onClick={() => setMenuOpen(false)}
-                            className={cn("w-full", btnBase, "px-5 py-3", btnPrimary)}
+                            className={cn(
+                              "w-full",
+                              "rounded-2xl px-5 py-3 font-extrabold",
+                              "bg-[#fcb040] text-slate-900 hover:opacity-95"
+                            )}
                           >
                             Join waitlist
                           </Link>
                         </div>
-
-                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          ) : null}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            ) : null}
+          </div>
         </div>
       </motion.div>
 
