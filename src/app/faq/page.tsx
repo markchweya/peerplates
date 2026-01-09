@@ -324,7 +324,8 @@ export default function FAQPage() {
           pointerEvents: headerHidden ? "none" : "auto",
         }}
       >
-        <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+<div className="bg-transparent">
+
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
               initial={{ opacity: 0, y: -10 }}

@@ -328,7 +328,8 @@ export default function JoinClient({ referral }: { referral: string }) {
           pointerEvents: headerHidden ? "none" : "auto",
         }}
       >
-        <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+       <div className="bg-transparent">
+
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
               initial={{ opacity: 0, y: -10 }}
@@ -387,13 +388,7 @@ export default function JoinClient({ referral }: { referral: string }) {
                                 {l.label}
                               </Link>
                             ))}
-                            <Link
-                              href="/join"
-                              onClick={() => setDesktopMenuOpen(false)}
-                              className={cn("w-full", btnBase, "px-5 py-3", btnPrimary, "justify-start")}
-                            >
-                              Join waitlist
-                            </Link>
+                           
                           </div>
 
                           <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
