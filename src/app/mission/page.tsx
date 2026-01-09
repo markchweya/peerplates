@@ -1,4 +1,3 @@
-// src/app/mission/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -16,11 +15,6 @@ function cn(...v: Array<string | false | undefined | null>) {
 }
 
 const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
-
-function prefersReducedMotion() {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-}
 
 /** Hamburger icon (3 lines) that animates into an X when open */
 function HamburgerIcon({ open }: { open: boolean }) {
@@ -178,6 +172,7 @@ function PageShell({
 
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
         <ScrollFade className="mx-auto max-w-4xl">
+        
           <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.8rem,6vw,4.6rem)] text-slate-900">
             {title}{" "}
             <span
@@ -202,140 +197,17 @@ function PageShell({
 }
 
 export default function MissionPage() {
-  const [mounted, setMounted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  /* Header state (from LogoFullScreen) */
+  // ✅ EXACT same header behavior as Vision
   const [menuOpen, setMenuOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
-  // Header show/hide
+  // ✅ header fade on scroll down / show on scroll up (also works with wheel/touch intent)
   const [headerHidden, setHeaderHidden] = useState(false);
   const downAccumRef = useRef<number>(0);
   const lastYRef = useRef<number>(0);
-
-  // Touch tracking (X + Y)
-  const touchXRef = useRef<number | null>(null);
   const touchYRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  useEffect(() => {
-    if (menuOpen || desktopMenuOpen) setHeaderHidden(false);
-  }, [menuOpen, desktopMenuOpen]);
-
-  useEffect(() => {
-    lastYRef.current = window.scrollY || 0;
-
-    const show = () => {
-      downAccumRef.current = 0;
-      setHeaderHidden(false);
-    };
-
-    const hideAfterThreshold = (deltaDown: number) => {
-      downAccumRef.current += deltaDown;
-      if (!headerHidden && downAccumRef.current > 18) setHeaderHidden(true);
-    };
-
-    const onScroll = () => {
-      if (menuOpen || desktopMenuOpen) return;
-
-      const y = window.scrollY || 0;
-
-      if (y <= 8) {
-        if (headerHidden) show();
-        lastYRef.current = y;
-        return;
-      }
-
-      const last = lastYRef.current;
-      const delta = y - last;
-      lastYRef.current = y;
-
-      if (Math.abs(delta) < 2) return;
-
-      if (delta < 0) show();
-      else hideAfterThreshold(delta);
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      if (menuOpen || desktopMenuOpen) return;
-
-      const dx = e.deltaX || 0;
-      const dy = e.deltaY || 0;
-
-      if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
-      if (Math.abs(dy) < 4) return;
-
-      if (dy < 0) show();
-      else hideAfterThreshold(dy);
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      const t = e.touches?.[0];
-      if (!t) return;
-      touchXRef.current = t.clientX;
-      touchYRef.current = t.clientY;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (menuOpen || desktopMenuOpen) return;
-      const t = e.touches?.[0];
-      if (!t) return;
-
-      const prevX = touchXRef.current;
-      const prevY = touchYRef.current;
-
-      touchXRef.current = t.clientX;
-      touchYRef.current = t.clientY;
-
-      if (prevX == null || prevY == null) return;
-
-      const dx = prevX - t.clientX;
-      const dy = prevY - t.clientY;
-
-      if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
-      if (Math.abs(dy) < 4) return;
-
-      if (dy < 0) show();
-      else hideAfterThreshold(dy);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("wheel", onWheel, { passive: true });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove", onTouchMove);
-    };
-  }, [menuOpen, desktopMenuOpen, headerHidden]);
-
-  // Mobile (<=640) — from LogoFullScreen
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 640px)");
-    const update = () => setIsMobile(mq.matches);
-    update();
-
-    if (typeof mq.addEventListener === "function") {
-      mq.addEventListener("change", update);
-      return () => mq.removeEventListener("change", update);
-    } else {
-      // @ts-ignore
-      mq.addListener(update);
-      // @ts-ignore
-      return () => mq.removeListener(update);
-    }
-  }, []);
-
-  // Desktop (>=768) — from LogoFullScreen
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const apply = () => setIsDesktop(mq.matches);
@@ -356,6 +228,91 @@ export default function MissionPage() {
     if (isDesktop) setMenuOpen(false);
     if (!isDesktop) setDesktopMenuOpen(false);
   }, [isDesktop]);
+
+  // keep header visible when any menu is open
+  useEffect(() => {
+    if (menuOpen || desktopMenuOpen) setHeaderHidden(false);
+  }, [menuOpen, desktopMenuOpen]);
+
+  // ✅ hide on down intent, show on up intent
+  useEffect(() => {
+    lastYRef.current = window.scrollY || 0;
+
+    const show = () => {
+      downAccumRef.current = 0;
+      setHeaderHidden(false);
+    };
+
+    const hideAfterThreshold = (deltaDown: number) => {
+      downAccumRef.current += deltaDown;
+      if (!headerHidden && downAccumRef.current > 18) setHeaderHidden(true);
+    };
+
+    const onScroll = () => {
+      if (menuOpen || desktopMenuOpen) return;
+
+      const y = window.scrollY || 0;
+
+      // always show near top
+      if (y <= 8) {
+        if (headerHidden) show();
+        lastYRef.current = y;
+        return;
+      }
+
+      const last = lastYRef.current;
+      const delta = y - last;
+      lastYRef.current = y;
+
+      if (Math.abs(delta) < 2) return;
+
+      if (delta < 0) show();
+      else hideAfterThreshold(delta);
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (menuOpen || desktopMenuOpen) return;
+
+      const dy = e.deltaY;
+      if (Math.abs(dy) < 2) return;
+
+      if (dy < 0) show();
+      else hideAfterThreshold(dy);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (!e.touches?.[0]) return;
+      touchYRef.current = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (menuOpen || desktopMenuOpen) return;
+      const t = e.touches?.[0];
+      if (!t) return;
+
+      const prev = touchYRef.current;
+      touchYRef.current = t.clientY;
+
+      if (prev == null) return;
+      const dy = prev - t.clientY; // finger up => dy positive => down intent
+      if (Math.abs(dy) < 2) return;
+
+      if (dy < 0) show();
+      else hideAfterThreshold(dy);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [menuOpen, desktopMenuOpen, headerHidden]);
 
   // Mobile menu: lock scroll + esc
   useEffect(() => {
@@ -400,50 +357,56 @@ export default function MissionPage() {
 
   const navLinks = useMemo(
     () => [
-      { href: "/", label: "Home" },
-      { href: "/food-safety", label: "Food safety" },
-      { href: "/faq", label: "FAQ" },
-      { href: "/queue", label: "Check queue" },
-      { href: "/join", label: "Join waitlist" },
+      { href: "/", label: "Home", variant: "ghost" as const },
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
+      { href: "/faq", label: "FAQ", variant: "ghost" as const },
+      { href: "/queue", label: "Check queue", variant: "ghost" as const },
+
     ],
     []
   );
 
   const btnBase =
-    "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold transition hover:-translate-y-[1px] whitespace-nowrap";
-  const btnGhost = "border border-slate-200/70 bg-white/60 backdrop-blur text-slate-900 hover:bg-white/75";
+    "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
+  const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
-
-  // ✅ Ensure hamburger has room on phone: hide/shrink wordmark on <=640px
-  const logoSize = isMobile ? 60 : 60;
-  const logoWordScale = isMobile ? 0 : 1;
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
-      {/* Header (from LogoFullScreen) */}
+      {/* Header (EXACT Vision) */}
       <motion.div
         className="fixed top-0 left-0 right-0 z-[100]"
         initial={false}
-        animate={{ opacity: headerHidden ? 0 : 1, y: headerHidden ? -10 : 0 }}
+        animate={{ opacity: headerHidden ? 0 : 1 }}
         transition={{ duration: 0.22, ease: easeOut }}
         style={{
-          willChange: "opacity, transform",
+          willChange: "opacity",
           pointerEvents: headerHidden ? "none" : "auto",
         }}
       >
-        <div className="pointer-events-auto">
-          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pt-4">
+        <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="flex items-center gap-3"
+              exit={{ opacity: 0, y: -6 }}
+              transition={{
+                duration: 1.1, // slower, more cinematic
+                ease: [0.25, 0.1, 0.25, 1], // gentle ease-in-out
+              }}
+              className="flex items-center gap-3 min-w-0"
             >
-              <Link href="/" className="flex items-center">
-                <LogoCinematic size={logoSize} wordScale={logoWordScale} />
+              <Link href="/" className="flex items-center min-w-0">
+                {/* ✅ FIX (same as Vision): remove any clipping during fade/slide/glow */}
+                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
+                  {/* give the logo a tiny vertical buffer so filters/glow never get cut */}
+                  <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
+                    <LogoCinematic size={64} wordScale={1} />
+                  </span>
+                </span>
               </Link>
 
-              {/* Desktop */}
+              {/* Desktop: dropdown + primary button */}
               <div className="hidden md:flex items-center gap-3 ml-auto">
                 <div className="relative" data-desktop-menu-root>
                   <button
@@ -452,7 +415,7 @@ export default function MissionPage() {
                     aria-label={desktopMenuOpen ? "Close menu" : "Open menu"}
                     aria-expanded={desktopMenuOpen}
                     className={cn(btnBase, btnGhost, "gap-2")}
-                    style={{ borderColor: "rgba(252,176,64,0.30)" }}
+                    style={{ borderColor: "rgba(252,176,64,0.35)" }}
                   >
                     <span style={{ color: BRAND_BROWN }}>Menu</span>
                     <span style={{ color: BRAND_ORANGE }}>
@@ -464,14 +427,14 @@ export default function MissionPage() {
                     {desktopMenuOpen ? (
                       <motion.div
                         key="desktop-menu"
-                        initial={{ opacity: 0, y: 10, scale: 0.985 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.985 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.98 }}
                         transition={{ duration: 0.16, ease: easeOut }}
                         className="absolute right-0 mt-3 w-[320px] origin-top-right"
                       >
                         <div
-                          className="rounded-[26px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
+                          className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
                           style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
                         >
                           <div className="grid gap-2">
@@ -480,12 +443,7 @@ export default function MissionPage() {
                                 key={l.href}
                                 href={l.href}
                                 onClick={() => setDesktopMenuOpen(false)}
-                                className={cn(
-                                  "w-full",
-                                  "rounded-2xl px-5 py-3 font-extrabold",
-                                  "border border-slate-200 bg-white/80 hover:bg-white",
-                                  "transition"
-                                )}
+                                className={cn("w-full", btnBase, "px-5 py-3", btnGhost, "justify-start")}
                               >
                                 {l.label}
                               </Link>
@@ -493,10 +451,14 @@ export default function MissionPage() {
                             <Link
                               href="/join"
                               onClick={() => setDesktopMenuOpen(false)}
-                              className={cn("w-full", "rounded-2xl px-5 py-3 font-extrabold", btnPrimary)}
+                              className={cn("w-full", btnBase, "px-5 py-3", btnPrimary, "justify-start")}
                             >
                               Join waitlist
                             </Link>
+                          </div>
+
+                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+                            Taste. Tap. Order.
                           </div>
                         </div>
                       </motion.div>
@@ -509,7 +471,7 @@ export default function MissionPage() {
                 </Link>
               </div>
 
-              {/* Mobile */}
+              {/* Mobile: hamburger */}
               {!isDesktop ? (
                 <div className="ml-auto shrink-0 relative md:hidden">
                   <button
@@ -519,35 +481,34 @@ export default function MissionPage() {
                     aria-expanded={menuOpen}
                     className={cn(
                       "inline-flex items-center justify-center",
-                      "rounded-full border border-slate-200/70 bg-white/60 backdrop-blur",
-                      "h-10 w-10 transition hover:-translate-y-[1px]"
+                      "rounded-full border border-slate-200 bg-white/95 backdrop-blur",
+                      "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]"
                     )}
-                    style={{
-                      color: BRAND_ORANGE,
-                      borderColor: "rgba(252,176,64,0.30)",
-                    }}
+                    style={{ color: BRAND_ORANGE, borderColor: "rgba(252,176,64,0.35)" }}
                   >
                     <HamburgerIcon open={menuOpen} />
                   </button>
                 </div>
               ) : null}
             </MotionDiv>
+          </div>
 
-            {/* Mobile dropdown */}
-            {!isDesktop ? (
-              <AnimatePresence initial={false}>
-                {menuOpen ? (
-                  <motion.div
-                    key="mobile-menu"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.22, ease: easeOut }}
-                    className="md:hidden overflow-hidden"
-                  >
-                    <div className="pt-3">
+          {/* Mobile dropdown (EXACT Vision) */}
+          {!isDesktop ? (
+            <AnimatePresence initial={false}>
+              {menuOpen ? (
+                <motion.div
+                  key="mobile-menu"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: easeOut }}
+                  className="md:hidden overflow-hidden"
+                >
+                  <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
+                    <div className="mx-auto w-full max-w-[420px]">
                       <div
-                        className="rounded-[26px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
+                        className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
                         style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
                       >
                         <div className="grid gap-2">
@@ -556,31 +517,31 @@ export default function MissionPage() {
                               key={l.href}
                               href={l.href}
                               onClick={() => setMenuOpen(false)}
-                              className={cn(
-                                "w-full",
-                                "rounded-2xl px-5 py-3 font-extrabold",
-                                "border border-slate-200 bg-white/80 hover:bg-white",
-                                "transition"
-                              )}
+                              className={cn("w-full", btnBase, "px-5 py-3", btnGhost)}
                             >
                               {l.label}
                             </Link>
                           ))}
+
                           <Link
                             href="/join"
                             onClick={() => setMenuOpen(false)}
-                            className={cn("w-full", "rounded-2xl px-5 py-3 font-extrabold", btnPrimary)}
+                            className={cn("w-full", btnBase, "px-5 py-3", btnPrimary)}
                           >
                             Join waitlist
                           </Link>
                         </div>
+
+                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+                          Taste. Tap. Order.
+                        </div>
                       </div>
                     </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            ) : null}
-          </div>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          ) : null}
         </div>
       </motion.div>
 
@@ -605,7 +566,10 @@ export default function MissionPage() {
           <div className="grid gap-6 md:grid-cols-2 items-stretch">
             <ScrollFade>
               <div className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm">
-                <div className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25" style={{ background: BRAND_ORANGE }} />
+                <div
+                  className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25"
+                  style={{ background: BRAND_ORANGE }}
+                />
                 <div className="text-sm font-extrabold text-slate-500">The moment it clicked</div>
                 <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
                   The solution already existed — it just wasn’t easy to access.
@@ -619,7 +583,10 @@ export default function MissionPage() {
 
             <ScrollFade className="h-full">
               <div className="relative h-full flex flex-col overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm">
-                <div className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20" style={{ background: BRAND_BROWN }} />
+                <div
+                  className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20"
+                  style={{ background: BRAND_BROWN }}
+                />
                 <div className="text-sm font-extrabold text-slate-500">What PeerPlates is</div>
                 <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
                   A community-driven marketplace for home cooks &amp; bakers.
@@ -645,7 +612,10 @@ export default function MissionPage() {
           <div className="grid gap-6 md:grid-cols-2 items-stretch">
             <ScrollFade>
               <div className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm">
-                <div className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25" style={{ background: BRAND_ORANGE }} />
+                <div
+                  className="absolute -top-14 -right-14 h-56 w-56 rounded-full blur-3xl opacity-25"
+                  style={{ background: BRAND_ORANGE }}
+                />
                 <div className="flex items-center gap-3">
                   <div
                     className="h-12 w-12 rounded-2xl border border-slate-200 bg-white/80 flex items-center justify-center shadow-sm"
@@ -666,7 +636,10 @@ export default function MissionPage() {
 
             <ScrollFade>
               <div className="relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/75 backdrop-blur p-7 shadow-sm">
-                <div className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20" style={{ background: BRAND_BROWN }} />
+                <div
+                  className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full blur-3xl opacity-20"
+                  style={{ background: BRAND_BROWN }}
+                />
                 <div className="flex items-center gap-3">
                   <div
                     className="h-12 w-12 rounded-2xl border border-slate-200 bg-white/80 flex items-center justify-center shadow-sm"

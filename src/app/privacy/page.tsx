@@ -11,8 +11,6 @@ import { MotionDiv } from "@/app/ui/motion";
 const BRAND_ORANGE = "#fcb040";
 const BRAND_BROWN = "#8a6b43";
 
-const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
-
 function cn(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
@@ -141,13 +139,6 @@ export default function PrivacyPage() {
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
-  // ✅ header hide/show like mission (ignore horizontal wheel/touch)
-  const [headerHidden, setHeaderHidden] = useState(false);
-  const downAccumRef = useRef<number>(0);
-  const lastYRef = useRef<number>(0);
-  const touchXRef = useRef<number | null>(null);
-  const touchYRef = useRef<number | null>(null);
-
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const apply = () => setIsDesktop(mq.matches);
@@ -169,106 +160,6 @@ export default function PrivacyPage() {
     if (!isDesktop) setDesktopMenuOpen(false);
   }, [isDesktop]);
 
-  // keep header visible when any menu is open
-  useEffect(() => {
-    if (menuOpen || desktopMenuOpen) setHeaderHidden(false);
-  }, [menuOpen, desktopMenuOpen]);
-
-  // ✅ hide on down intent, show on up intent (with horizontal filtering)
-  useEffect(() => {
-    lastYRef.current = window.scrollY || 0;
-
-    const show = () => {
-      downAccumRef.current = 0;
-      setHeaderHidden(false);
-    };
-
-    const hideAfterThreshold = (deltaDown: number) => {
-      downAccumRef.current += deltaDown;
-      if (!headerHidden && downAccumRef.current > 18) setHeaderHidden(true);
-    };
-
-    const onScroll = () => {
-      if (menuOpen || desktopMenuOpen) return;
-
-      const y = window.scrollY || 0;
-
-      // always show near top
-      if (y <= 8) {
-        if (headerHidden) show();
-        lastYRef.current = y;
-        return;
-      }
-
-      const last = lastYRef.current;
-      const delta = y - last;
-      lastYRef.current = y;
-
-      if (Math.abs(delta) < 2) return;
-
-      if (delta < 0) show();
-      else hideAfterThreshold(delta);
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      if (menuOpen || desktopMenuOpen) return;
-
-      const dx = e.deltaX || 0;
-      const dy = e.deltaY || 0;
-
-      // ignore mostly-horizontal scroll
-      if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
-      if (Math.abs(dy) < 4) return;
-
-      if (dy < 0) show();
-      else hideAfterThreshold(dy);
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      const t = e.touches?.[0];
-      if (!t) return;
-      touchXRef.current = t.clientX;
-      touchYRef.current = t.clientY;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (menuOpen || desktopMenuOpen) return;
-      const t = e.touches?.[0];
-      if (!t) return;
-
-      const prevX = touchXRef.current;
-      const prevY = touchYRef.current;
-
-      touchXRef.current = t.clientX;
-      touchYRef.current = t.clientY;
-
-      if (prevX == null || prevY == null) return;
-
-      const dx = prevX - t.clientX;
-      const dy = prevY - t.clientY;
-
-      // ignore mostly-horizontal swipes
-      if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
-      if (Math.abs(dy) < 4) return;
-
-      if (dy < 0) show();
-      else hideAfterThreshold(dy);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("wheel", onWheel, { passive: true });
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove", onTouchMove);
-    };
-  }, [menuOpen, desktopMenuOpen, headerHidden]);
-
-  // Mobile menu: lock scroll + esc
   useEffect(() => {
     if (!menuOpen) return;
 
@@ -286,7 +177,6 @@ export default function PrivacyPage() {
     };
   }, [menuOpen]);
 
-  // Desktop dropdown: esc + outside click
   useEffect(() => {
     if (!desktopMenuOpen) return;
 
@@ -315,16 +205,16 @@ export default function PrivacyPage() {
       { href: "/mission", label: "Mission", variant: "ghost" as const },
         { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
       {href: "/faq", label: "FAQ", variant: "ghost" as const },
-
-      { href: "/queue", label: "Check queue", variant: "ghost" as const },
     
+      { href: "/queue", label: "Check queue", variant: "ghost" as const },
+   
     ],
     []
   );
 
   const btnBase =
-    "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold transition hover:-translate-y-[1px] whitespace-nowrap";
-  const btnGhost = "border border-slate-200/70 bg-white/60 backdrop-blur text-slate-900 hover:bg-white/75";
+    "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
+  const btnGhost = "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
   const gradientStyle = useMemo(
@@ -357,30 +247,42 @@ export default function PrivacyPage() {
         />
       </div>
 
-      {/* ✅ Header (Mission style) — WITH mobile hamburger restored */}
-      <motion.div
-        className="fixed top-0 left-0 right-0 z-[100]"
-        initial={false}
-        animate={{ opacity: headerHidden ? 0 : 1, y: headerHidden ? -10 : 0 }}
-        transition={{ duration: 0.22, ease: easeOut }}
-        style={{
-          willChange: "opacity, transform",
-          pointerEvents: headerHidden ? "none" : "auto",
-        }}
-      >
-        <div className="pointer-events-auto">
-          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pt-4">
+      {/* ✅ Header (menu from vision) + ✅ logo fade behavior like mission */}
+      <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
+        <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
+              transition={{
+                type: "spring",
+                stiffness: 120,
+                damping: 20,
+                mass: 1.2,
+                delay: 0.15,
+              }}
               className="flex items-center gap-3 min-w-0"
             >
               <Link href="/" className="flex items-center min-w-0">
-                <LogoCinematic size={60} wordScale={1} />
+                {/* ✅ match mission: don't clip logo fade/glow */}
+                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
+                  {/* ✅ match mission: slower logo fade-in */}
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{
+                      duration: 1.6,
+                      ease: [0.2, 0.9, 0.2, 1],
+                      delay: 0.2,
+                    }}
+                    className="inline-flex shrink-0"
+                  >
+                    <LogoCinematic size={64} wordScale={1} />
+                  </motion.span>
+                </span>
               </Link>
 
-              {/* Desktop */}
+              {/* Desktop: dropdown + primary button */}
               <div className="hidden md:flex items-center gap-3 ml-auto">
                 <div className="relative" data-desktop-menu-root>
                   <button
@@ -389,7 +291,7 @@ export default function PrivacyPage() {
                     aria-label={desktopMenuOpen ? "Close menu" : "Open menu"}
                     aria-expanded={desktopMenuOpen}
                     className={cn(btnBase, btnGhost, "gap-2")}
-                    style={{ borderColor: "rgba(252,176,64,0.30)" }}
+                    style={{ borderColor: "rgba(252,176,64,0.35)" }}
                   >
                     <span style={{ color: BRAND_BROWN }}>Menu</span>
                     <span style={{ color: BRAND_ORANGE }}>
@@ -401,14 +303,14 @@ export default function PrivacyPage() {
                     {desktopMenuOpen ? (
                       <motion.div
                         key="desktop-menu"
-                        initial={{ opacity: 0, y: 10, scale: 0.985 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.985 }}
-                        transition={{ duration: 0.16, ease: easeOut }}
+                        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                        transition={{ duration: 0.16, ease: [0.2, 0.9, 0.2, 1] }}
                         className="absolute right-0 mt-3 w-[320px] origin-top-right"
                       >
                         <div
-                          className="rounded-[26px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
+                          className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
                           style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
                         >
                           <div className="grid gap-2">
@@ -417,12 +319,7 @@ export default function PrivacyPage() {
                                 key={l.href}
                                 href={l.href}
                                 onClick={() => setDesktopMenuOpen(false)}
-                                className={cn(
-                                  "w-full",
-                                  "rounded-2xl px-5 py-3 font-extrabold",
-                                  "border border-slate-200 bg-white/80 hover:bg-white",
-                                  "transition"
-                                )}
+                                className={cn("w-full", btnBase, "px-5 py-3", btnGhost, "justify-start")}
                               >
                                 {l.label}
                               </Link>
@@ -430,10 +327,14 @@ export default function PrivacyPage() {
                             <Link
                               href="/join"
                               onClick={() => setDesktopMenuOpen(false)}
-                              className={cn("w-full", "rounded-2xl px-5 py-3 font-extrabold", btnPrimary)}
+                              className={cn("w-full", btnBase, "px-5 py-3", btnPrimary, "justify-start")}
                             >
                               Join waitlist
                             </Link>
+                          </div>
+
+                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+                            Taste. Tap. Order.
                           </div>
                         </div>
                       </motion.div>
@@ -446,7 +347,7 @@ export default function PrivacyPage() {
                 </Link>
               </div>
 
-              {/* ✅ Mobile: hamburger (RESTORED) */}
+              {/* Mobile: hamburger */}
               {!isDesktop ? (
                 <div className="ml-auto shrink-0 relative md:hidden">
                   <button
@@ -456,35 +357,34 @@ export default function PrivacyPage() {
                     aria-expanded={menuOpen}
                     className={cn(
                       "inline-flex items-center justify-center",
-                      "rounded-full border border-slate-200/70 bg-white/60 backdrop-blur",
-                      "h-10 w-10 transition hover:-translate-y-[1px]"
+                      "rounded-full border border-slate-200 bg-white/95 backdrop-blur",
+                      "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]"
                     )}
-                    style={{
-                      color: BRAND_ORANGE,
-                      borderColor: "rgba(252,176,64,0.30)",
-                    }}
+                    style={{ color: BRAND_ORANGE, borderColor: "rgba(252,176,64,0.35)" }}
                   >
                     <HamburgerIcon open={menuOpen} />
                   </button>
                 </div>
               ) : null}
             </MotionDiv>
+          </div>
 
-            {/* ✅ Mobile dropdown (RESTORED) */}
-            {!isDesktop ? (
-              <AnimatePresence initial={false}>
-                {menuOpen ? (
-                  <motion.div
-                    key="mobile-menu"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.22, ease: easeOut }}
-                    className="md:hidden overflow-hidden"
-                  >
-                    <div className="pt-3">
+          {/* Mobile dropdown */}
+          {!isDesktop ? (
+            <AnimatePresence initial={false}>
+              {menuOpen ? (
+                <motion.div
+                  key="mobile-menu"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.22, ease: [0.2, 0.9, 0.2, 1] }}
+                  className="md:hidden overflow-hidden"
+                >
+                  <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
+                    <div className="mx-auto w-full max-w-[420px]">
                       <div
-                        className="rounded-[26px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
+                        className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
                         style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
                       >
                         <div className="grid gap-2">
@@ -493,33 +393,33 @@ export default function PrivacyPage() {
                               key={l.href}
                               href={l.href}
                               onClick={() => setMenuOpen(false)}
-                              className={cn(
-                                "w-full",
-                                "rounded-2xl px-5 py-3 font-extrabold",
-                                "border border-slate-200 bg-white/80 hover:bg-white",
-                                "transition"
-                              )}
+                              className={cn("w-full", btnBase, "px-5 py-3", btnGhost)}
                             >
                               {l.label}
                             </Link>
                           ))}
+
                           <Link
                             href="/join"
                             onClick={() => setMenuOpen(false)}
-                            className={cn("w-full", "rounded-2xl px-5 py-3 font-extrabold", btnPrimary)}
+                            className={cn("w-full", btnBase, "px-5 py-3", btnPrimary)}
                           >
                             Join waitlist
                           </Link>
                         </div>
+
+                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">
+                          Taste. Tap. Order.
+                        </div>
                       </div>
                     </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            ) : null}
-          </div>
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          ) : null}
         </div>
-      </motion.div>
+      </div>
 
       {/* Spacer so content doesn't sit under fixed header */}
       <div className="h-[84px]" />
