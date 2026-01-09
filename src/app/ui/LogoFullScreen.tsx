@@ -2,59 +2,23 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import { MotionDiv } from "@/app/ui/motion";
 
-const BRAND_HEX = "#fcb040";
 const BRAND_BROWN = "#8a6b43";
 const BRAND_ORANGE = "#fcb040";
-
-type Particle = {
-  id: number;
-  sx: number;
-  sy: number;
-  tx: number;
-  ty: number;
-  r: number;
-  d: number;
-};
 
 function cn(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
 
 const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
-const px = (n: number) => `${Math.round(n * 1000) / 1000}px`;
 
-function makeWordTargets(): Array<{ x: number; y: number }> {
-  const pts: Array<{ x: number; y: number }> = [];
-  const line = (x1: number, y1: number, x2: number, y2: number, n: number) => {
-    for (let i = 0; i < n; i++) {
-      const t = n === 1 ? 0 : i / (n - 1);
-      pts.push({ x: x1 + (x2 - x1) * t, y: y1 + (y2 - y1) * t });
-    }
-  };
-
-  // ORIGINAL MAP — UNCHANGED
-  line(18, 30, 18, 88, 6);
-  line(18, 30, 72, 30, 5);
-  line(18, 56, 62, 56, 4);
-  line(72, 30, 72, 56, 3);
-  line(92, 56, 132, 56, 4);
-  line(92, 56, 92, 86, 3);
-  line(92, 86, 132, 86, 4);
-  line(148, 56, 188, 56, 4);
-  line(256, 30, 256, 88, 6);
-  line(256, 30, 310, 30, 5);
-  line(328, 30, 328, 88, 6);
-  line(414, 30, 414, 88, 6);
-  line(446, 56, 486, 56, 4);
-  line(506, 56, 546, 56, 4);
-
-  return pts;
+function prefersReducedMotion() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
 }
 
 /** Hamburger icon (3 lines) that animates into an X when open */
@@ -114,8 +78,215 @@ function ChevronDown({ open }: { open: boolean }) {
   );
 }
 
+/* --- tiny inline icons (no boxes) --- */
+function IconTaste() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-[18px] w-[18px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M7 3v8" />
+      <path d="M10 3v8" />
+      <path d="M7 7h3" />
+      <path d="M10 11c0 5-3 10-3 10" />
+      <path d="M14 3c3 0 3 4 0 4v14" />
+    </svg>
+  );
+}
+function IconTap() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-[18px] w-[18px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 3v10" />
+      <path d="M12 13l-2-2a2 2 0 0 0-3 1l1 5a4 4 0 0 0 4 3h3a4 4 0 0 0 4-4v-3a2 2 0 0 0-2-2h-1" />
+      <path d="M12 7h2a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+function IconOrder() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-[18px] w-[18px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 7h15l-1.5 13h-12L6 7Z" />
+      <path d="M9 7a3 3 0 0 1 6 0" />
+      <path d="M10 12h6" />
+      <path d="M10 15h6" />
+    </svg>
+  );
+}
+
+function StepItem({
+  title,
+  subtitle,
+  icon,
+  delay = 0,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.5, delay, ease: easeOut }}
+      className="text-center"
+    >
+      <div className="mx-auto flex items-center justify-center gap-2">
+        <span style={{ color: BRAND_BROWN }}>{icon}</span>
+        <span className="text-[12px] sm:text-[13px] font-black uppercase tracking-[0.22em] text-slate-900">
+          {title}
+        </span>
+      </div>
+      <div className="mt-1 text-[12px] font-semibold text-slate-600">{subtitle}</div>
+    </motion.div>
+  );
+}
+
+/**
+ * ✅ FIX: stays centered while opening
+ * - We anchor the clipping container at 50% and translateX(-50%)
+ * - Width expands symmetrically (no drifting to the right)
+ * - Removed the “right vignette” that was showing as a white block
+ *
+ * ✅ Also reduces overflow on mobile by capping width and allowing safe inner shift.
+ */
+function RevealFromBehind({
+  size,
+  wordScale,
+  isMobile,
+  tilt,
+}: {
+  size: number;
+  wordScale: number;
+  isMobile: boolean;
+  tilt: { rx: number; ry: number };
+}) {
+  const [reveal, setReveal] = useState(false);
+  const closeTimer = useRef<number | null>(null);
+
+  // approximate inner geometry of LogoCinematic (from your reference file)
+  const gap = 12; // ml-3
+  const wordW = 420 * wordScale; // word area width
+  const fullW = size + gap + wordW;
+
+  const clearTimer = () => {
+    if (closeTimer.current) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  // sync with LogoCinematic auto-preview on mount
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    setReveal(true);
+    clearTimer();
+    closeTimer.current = window.setTimeout(() => setReveal(false), 1200);
+    return () => clearTimer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onEnter = () => {
+    clearTimer();
+    setReveal(true);
+  };
+  const onLeave = () => {
+    clearTimer();
+    setReveal(false);
+  };
+  const onTap = () => {
+    const canHover = window.matchMedia?.("(hover: hover) and (pointer: fine)")?.matches ?? false;
+    if (canHover) return;
+    clearTimer();
+    setReveal(true);
+    closeTimer.current = window.setTimeout(() => setReveal(false), 1200);
+  };
+
+  // cap reveal width on mobile to stop overflow
+  const openWidth = isMobile ? `min(${Math.round(fullW)}px, 92vw)` : `${Math.round(fullW)}px`;
+  const closedWidth = `${Math.round(size)}px`;
+
+  // small inner shift to keep the revealed word feeling “behind” the logo
+  const revealExtra = Math.max(0, fullW - size);
+  const shiftWhenOpen = isMobile
+    ? -Math.min(84, Math.round(revealExtra * 0.24))
+    : -Math.min(64, Math.round(revealExtra * 0.18));
+
+  return (
+    <motion.div
+      className="relative mx-auto"
+      style={{
+        transformStyle: "preserve-3d",
+        perspective: "900px",
+        rotateX: tilt.rx,
+        rotateY: tilt.ry,
+      }}
+      transition={{ type: "spring", stiffness: 220, damping: 22 }}
+    >
+      {/* ✅ centered anchor */}
+      <motion.div
+        onMouseEnter={onEnter}
+        onMouseLeave={onLeave}
+        onClick={onTap}
+        className="absolute left-1/2 top-0"
+        style={{
+          transform: "translateX(-50%)",
+          overflow: "hidden",
+          // no background, no border
+          width: reveal ? openWidth : closedWidth,
+          willChange: "width",
+        }}
+        animate={{
+          width: reveal ? openWidth : closedWidth,
+        }}
+        transition={{
+          duration: reveal ? 0.7 : 0.5,
+          ease: [0.16, 1, 0.3, 1],
+        }}
+      >
+        {/* inner shift so reveal feels like it’s coming from behind */}
+        <motion.div
+          initial={false}
+          animate={{ x: reveal ? shiftWhenOpen : 0 }}
+          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+          style={{ willChange: "transform" }}
+        >
+          <LogoCinematic size={size} wordScale={wordScale} />
+        </motion.div>
+      </motion.div>
+
+      {/* spacer so absolute element doesn't collapse layout */}
+      <div style={{ width: Math.max(size, 1), height: size }} />
+    </motion.div>
+  );
+}
+
 export default function LogoFullScreen({
-  size = 130,
+  size = 110,
   className = "",
 }: {
   size?: number;
@@ -134,22 +305,23 @@ export default function LogoFullScreen({
   const downAccumRef = useRef<number>(0);
   const lastYRef = useRef<number>(0);
 
-  // Touch tracking (X + Y) so horizontal swipes don't affect header
+  // Touch tracking (X + Y)
   const touchXRef = useRef<number | null>(null);
   const touchYRef = useRef<number | null>(null);
+
+  // Center tilt
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  // keep header visible when any menu is open
   useEffect(() => {
     if (menuOpen || desktopMenuOpen) setHeaderHidden(false);
   }, [menuOpen, desktopMenuOpen]);
 
-  // ✅ Hide on vertical down intent, show only on vertical up intent.
-  // ✅ Ignore horizontal-dominant wheel/touch gestures.
   useEffect(() => {
     lastYRef.current = window.scrollY || 0;
 
@@ -189,8 +361,6 @@ export default function LogoFullScreen({
 
       const dx = e.deltaX || 0;
       const dy = e.deltaY || 0;
-
-      // Ignore horizontal-dominant gestures (trackpad side scroll)
       if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
       if (Math.abs(dy) < 4) return;
 
@@ -219,9 +389,8 @@ export default function LogoFullScreen({
       if (prevX == null || prevY == null) return;
 
       const dx = prevX - t.clientX;
-      const dy = prevY - t.clientY; // finger up => dy positive => scroll down intent
+      const dy = prevY - t.clientY;
 
-      // Ignore horizontal-dominant swipes
       if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
       if (Math.abs(dy) < 4) return;
 
@@ -276,7 +445,6 @@ export default function LogoFullScreen({
     }
   }, []);
 
-  // Close menus when switching modes
   useEffect(() => {
     if (isDesktop) setMenuOpen(false);
     if (!isDesktop) setDesktopMenuOpen(false);
@@ -323,39 +491,35 @@ export default function LogoFullScreen({
     };
   }, [desktopMenuOpen]);
 
-  const targets = useMemo(() => makeWordTargets(), []);
+  // Pointer tilt (desktop only)
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
 
-  const particles = useMemo<Particle[]>(() => {
-    if (!mounted) return [];
-    const count = isMobile ? 34 : 64;
+    const onMove = (e: PointerEvent) => {
+      if (isMobile) return;
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dx = (e.clientX - cx) / (r.width / 2);
+      const dy = (e.clientY - cy) / (r.height / 2);
 
-    const ringOuter = isMobile ? 180 : 260;
-    const ringInner = isMobile ? 95 : 135;
+      const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
+      const ndx = clamp(dx, -1, 1);
+      const ndy = clamp(dy, -1, 1);
 
-    return targets.slice(0, count).map((_, i) => {
-      const t = (i / count) * Math.PI * 2;
+      setTilt({ rx: -ndy * 5.2, ry: ndx * 6.8 });
+    };
 
-      const wobble = (Math.sin(i * 12.9898) * 0.5 + 0.5) * 22;
-      const ringR =
-        ringInner + ((i % 7) / 6) * (ringOuter - ringInner) + wobble * 0.22;
+    const onLeave = () => setTilt({ rx: 0, ry: 0 });
 
-      const tx = Math.cos(t) * ringR;
-      const ty = Math.sin(t) * ringR * 0.66;
-
-      const sx = size / 2 + Math.cos(t) * (size * 0.24);
-      const sy = size / 2 + Math.sin(t) * (size * 0.24);
-
-      return {
-        id: i,
-        sx,
-        sy,
-        tx,
-        ty,
-        r: 4 + (i % 3),
-        d: i * 0.012,
-      };
-    });
-  }, [targets, size, isMobile, mounted]);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
+    return () => {
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+    };
+  }, [isMobile]);
 
   const navLinks = useMemo(
     () => [
@@ -368,90 +532,79 @@ export default function LogoFullScreen({
     []
   );
 
+  const steps = useMemo(
+    () => [
+      { title: "Taste", subtitle: "Discover peer-loved dishes.", icon: <IconTaste /> },
+      { title: "Tap", subtitle: "Pick fast, no long forms.", icon: <IconTap /> },
+      { title: "Order", subtitle: "Pickup or delivery — done.", icon: <IconOrder /> },
+    ],
+    []
+  );
+
   const btnBase =
-    "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold shadow-sm transition hover:-translate-y-[1px] whitespace-nowrap";
+    "inline-flex items-center justify-center rounded-2xl px-5 py-2.5 font-extrabold transition hover:-translate-y-[1px] whitespace-nowrap";
   const btnGhost =
-    "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
+    "border border-slate-200/70 bg-white/60 backdrop-blur text-slate-900 hover:bg-white/75";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
+  // reduce logo size on-screen only
+  const HERO_LOGO_SIZE = isMobile ? Math.round(size * 0.74) : Math.round(size * 0.92);
+  const HERO_WORD_SCALE = isMobile ? 0.92 : 1.02;
+
   return (
-    <section className="relative isolate h-screen w-screen flex items-center justify-center overflow-hidden">
-      {/* subtle background glow */}
+    <section className="relative isolate h-screen w-screen overflow-hidden">
+      {/* background */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        {/* ✅ lighter / whiter base, orange-led, very subtle brown for depth */}
         <div
           className="absolute inset-0"
           style={{
             background: `
-              radial-gradient(900px 520px at 50% 45%,
-                rgba(252,176,64,0.22) 0%,
-                rgba(252,176,64,0.10) 42%,
+              radial-gradient(1100px 620px at 52% 44%,
+                rgba(252,176,64,0.18) 0%,
+                rgba(252,176,64,0.08) 42%,
                 rgba(255,255,255,0.00) 72%),
 
-              radial-gradient(720px 420px at 18% 28%,
-                rgba(252,176,64,0.16) 0%,
-                rgba(252,176,64,0.06) 48%,
+              radial-gradient(820px 520px at 20% 26%,
+                rgba(252,176,64,0.13) 0%,
+                rgba(252,176,64,0.05) 52%,
                 rgba(255,255,255,0.00) 78%),
 
-              radial-gradient(760px 520px at 82% 72%,
-                rgba(138,107,67,0.12) 0%,
+              radial-gradient(900px 640px at 84% 72%,
+                rgba(138,107,67,0.11) 0%,
                 rgba(138,107,67,0.05) 52%,
                 rgba(255,255,255,0.00) 78%),
 
               linear-gradient(180deg,
                 rgba(255,255,255,1) 0%,
-                rgba(251,248,242,1) 55%,
+                rgba(251,248,242,1) 52%,
                 rgba(255,255,255,1) 100%)
             `,
           }}
         />
-
-        {/* ✅ slight overall darkening (much less than before) */}
-        <div className="absolute inset-0 bg-slate-950/5" />
-
-        {/* ✅ animated glows (reduced brown, more orange) */}
-        <motion.div
-          className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-18"
-          style={{ background: "rgba(252,176,64,0.40)" }}
-          animate={{ x: [0, 60, 0], y: [0, 22, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute -right-52 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-12"
-          style={{ background: "rgba(138,107,67,0.26)" }}
-          animate={{ x: [0, -64, 0], y: [0, -24, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        {/* ✅ hides the “split” into the next white section */}
-        <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-b from-transparent to-white" />
+        <div className="absolute inset-x-0 bottom-0 h-60 bg-gradient-to-b from-transparent to-white" />
       </div>
 
-      {/* ================= HEADER ================= */}
+      {/* header */}
       <motion.div
         className="fixed top-0 left-0 right-0 z-[100]"
         initial={false}
-        animate={{ opacity: headerHidden ? 0 : 1 }}
+        animate={{ opacity: headerHidden ? 0 : 1, y: headerHidden ? -10 : 0 }}
         transition={{ duration: 0.22, ease: easeOut }}
         style={{
-          willChange: "opacity",
+          willChange: "opacity, transform",
           pointerEvents: headerHidden ? "none" : "auto",
         }}
       >
-        <div className="pointer-events-auto border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
+        <div className="pointer-events-auto">
+          <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pt-4">
             <MotionDiv
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="flex items-center gap-3 min-w-0"
+              className="flex items-center gap-3"
             >
-              <Link href="/" className="flex items-center min-w-0">
-                <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
-                  <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
-                    <LogoCinematic size={64} wordScale={1} />
-                  </span>
-                </span>
+              <Link href="/" className="flex items-center">
+                <LogoCinematic size={60} wordScale={1} />
               </Link>
 
               {/* Desktop */}
@@ -463,7 +616,7 @@ export default function LogoFullScreen({
                     aria-label={desktopMenuOpen ? "Close menu" : "Open menu"}
                     aria-expanded={desktopMenuOpen}
                     className={cn(btnBase, btnGhost, "gap-2")}
-                    style={{ borderColor: "rgba(252,176,64,0.35)" }}
+                    style={{ borderColor: "rgba(252,176,64,0.30)" }}
                   >
                     <span style={{ color: BRAND_BROWN }}>Menu</span>
                     <span style={{ color: BRAND_ORANGE }}>
@@ -475,14 +628,14 @@ export default function LogoFullScreen({
                     {desktopMenuOpen ? (
                       <motion.div
                         key="desktop-menu"
-                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.985 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.985 }}
                         transition={{ duration: 0.16, ease: easeOut }}
                         className="absolute right-0 mt-3 w-[320px] origin-top-right"
                       >
                         <div
-                          className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
+                          className="rounded-[26px] border border-slate-200 bg-white/92 backdrop-blur p-3 shadow-sm"
                           style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
                         >
                           <div className="grid gap-2">
@@ -493,10 +646,9 @@ export default function LogoFullScreen({
                                 onClick={() => setDesktopMenuOpen(false)}
                                 className={cn(
                                   "w-full",
-                                  btnBase,
-                                  "px-5 py-3",
-                                  btnGhost,
-                                  "justify-start"
+                                  "rounded-2xl px-5 py-3 font-extrabold",
+                                  "border border-slate-200 bg-white/80 hover:bg-white",
+                                  "transition"
                                 )}
                               >
                                 {l.label}
@@ -507,18 +659,12 @@ export default function LogoFullScreen({
                               onClick={() => setDesktopMenuOpen(false)}
                               className={cn(
                                 "w-full",
-                                btnBase,
-                                "px-5 py-3",
-                                btnPrimary,
-                                "justify-start"
+                                "rounded-2xl px-5 py-3 font-extrabold",
+                                btnPrimary
                               )}
                             >
                               Join waitlist
                             </Link>
-                          </div>
-
-                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">
-                            Taste. Tap. Order.
                           </div>
                         </div>
                       </motion.div>
@@ -541,12 +687,12 @@ export default function LogoFullScreen({
                     aria-expanded={menuOpen}
                     className={cn(
                       "inline-flex items-center justify-center",
-                      "rounded-full border border-slate-200 bg-white/95 backdrop-blur",
-                      "h-10 w-10 shadow-sm transition hover:-translate-y-[1px]"
+                      "rounded-full border border-slate-200/70 bg-white/60 backdrop-blur",
+                      "h-10 w-10 transition hover:-translate-y-[1px]"
                     )}
                     style={{
                       color: BRAND_ORANGE,
-                      borderColor: "rgba(252,176,64,0.35)",
+                      borderColor: "rgba(252,176,64,0.30)",
                     }}
                   >
                     <HamburgerIcon open={menuOpen} />
@@ -554,24 +700,22 @@ export default function LogoFullScreen({
                 </div>
               ) : null}
             </MotionDiv>
-          </div>
 
-          {/* Mobile dropdown */}
-          {!isDesktop ? (
-            <AnimatePresence initial={false}>
-              {menuOpen ? (
-                <motion.div
-                  key="mobile-menu"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: easeOut }}
-                  className="md:hidden overflow-hidden"
-                >
-                  <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
-                    <div className="mx-auto w-full max-w-[420px]">
+            {/* Mobile dropdown */}
+            {!isDesktop ? (
+              <AnimatePresence initial={false}>
+                {menuOpen ? (
+                  <motion.div
+                    key="mobile-menu"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: easeOut }}
+                    className="md:hidden overflow-hidden"
+                  >
+                    <div className="pt-3">
                       <div
-                        className="rounded-[28px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
+                        className="rounded-[26px] border border-slate-200 bg-white/92 backdrop-blur p-4 shadow-sm"
                         style={{ boxShadow: "0 18px 60px rgba(2,6,23,0.10)" }}
                       >
                         <div className="grid gap-2">
@@ -580,74 +724,133 @@ export default function LogoFullScreen({
                               key={l.href}
                               href={l.href}
                               onClick={() => setMenuOpen(false)}
-                              className={cn("w-full", btnBase, "px-5 py-3", btnGhost)}
+                              className={cn(
+                                "w-full",
+                                "rounded-2xl px-5 py-3 font-extrabold",
+                                "border border-slate-200 bg-white/80 hover:bg-white",
+                                "transition"
+                              )}
                             >
                               {l.label}
                             </Link>
                           ))}
-
                           <Link
                             href="/join"
                             onClick={() => setMenuOpen(false)}
-                            className={cn("w-full", btnBase, "px-5 py-3", btnPrimary)}
+                            className={cn(
+                              "w-full",
+                              "rounded-2xl px-5 py-3 font-extrabold",
+                              btnPrimary
+                            )}
                           >
                             Join waitlist
                           </Link>
                         </div>
-
-                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">
-                          Taste. Tap. Order.
-                        </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          ) : null}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            ) : null}
+          </div>
         </div>
       </motion.div>
 
-      {/* ================= CENTER LOGO ================= */}
-      <motion.div
-        className={cn("relative z-10 select-none", className)}
-        initial={{ opacity: 0, scale: 0.82, filter: "blur(18px)" }}
-        animate={mounted ? { opacity: 1, scale: 1, filter: "blur(0px)" } : undefined}
-        transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <div className="relative grid place-items-center" style={{ width: size, height: size }}>
-          {/* ✅ circles removed */}
-
-          {/* ✅ NO rounded edges. No rounded wrapper. No clipping. */}
-          <motion.div
-            className="relative"
-            initial={{ opacity: 0, scale: 0.86 }}
-            animate={mounted ? { opacity: 1, scale: 1 } : undefined}
-            transition={{ duration: 0.55, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              boxShadow: "0 18px 60px rgba(2,6,23,0.12), 0 0 0 1px rgba(252,176,64,0.12)",
-            }}
-          >
-            <Image
-              src="/images/brand/logo.png"
-              alt="PeerPlates logo"
-              width={size}
-              height={size}
-              priority
-              className="block"
-            />
-          </motion.div>
-        </div>
-
+      {/* hero */}
+      <div className="relative z-10 h-full w-full flex items-center justify-center">
         <motion.div
-          className="mt-5 text-center text-sm font-extrabold text-slate-700"
-          initial={{ opacity: 0, y: 8 }}
-          animate={mounted ? { opacity: 1, y: 0 } : undefined}
-          transition={{ duration: 0.45, delay: 0.55, ease: easeOut }}
+          className={cn("w-full px-6", className)}
+          initial={{ opacity: 0, y: 14, scale: 0.98, filter: "blur(12px)" }}
+          animate={mounted ? { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" } : undefined}
+          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
         >
-          Taste. Tap. Order.
+          <div className="mx-auto w-full max-w-3xl text-center">
+            <div
+              ref={wrapRef}
+              className="relative mx-auto grid place-items-center"
+              style={{
+                width: isMobile ? size * 2.0 : size * 2.45,
+                height: isMobile ? size * 2.0 : size * 2.45,
+              }}
+            >
+              {/* rings */}
+              <motion.div
+                className="pointer-events-none absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 rounded-full"
+                style={{
+                  width: size * 1.95,
+                  height: size * 1.95,
+                  border: "1px solid rgba(252,176,64,0.14)",
+                  opacity: 0.9,
+                }}
+                animate={{ scale: [1, 1.02, 1], opacity: [0.65, 0.92, 0.65] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              />
+
+              {/* ✅ centered opening */}
+              <RevealFromBehind
+                size={isMobile ? Math.round(size * 0.74) : Math.round(size * 0.92)}
+                wordScale={isMobile ? 0.92 : 1.02}
+                isMobile={isMobile}
+                tilt={tilt}
+              />
+            </div>
+
+            {/* Taste • Tap • Order */}
+            <motion.div
+              className="mt-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={mounted ? { opacity: 1, y: 0 } : undefined}
+              transition={{ duration: 0.5, delay: 0.22, ease: easeOut }}
+            >
+              <div className="flex items-center justify-center gap-3">
+                {(["Taste", "Tap", "Order"] as const).map((t, i) => (
+                  <React.Fragment key={t}>
+                    <span className="text-[12px] sm:text-[13px] font-black uppercase tracking-[0.28em] text-slate-900">
+                      {t}
+                    </span>
+                    {i < 2 ? (
+                      <span
+                        className="inline-block h-[6px] w-[6px] rounded-full"
+                        style={{ background: "rgba(252,176,64,0.95)" }}
+                      />
+                    ) : null}
+                  </React.Fragment>
+                ))}
+              </div>
+
+              <div className="mt-3 flex justify-center">
+                <motion.div
+                  className="h-[2px] w-48 rounded-full"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, rgba(252,176,64,0.00), rgba(252,176,64,0.88), rgba(138,107,67,0.00))",
+                    opacity: 0.85,
+                  }}
+                  animate={{ scaleX: [0.86, 1, 0.86] }}
+                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                />
+              </div>
+
+              <div className="mt-3 text-[12px] font-semibold text-slate-600">
+                Peer-picked food. Zero fuss.
+              </div>
+            </motion.div>
+
+            {/* Steps */}
+            <div className={cn("mt-8", isMobile ? "grid gap-5" : "grid grid-cols-3 gap-8")}>
+              {steps.map((s, idx) => (
+                <StepItem
+                  key={s.title}
+                  title={s.title}
+                  subtitle={s.subtitle}
+                  icon={s.icon}
+                  delay={0.32 + idx * 0.08}
+                />
+              ))}
+            </div>
+          </div>
         </motion.div>
-      </motion.div>
+      </div>
     </section>
   );
 }

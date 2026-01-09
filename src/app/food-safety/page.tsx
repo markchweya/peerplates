@@ -106,10 +106,7 @@ function PageShell({
           transition={{ duration: 0.55, ease: [0.2, 0.9, 0.2, 1] }}
           className="mx-auto max-w-4xl"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/75 px-5 py-2.5 text-sm font-extrabold text-slate-700 shadow-sm backdrop-blur">
-            <span className="h-2 w-2 rounded-full" style={{ background: BRAND_ORANGE }} />
-            {kicker}
-          </div>
+        
 
           <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.8rem,6vw,4.6rem)] text-slate-900">
             {title}{" "}
@@ -473,7 +470,7 @@ export default function FoodSafetyPage() {
       <div className="h-[84px]" />
 
       <PageShell
-        kicker="Food safety"
+        kicker=""
         title="Food safety comes"
         highlight="first."
         body="Food safety isn’t optional on PeerPlates — it’s the baseline. Customers can trust every order comes from a vendor who meets clear UK health & safety requirements."
