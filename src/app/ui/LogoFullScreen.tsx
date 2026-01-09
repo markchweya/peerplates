@@ -3,59 +3,19 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 
 import LogoCinematic from "@/app/ui/LogoCinematic";
 import { MotionDiv } from "@/app/ui/motion";
 
-const BRAND_HEX = "#fcb040";
 const BRAND_BROWN = "#8a6b43";
 const BRAND_ORANGE = "#fcb040";
-
-type Particle = {
-  id: number;
-  sx: number;
-  sy: number;
-  tx: number;
-  ty: number;
-  r: number;
-  d: number;
-};
 
 function cn(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
 }
 
 const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
-const px = (n: number) => `${Math.round(n * 1000) / 1000}px`;
-
-function makeWordTargets(): Array<{ x: number; y: number }> {
-  const pts: Array<{ x: number; y: number }> = [];
-  const line = (x1: number, y1: number, x2: number, y2: number, n: number) => {
-    for (let i = 0; i < n; i++) {
-      const t = n === 1 ? 0 : i / (n - 1);
-      pts.push({ x: x1 + (x2 - x1) * t, y: y1 + (y2 - y1) * t });
-    }
-  };
-
-  // ORIGINAL MAP — UNCHANGED
-  line(18, 30, 18, 88, 6);
-  line(18, 30, 72, 30, 5);
-  line(18, 56, 62, 56, 4);
-  line(72, 30, 72, 56, 3);
-  line(92, 56, 132, 56, 4);
-  line(92, 56, 92, 86, 3);
-  line(92, 86, 132, 86, 4);
-  line(148, 56, 188, 56, 4);
-  line(256, 30, 256, 88, 6);
-  line(256, 30, 310, 30, 5);
-  line(328, 30, 328, 88, 6);
-  line(414, 30, 414, 88, 6);
-  line(446, 56, 486, 56, 4);
-  line(506, 56, 546, 56, 4);
-
-  return pts;
-}
 
 /** Hamburger icon (3 lines) that animates into an X when open */
 function HamburgerIcon({ open }: { open: boolean }) {
@@ -114,6 +74,102 @@ function ChevronDown({ open }: { open: boolean }) {
   );
 }
 
+function IconTaste() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 3v8" />
+      <path d="M10 3v8" />
+      <path d="M7 7h3" />
+      <path d="M10 11c0 5-3 10-3 10" />
+      <path d="M14 3c3 0 3 4 0 4v14" />
+    </svg>
+  );
+}
+function IconTap() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3v10" />
+      <path d="M12 13l-2-2a2 2 0 0 0-3 1l1 5a4 4 0 0 0 4 3h3a4 4 0 0 0 4-4v-3a2 2 0 0 0-2-2h-1" />
+      <path d="M12 7h2a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+function IconOrder() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 7h15l-1.5 13h-12L6 7Z" />
+      <path d="M9 7a3 3 0 0 1 6 0" />
+      <path d="M10 12h6" />
+      <path d="M10 15h6" />
+    </svg>
+  );
+}
+
+function StepChip({
+  label,
+  icon,
+  index,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  index: number;
+}) {
+  return (
+    <motion.div
+      className={cn(
+        "relative group",
+        "rounded-2xl border border-slate-200/70",
+        "bg-white/70 backdrop-blur",
+        "px-4 py-2.5",
+        "shadow-sm"
+      )}
+      style={{
+        boxShadow: "0 18px 70px rgba(2,6,23,0.08)",
+      }}
+      variants={{
+        hidden: { opacity: 0, y: 10, scale: 0.96 },
+        show: { opacity: 1, y: 0, scale: 1 },
+      }}
+      whileHover={{ y: -2 }}
+      transition={{ type: "spring", stiffness: 260, damping: 20 }}
+    >
+      {/* gradient border glow */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-2xl"
+        style={{
+          boxShadow: "0 0 0 1px rgba(252,176,64,0.14) inset",
+          opacity: 1,
+        }}
+      />
+      {/* little step dot */}
+      <div
+        className="absolute -top-2 left-3 h-5 w-5 rounded-full border border-white/70 bg-white/85 backdrop-blur grid place-items-center shadow-sm"
+        style={{ boxShadow: "0 12px 35px rgba(2,6,23,0.10)" }}
+      >
+        <span className="text-[11px] font-black text-slate-800">{index + 1}</span>
+      </div>
+
+      <div className="flex items-center gap-2.5">
+        <span
+          className="grid place-items-center h-8 w-8 rounded-xl border border-slate-200/70 bg-white/70"
+          style={{ color: BRAND_BROWN, boxShadow: "0 10px 30px rgba(2,6,23,0.06)" }}
+        >
+          {icon}
+        </span>
+
+        <div className="leading-tight">
+          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-900">
+            {label}
+          </div>
+          <div className="text-[11px] font-semibold text-slate-500">
+            {label === "Taste" ? "Browse peer-loved food" : label === "Tap" ? "One-tap selection" : "Pickup or delivery"}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function LogoFullScreen({
   size = 130,
   className = "",
@@ -137,6 +193,10 @@ export default function LogoFullScreen({
   // Touch tracking (X + Y) so horizontal swipes don't affect header
   const touchXRef = useRef<number | null>(null);
   const touchYRef = useRef<number | null>(null);
+
+  // Center logo parallax / tilt
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
@@ -323,39 +383,35 @@ export default function LogoFullScreen({
     };
   }, [desktopMenuOpen]);
 
-  const targets = useMemo(() => makeWordTargets(), []);
+  // Pointer tilt for the center logo (desktop only)
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
 
-  const particles = useMemo<Particle[]>(() => {
-    if (!mounted) return [];
-    const count = isMobile ? 34 : 64;
+    const onMove = (e: PointerEvent) => {
+      if (isMobile) return; // keep mobile stable
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dx = (e.clientX - cx) / (r.width / 2);
+      const dy = (e.clientY - cy) / (r.height / 2);
 
-    const ringOuter = isMobile ? 180 : 260;
-    const ringInner = isMobile ? 95 : 135;
+      const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
+      const ndx = clamp(dx, -1, 1);
+      const ndy = clamp(dy, -1, 1);
 
-    return targets.slice(0, count).map((_, i) => {
-      const t = (i / count) * Math.PI * 2;
+      setTilt({ rx: -ndy * 5.5, ry: ndx * 7 });
+    };
 
-      const wobble = (Math.sin(i * 12.9898) * 0.5 + 0.5) * 22;
-      const ringR =
-        ringInner + ((i % 7) / 6) * (ringOuter - ringInner) + wobble * 0.22;
+    const onLeave = () => setTilt({ rx: 0, ry: 0 });
 
-      const tx = Math.cos(t) * ringR;
-      const ty = Math.sin(t) * ringR * 0.66;
-
-      const sx = size / 2 + Math.cos(t) * (size * 0.24);
-      const sy = size / 2 + Math.sin(t) * (size * 0.24);
-
-      return {
-        id: i,
-        sx,
-        sy,
-        tx,
-        ty,
-        r: 4 + (i % 3),
-        d: i * 0.012,
-      };
-    });
-  }, [targets, size, isMobile, mounted]);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerleave", onLeave);
+    return () => {
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+    };
+  }, [isMobile]);
 
   const navLinks = useMemo(
     () => [
@@ -374,11 +430,24 @@ export default function LogoFullScreen({
     "border border-slate-200 bg-white/90 backdrop-blur text-slate-900 hover:bg-slate-50";
   const btnPrimary = "bg-[#fcb040] text-slate-900 hover:opacity-95";
 
+  const steps = useMemo(
+    () => [
+      { label: "Taste", icon: <IconTaste /> },
+      { label: "Tap", icon: <IconTap /> },
+      { label: "Order", icon: <IconOrder /> },
+    ],
+    []
+  );
+
+  const stepsWrapVariants: Variants = {
+    hidden: {},
+    show: { transition: { staggerChildren: 0.08, delayChildren: 0.08 } },
+  };
+
   return (
     <section className="relative isolate h-screen w-screen flex items-center justify-center overflow-hidden">
-      {/* subtle background glow */}
+      {/* background */}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        {/* ✅ lighter / whiter base, orange-led, very subtle brown for depth */}
         <div
           className="absolute inset-0"
           style={{
@@ -405,11 +474,9 @@ export default function LogoFullScreen({
             `,
           }}
         />
-
-        {/* ✅ slight overall darkening (much less than before) */}
         <div className="absolute inset-0 bg-slate-950/5" />
 
-        {/* ✅ animated glows (reduced brown, more orange) */}
+        {/* glow drift */}
         <motion.div
           className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-18"
           style={{ background: "rgba(252,176,64,0.40)" }}
@@ -423,7 +490,7 @@ export default function LogoFullScreen({
           transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* ✅ hides the “split” into the next white section */}
+        {/* blend into next section */}
         <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-b from-transparent to-white" />
       </div>
 
@@ -608,45 +675,170 @@ export default function LogoFullScreen({
         </div>
       </motion.div>
 
-      {/* ================= CENTER LOGO ================= */}
+      {/* ================= CENTER HERO (MORE CREATIVE) ================= */}
       <motion.div
         className={cn("relative z-10 select-none", className)}
-        initial={{ opacity: 0, scale: 0.82, filter: "blur(18px)" }}
+        initial={{ opacity: 0, scale: 0.92, filter: "blur(14px)" }}
         animate={mounted ? { opacity: 1, scale: 1, filter: "blur(0px)" } : undefined}
-        transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div className="relative grid place-items-center" style={{ width: size, height: size }}>
-          {/* ✅ circles removed */}
+        <div
+          ref={wrapRef}
+          className="relative grid place-items-center"
+          style={{ width: size * 2.35, height: size * 2.35 }}
+        >
+          {/* soft spotlight + subtle “stage” */}
+          <div
+            className="pointer-events-none absolute inset-0 -z-10"
+            style={{
+              background: `
+                radial-gradient(closest-side at 50% 38%, rgba(252,176,64,0.22), rgba(255,255,255,0) 70%),
+                radial-gradient(closest-side at 50% 72%, rgba(2,6,23,0.10), rgba(255,255,255,0) 62%)
+              `,
+            }}
+          />
 
-          {/* ✅ NO rounded edges. No rounded wrapper. No clipping. */}
+          {/* “breathing” ring (super subtle) */}
+          <motion.div
+            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{
+              width: size * 1.62,
+              height: size * 1.62,
+              border: "1px solid rgba(252,176,64,0.18)",
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.55) inset",
+              opacity: 0.9,
+            }}
+            animate={{ scale: [1, 1.02, 1], opacity: [0.78, 0.92, 0.78] }}
+            transition={{ duration: 3.6, repeat: Infinity, ease: "easeInOut" }}
+          />
+
+          {/* logo + tilt */}
           <motion.div
             className="relative"
-            initial={{ opacity: 0, scale: 0.86 }}
-            animate={mounted ? { opacity: 1, scale: 1 } : undefined}
-            transition={{ duration: 0.55, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            style={{
-              boxShadow: "0 18px 60px rgba(2,6,23,0.12), 0 0 0 1px rgba(252,176,64,0.12)",
-            }}
+            initial={{ opacity: 0, y: 16, scale: 0.92 }}
+            animate={mounted ? { opacity: 1, y: 0, scale: 1 } : undefined}
+            transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+            style={{ transformStyle: "preserve-3d", perspective: "900px" }}
           >
-            <Image
-              src="/images/brand/logo.png"
-              alt="PeerPlates logo"
-              width={size}
-              height={size}
-              priority
-              className="block"
+            {/* base shadow */}
+            <div
+              className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+              style={{
+                top: `calc(50% + ${Math.round(size * 0.58)}px)`,
+                width: `${Math.round(size * 1.14)}px`,
+                height: `${Math.round(size * 0.32)}px`,
+                background:
+                  "radial-gradient(closest-side, rgba(2,6,23,0.20), rgba(2,6,23,0))",
+                filter: "blur(10px)",
+                opacity: 0.5,
+              }}
             />
+
+            <motion.div
+              className="relative"
+              style={{
+                rotateX: tilt.rx,
+                rotateY: tilt.ry,
+                borderRadius: 0,
+                boxShadow:
+                  "0 26px 90px rgba(2,6,23,0.14), 0 0 0 1px rgba(252,176,64,0.10)",
+                willChange: "transform",
+              }}
+              transition={{ type: "spring", stiffness: 220, damping: 22 }}
+            >
+              <Image
+                src="/images/brand/logo.png"
+                alt="PeerPlates logo"
+                width={size}
+                height={size}
+                priority
+                className="block"
+              />
+
+              {/* angled highlight */}
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(115deg, rgba(255,255,255,0.00) 10%, rgba(255,255,255,0.28) 42%, rgba(255,255,255,0.00) 70%)",
+                  mixBlendMode: "soft-light",
+                  opacity: 0.55,
+                }}
+              />
+            </motion.div>
+          </motion.div>
+
+          {/* New creative “3-step” story rail (no big pill, no peer picks) */}
+          <motion.div
+            className="mt-7 w-full"
+            variants={stepsWrapVariants}
+            initial="hidden"
+            animate={mounted ? "show" : "hidden"}
+          >
+            <div className="mx-auto w-full max-w-[520px]">
+              {/* top tiny label */}
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 6 },
+                  show: { opacity: 1, y: 0 },
+                }}
+                className="mb-3 text-center text-[11px] font-black uppercase tracking-[0.26em] text-slate-700"
+              >
+                How it works
+              </motion.div>
+
+              {/* rail background */}
+              <div
+                className={cn(
+                  "relative rounded-[28px] border border-slate-200/70",
+                  "bg-white/55 backdrop-blur",
+                  "px-4 py-4",
+                  "shadow-sm"
+                )}
+                style={{
+                  boxShadow: "0 18px 70px rgba(2,6,23,0.08)",
+                }}
+              >
+                {/* faint orange sweep */}
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-[28px]"
+                  style={{
+                    background:
+                      "radial-gradient(closest-side at 35% 20%, rgba(252,176,64,0.16), rgba(255,255,255,0) 70%)",
+                    opacity: 0.9,
+                  }}
+                />
+
+                {/* connector line */}
+                <div
+                  className="pointer-events-none absolute left-7 right-7 top-[28px] h-[2px] rounded-full"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, rgba(252,176,64,0.00), rgba(252,176,64,0.55), rgba(252,176,64,0.00))",
+                    opacity: 0.65,
+                  }}
+                />
+
+                <div className={cn("grid gap-3", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+                  {steps.map((s, i) => (
+                    <StepChip key={s.label} label={s.label} icon={s.icon} index={i} />
+                  ))}
+                </div>
+
+                {/* tiny subline (optional vibe) */}
+                <motion.div
+                  variants={{
+                    hidden: { opacity: 0, y: 6 },
+                    show: { opacity: 1, y: 0 },
+                  }}
+                  className="mt-4 text-center text-xs font-semibold text-slate-600"
+                >
+                  Taste what&apos;s trending. Tap fast. Order confidently.
+                </motion.div>
+              </div>
+            </div>
           </motion.div>
         </div>
-
-        <motion.div
-          className="mt-5 text-center text-sm font-extrabold text-slate-700"
-          initial={{ opacity: 0, y: 8 }}
-          animate={mounted ? { opacity: 1, y: 0 } : undefined}
-          transition={{ duration: 0.45, delay: 0.55, ease: easeOut }}
-        >
-          Taste. Tap. Order.
-        </motion.div>
       </motion.div>
     </section>
   );

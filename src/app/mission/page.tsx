@@ -172,11 +172,7 @@ function PageShell({
 
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
         <ScrollFade className="mx-auto max-w-4xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/75 px-5 py-2.5 text-sm font-extrabold text-slate-700 shadow-sm backdrop-blur">
-            <span className="h-2 w-2 rounded-full" style={{ background: BRAND_ORANGE }} />
-            {kicker}
-          </div>
-
+        
           <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.8rem,6vw,4.6rem)] text-slate-900">
             {title}{" "}
             <span
@@ -562,7 +558,7 @@ export default function MissionPage() {
         {/* Mission */}
         {/* ===================== */}
         <PageShell
-          kicker="Mission"
+          kicker=""
           title="Why we started"
           highlight="PeerPlates."
           body="University life moves fast — and cooking proper meals consistently just wasn’t realistic. Takeaways were expensive, meal-prep often felt like poor value… and not the kind of food we actually craved."

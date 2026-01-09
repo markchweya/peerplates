@@ -509,7 +509,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 export function FAQSection({
-  label = "FAQ",
+  label = "",
   title = "Frequently asked questions",
   subtitle = "Quick answers for vendors and home cooks.",
 }: {
@@ -595,10 +595,7 @@ export function FAQSection({
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Hero header */}
         <ScrollFade className="mx-auto max-w-3xl text-center" amount={0.5} y={18} blur={12}>
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-6 py-2.5 text-sm font-extrabold text-slate-700 shadow-sm backdrop-blur">
-            <span className="h-2 w-2 rounded-full" style={{ background: BRAND_ORANGE }} />
-            {label}
-          </div>
+        
 
           <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.2rem,4.6vw,3.6rem)] text-slate-900">
             {title}{" "}
@@ -606,7 +603,7 @@ export function FAQSection({
               className="bg-clip-text text-transparent"
               style={{ backgroundImage: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})` }}
             >
-              .
+              
             </span>
           </h1>
 
