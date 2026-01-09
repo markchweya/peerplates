@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -14,6 +14,8 @@ const BROWN = "#8a6b43";
 // ✅ aliases so the Vision menu code works without changing anything else
 const BRAND_ORANGE = ORANGE;
 const BRAND_BROWN = BROWN;
+
+const easeOut: [number, number, number, number] = [0.2, 0.9, 0.2, 1];
 
 function cn(...v: Array<string | false | undefined | null>) {
   return v.filter(Boolean).join(" ");
@@ -114,7 +116,7 @@ export default function JoinClient({ referral }: { referral: string }) {
     () => [
       { href: "/", label: "Home", variant: "ghost" as const },
       { href: "/mission", label: "Mission", variant: "ghost" as const },
-      {href: "/food-safety", label: "Food safety", variant: "ghost" as const },
+      { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
       { href: "/faq", label: "FAQ", variant: "ghost" as const },
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
     ],
@@ -124,6 +126,13 @@ export default function JoinClient({ referral }: { referral: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+
+  // ✅ header fade out on scroll down, fade back in on scroll up (ignore horizontal wheel/touch)
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const downAccumRef = useRef<number>(0);
+  const lastYRef = useRef<number>(0);
+  const touchXRef = useRef<number | null>(null);
+  const touchYRef = useRef<number | null>(null);
 
   const closeMenus = useCallback(() => {
     setMenuOpen(false);
@@ -155,6 +164,105 @@ export default function JoinClient({ referral }: { referral: string }) {
     // close on route change
     closeMenus();
   }, [pathname, ref, closeMenus]);
+
+  // keep header visible when any menu is open
+  useEffect(() => {
+    if (menuOpen || desktopMenuOpen) setHeaderHidden(false);
+  }, [menuOpen, desktopMenuOpen]);
+
+  // ✅ hide on down intent, show on up intent (with horizontal filtering)
+  useEffect(() => {
+    lastYRef.current = window.scrollY || 0;
+
+    const show = () => {
+      downAccumRef.current = 0;
+      setHeaderHidden(false);
+    };
+
+    const hideAfterThreshold = (deltaDown: number) => {
+      downAccumRef.current += deltaDown;
+      if (!headerHidden && downAccumRef.current > 18) setHeaderHidden(true);
+    };
+
+    const onScroll = () => {
+      if (menuOpen || desktopMenuOpen) return;
+
+      const y = window.scrollY || 0;
+
+      // always show near top
+      if (y <= 8) {
+        if (headerHidden) show();
+        lastYRef.current = y;
+        return;
+      }
+
+      const last = lastYRef.current;
+      const delta = y - last;
+      lastYRef.current = y;
+
+      if (Math.abs(delta) < 2) return;
+
+      if (delta < 0) show();
+      else hideAfterThreshold(delta);
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      if (menuOpen || desktopMenuOpen) return;
+
+      const dx = e.deltaX || 0;
+      const dy = e.deltaY || 0;
+
+      // ignore mostly-horizontal scroll
+      if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
+      if (Math.abs(dy) < 4) return;
+
+      if (dy < 0) show();
+      else hideAfterThreshold(dy);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches?.[0];
+      if (!t) return;
+      touchXRef.current = t.clientX;
+      touchYRef.current = t.clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (menuOpen || desktopMenuOpen) return;
+      const t = e.touches?.[0];
+      if (!t) return;
+
+      const prevX = touchXRef.current;
+      const prevY = touchYRef.current;
+
+      touchXRef.current = t.clientX;
+      touchYRef.current = t.clientY;
+
+      if (prevX == null || prevY == null) return;
+
+      const dx = prevX - t.clientX;
+      const dy = prevY - t.clientY;
+
+      // ignore mostly-horizontal swipes
+      if (Math.abs(dx) > Math.abs(dy) * 1.15) return;
+      if (Math.abs(dy) < 4) return;
+
+      if (dy < 0) show();
+      else hideAfterThreshold(dy);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [menuOpen, desktopMenuOpen, headerHidden]);
 
   // Mobile menu: lock scroll + esc
   useEffect(() => {
@@ -209,8 +317,17 @@ export default function JoinClient({ referral }: { referral: string }) {
         .pp-tap { -webkit-tap-highlight-color: transparent; user-select:none; }
       `}</style>
 
-      {/* ✅ Header — MENU SAME AS VisionPage (desktop dropdown + join button, mobile hamburger) */}
-      <div className="fixed top-0 left-0 right-0 z-[100] pointer-events-auto">
+      {/* ✅ Header — now with the same hide/show behavior as other pages */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 z-[100]"
+        initial={false}
+        animate={{ opacity: headerHidden ? 0 : 1 }}
+        transition={{ duration: 0.22, ease: easeOut }}
+        style={{
+          willChange: "opacity",
+          pointerEvents: headerHidden ? "none" : "auto",
+        }}
+      >
         <div className="border-b border-slate-200/60 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
@@ -220,9 +337,8 @@ export default function JoinClient({ referral }: { referral: string }) {
               className="flex items-center gap-3 min-w-0"
             >
               <Link href="/" className="flex items-center min-w-0">
-                {/* ✅ FIX: prevent LogoCinematic fade/glow clipping (same approach as Vision/Mission/Queue) */}
+                {/* ✅ FIX: prevent LogoCinematic fade/glow clipping */}
                 <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
-                  {/* small vertical buffer so any filter/glow isn't cut by line-height */}
                   <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
                     <LogoCinematic size={64} wordScale={1} />
                   </span>
@@ -253,7 +369,7 @@ export default function JoinClient({ referral }: { referral: string }) {
                         initial={{ opacity: 0, y: 10, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                        transition={{ duration: 0.16, ease: [0.2, 0.9, 0.2, 1] }}
+                        transition={{ duration: 0.16, ease: easeOut }}
                         className="absolute right-0 mt-3 w-[320px] origin-top-right"
                       >
                         <div
@@ -280,18 +396,14 @@ export default function JoinClient({ referral }: { referral: string }) {
                             </Link>
                           </div>
 
-                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">
-                            Taste. Tap. Order.
-                          </div>
+                          <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
                         </div>
                       </motion.div>
                     ) : null}
                   </AnimatePresence>
                 </div>
 
-                <Link href="/join" className={cn(btnBase, btnPrimary)}>
-                  Join waitlist
-                </Link>
+            
               </div>
 
               {/* Mobile: hamburger */}
@@ -325,7 +437,7 @@ export default function JoinClient({ referral }: { referral: string }) {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: [0.2, 0.9, 0.2, 1] }}
+                  transition={{ duration: 0.22, ease: easeOut }}
                   className="md:hidden overflow-hidden"
                 >
                   <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 pb-5">
@@ -346,18 +458,10 @@ export default function JoinClient({ referral }: { referral: string }) {
                             </Link>
                           ))}
 
-                          <Link
-                            href="/join"
-                            onClick={() => setMenuOpen(false)}
-                            className={cn("w-full", btnBase, "px-5 py-3", btnPrimary)}
-                          >
-                            Join waitlist
-                          </Link>
+                      
                         </div>
 
-                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">
-                          Taste. Tap. Order.
-                        </div>
+                        <div className="mt-3 text-center text-xs font-semibold text-slate-500">Taste. Tap. Order.</div>
                       </div>
                     </div>
                   </div>
@@ -366,7 +470,7 @@ export default function JoinClient({ referral }: { referral: string }) {
             </AnimatePresence>
           ) : null}
         </div>
-      </div>
+      </motion.div>
 
       {/* Spacer */}
       <div className="h-[84px]" />
@@ -380,7 +484,7 @@ export default function JoinClient({ referral }: { referral: string }) {
           className="mt-2 sm:mt-4 rounded-3xl border border-[#fcb040] bg-white p-6 sm:p-8 shadow-sm"
         >
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-extrabold text-slate-700 shadow-sm">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#fcb040]" />
+         
             Choose your role
           </div>
 
@@ -421,7 +525,6 @@ export default function JoinClient({ referral }: { referral: string }) {
                   <div className="mt-1 text-slate-900/70 font-semibold"></div>
                 </div>
               </div>
-            
             </Link>
 
             <Link
@@ -438,7 +541,6 @@ export default function JoinClient({ referral }: { referral: string }) {
                   <div className="mt-1 text-slate-900/70 font-semibold"></div>
                 </div>
               </div>
-             
             </Link>
           </div>
 

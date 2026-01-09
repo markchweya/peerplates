@@ -361,7 +361,7 @@ export default function MissionPage() {
       { href: "/food-safety", label: "Food safety", variant: "ghost" as const },
       { href: "/faq", label: "FAQ", variant: "ghost" as const },
       { href: "/queue", label: "Check queue", variant: "ghost" as const },
-      { href: "/join", label: "Join waitlist", variant: "primary" as const },
+
     ],
     []
   );
