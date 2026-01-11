@@ -2,7 +2,7 @@
 "use client";
 
 import LogoFullScreen from "@/app/ui/LogoFullScreen";
-import TopGallery from "@/app/ui/TopGallery";
+
 import PeerWorks from "@/app/ui/PeerWorks";
 import ScrollShowcase from "@/app/ui/ScrollShowcase";
 
@@ -99,8 +99,7 @@ export default function Home() {
         <LogoFullScreen />
       </div>
 
-      <EatBetterSection />
-      <TopGallery />
+
 
       {/* HOW IT WORKS (your section) */}
       <PeerWorks />
