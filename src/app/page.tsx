@@ -106,7 +106,7 @@ export default function Home() {
 
       {/* APP PREVIEWS (below How it works) */}
       <ScrollShowcase
-        heading="App Previews"
+        heading=""
         subheading="See how PeerPlates makes ordering and managing home-cooked food effortless."
         direction="ltr"
         snap={true}
@@ -154,6 +154,7 @@ export default function Home() {
             title: "Know what's working",
             subtitle: "",
             desc: "See what's moving fastest — and double down on the dishes that drive revenue",
+          
           },
           {
             image: "/images/gallery/gallery7.jpeg",
