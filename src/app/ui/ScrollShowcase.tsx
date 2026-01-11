@@ -39,7 +39,6 @@ export default function ScrollShowcase({
   const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
   const [active, setActive] = useState(0);
 
-  // ✅ fix stale closure in IntersectionObserver
   const activeRef = useRef(0);
   useEffect(() => {
     activeRef.current = active;
@@ -67,15 +66,9 @@ export default function ScrollShowcase({
   function scrollToIndex(idx: number) {
     const el = cardRefs.current[idx];
     if (!el) return;
-
-    el.scrollIntoView({
-      behavior: "smooth",
-      inline: "start",
-      block: "nearest",
-    });
+    el.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
   }
 
-  // Track active card by observing visibility inside the scroller
   useEffect(() => {
     const root = scrollerRef.current;
     if (!root) return;
@@ -85,7 +78,6 @@ export default function ScrollShowcase({
 
     const io = new IntersectionObserver(
       (entries) => {
-        // pick the most visible
         let bestIdx = activeRef.current;
         let bestRatio = 0;
 
@@ -108,7 +100,6 @@ export default function ScrollShowcase({
 
     nodes.forEach((n) => io.observe(n));
     return () => io.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderedItems.length]);
 
   return (
@@ -126,25 +117,30 @@ export default function ScrollShowcase({
         />
       </div>
 
-      {/* ✅ tighter section padding (was py-12 sm:py-16) */}
       <div className={`mx-auto w-full max-w-6xl 2xl:max-w-7xl ${trackPadding} py-8 sm:py-10`}>
-        {/* Header */}
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/75 px-5 py-2.5 text-sm font-extrabold text-slate-700 shadow-sm backdrop-blur">
-            <span className="h-2 w-2 rounded-full bg-[#fcb040]" />
-            {heading}
-          </div>
-
-          <h2 className="mt-6 font-extrabold tracking-tight leading-[0.98] text-[clamp(2.2rem,4.8vw,3.4rem)] text-slate-900">
+        {/* ================= APP PREVIEWS HEADER (FIXED) ================= */}
+        <div className="mx-auto max-w-3xl text-center">
+          <h2
+            className="mt-6 font-extrabold tracking-tight leading-[0.98] text-[clamp(2.2rem,4.8vw,3.4rem)]"
+            style={{
+              backgroundImage: "linear-gradient(135deg, #fcb040 0%, #8a6b43 100%)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+              textShadow: "0 1px 0 rgba(255,255,255,0.85)",
+            }}
+          >
             App Previews
           </h2>
 
-          <p className="mt-4 text-base sm:text-lg leading-relaxed text-slate-600 font-semibold">{subheading}</p>
+          <p className="mt-4 text-base sm:text-lg leading-relaxed text-slate-600 font-semibold">
+            {subheading}
+          </p>
         </div>
 
-        {/* ✅ slightly tighter spacing */}
+        {/* Nav pills */}
         {orderedNav.length ? (
-          <div className="mt-6 sm:mt-7 flex flex-wrap gap-2">
+          <div className="mt-6 sm:mt-7 flex flex-wrap gap-2 justify-center">
             {orderedNav.map((n) => {
               const on = active === n.index;
               return (
@@ -190,9 +186,7 @@ export default function ScrollShowcase({
                 ref={(el) => {
                   cardRefs.current[idx] = el;
                 }}
-                className={["snap-start", "shrink-0", "w-[86vw] sm:w-[520px] lg:w-[560px]", "self-stretch", "flex"].join(
-                  " "
-                )}
+                className="snap-start shrink-0 w-[86vw] sm:w-[520px] lg:w-[560px] self-stretch flex"
               >
                 <ShowcaseCard item={it} tilt={tilt} />
               </div>
@@ -224,12 +218,7 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
 
   return (
     <motion.div
-      className={[
-        "group relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/90 backdrop-blur shadow-sm",
-        "h-full flex flex-col",
-        // ✅ smaller overall card height (was min-h-[640px])
-        "min-h-[520px] sm:min-h-[560px]",
-      ].join(" ")}
+      className="group relative overflow-hidden rounded-[34px] border border-slate-200 bg-white/90 backdrop-blur shadow-sm h-full flex flex-col min-h-[520px] sm:min-h-[560px]"
       style={{
         boxShadow: "0 18px 60px rgba(2,6,23,0.08)",
         ...tiltStyle,
@@ -250,16 +239,6 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
               "linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(252,176,64,0.18) 42%, rgba(138,107,67,0.16) 100%)",
           }}
         />
-
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.55]"
-          style={{
-            background:
-              "radial-gradient(900px 520px at 22% 18%, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0) 55%)",
-            mixBlendMode: "soft-light",
-          }}
-        />
-
         <img
           src={item.image}
           alt={item.title}
@@ -267,27 +246,12 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
           loading="lazy"
           draggable={false}
         />
-
-        <div
-          className="pointer-events-none absolute -left-14 -top-14 h-56 w-56 rounded-full blur-3xl opacity-15"
-          style={{ background: "rgba(252,176,64,0.22)" }}
-        />
-        <div
-          className="pointer-events-none absolute -right-16 -bottom-16 h-60 w-60 rounded-full blur-3xl opacity-12"
-          style={{ background: "rgba(138,107,67,0.20)" }}
-        />
       </div>
 
-      {/* Copy */}
       <div className="p-5 sm:p-6 flex-1 flex flex-col">
         <div className="text-xs font-extrabold tracking-[0.22em] text-slate-500 uppercase">{item.kicker}</div>
-
         <div className="mt-3 text-[18px] sm:text-[20px] font-extrabold text-slate-900 leading-snug">{item.title}</div>
-
-        <div className="mt-2 text-slate-700 font-semibold">{item.subtitle}</div>
-
         <div className="mt-3 text-slate-600 font-semibold leading-relaxed">{item.desc}</div>
-
         <div className="mt-auto" />
       </div>
     </motion.div>
