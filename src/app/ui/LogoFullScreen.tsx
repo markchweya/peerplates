@@ -1,10 +1,10 @@
 // src/app/ui/LogoFullScreen.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import SiteHeader from "./SiteHeader";
 import { Lobster } from "next/font/google";
 
@@ -30,6 +30,49 @@ function prefersReducedMotion() {
   return !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 }
 
+/* ================= ICONS (UNCHANGED) ================= */
+
+function HamburgerIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <motion.path
+        d="M5 7h14"
+        animate={{ rotate: open ? 45 : 0, y: open ? 5 : 0 }}
+        transition={{ duration: 0.18 }}
+      />
+      <motion.path d="M5 12h14" animate={{ opacity: open ? 0 : 1 }} />
+      <motion.path
+        d="M5 17h14"
+        animate={{ rotate: open ? -45 : 0, y: open ? -5 : 0 }}
+        transition={{ duration: 0.18 }}
+      />
+    </svg>
+  );
+}
+
+function ChevronDown({ open }: { open: boolean }) {
+  return (
+    <motion.svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      animate={{ rotate: open ? 180 : 0 }}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </motion.svg>
+  );
+}
+
 /* ================= MAIN COMPONENT ================= */
 
 export default function LogoFullScreen({
@@ -40,19 +83,23 @@ export default function LogoFullScreen({
   className?: string;
 }) {
   const [mounted, setMounted] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(true);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    setReduceMotion(prefersReducedMotion());
+  }, []);
 
-  const reduceMotion = useMemo(() => {
-    if (!mounted) return true;
-    return prefersReducedMotion();
-  }, [mounted]);
+  // Motion variants
+  const fadeInUp: Variants = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: easeOut } },
+  };
 
   return (
     <section className={cn("relative isolate h-screen w-screen overflow-hidden", className)}>
       {/* ================= BACKGROUND ================= */}
       <div className="pointer-events-none absolute inset-0 z-0">
-        {/* base page texture */}
         <div className="absolute inset-0">
           <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover" priority />
           <div className="absolute inset-0 bg-white/30" />
@@ -66,52 +113,6 @@ export default function LogoFullScreen({
           />
         </div>
 
-        {/* ✅ DESKTOP/TABLET ONLY: floating cards stay absolute */}
-        <div className="absolute inset-0 hidden sm:block">
-          <div className="absolute right-2 sm:right-8 top-[88px] sm:top-[94px] bottom-10 w-[66%] sm:w-[58%] md:w-[54%] max-w-[760px]">
-            <div className="relative h-full">
-              <div
-                className="absolute right-0 bottom-0 h-[260px] w-[66%] rounded-[28px] blur-2xl opacity-70"
-                style={{ background: "rgba(255,255,255,0.18)" }}
-              />
-
-              <div className="absolute right-3 sm:right-4 top-10 sm:top-12 w-[64%] sm:w-[60%] md:w-[58%]">
-                <div className="flex flex-col gap-2 sm:gap-3">
-                  {/* TOP CARD */}
-                  <div
-                    className={cn(
-                      "relative w-full overflow-hidden",
-                      "rounded-[18px] sm:rounded-[20px]",
-                      "shadow-[0_22px_66px_rgba(2,6,23,0.24)]"
-                    )}
-                    style={{ border: "6px solid rgba(255,255,255,0.82)" }}
-                  >
-                    <div className="relative aspect-[4/2.55] w-full">
-                      <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
-                      <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
-                    </div>
-                  </div>
-
-                  {/* BOTTOM CARD */}
-                  <div
-                    className={cn(
-                      "relative w-full overflow-hidden",
-                      "rounded-[18px] sm:rounded-[20px]",
-                      "shadow-[0_22px_66px_rgba(2,6,23,0.22)]"
-                    )}
-                    style={{ border: "6px solid rgba(255,255,255,0.82)" }}
-                  >
-                    <div className="relative aspect-[4/2.55] w-full">
-                      <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
-                      <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Left-to-right page fade */}
         <div
           className="absolute inset-0"
@@ -121,7 +122,7 @@ export default function LogoFullScreen({
           }}
         />
 
-        {/* soft brand haze on left */}
+        {/* brand haze left */}
         <div
           className="absolute -left-44 top-12 h-[620px] w-[620px] rounded-full blur-3xl opacity-60"
           style={{ background: "rgba(252,176,64,0.16)" }}
@@ -131,7 +132,7 @@ export default function LogoFullScreen({
           style={{ background: "rgba(138,107,67,0.09)" }}
         />
 
-        {/* Bottom blend to white */}
+        {/* Bottom blend */}
         <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-b from-transparent via-white/70 to-white" />
       </div>
 
@@ -140,103 +141,165 @@ export default function LogoFullScreen({
       <div className="h-[84px]" />
 
       {/* ================= CONTENT ================= */}
-     <div className="relative z-10 h-[calc(100%-84px)] flex items-center pt-14 pb-10 sm:pt-0 sm:pb-0">
-  <div className="mx-auto w-full max-w-7xl px-6 sm:px-10">
-    <div className="grid grid-cols-12 items-center gap-6 sm:gap-8">
-
-            {/* LEFT TEXT (mobile: full width, with right padding reserved for the image stack) */}
-            <div className="relative col-span-12 sm:col-span-7 md:col-span-6 lg:col-span-5 pr-[46%] sm:pr-0">
-              {/* ✅ PHONE: image stack overlays to the right like the inspo */}
-             <motion.div
-  className="pointer-events-none absolute -right-6 -top-19 w-[49%] max-w-[280px] sm:hidden"
-
-                initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-                animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, ease: easeOut }}
+      <div className="relative z-10 h-[calc(100%-84px)]">
+        {/* ✅ Tall phones center; short phones use top padding */}
+        <div
+          className={cn(
+            "mx-auto flex h-full w-full max-w-7xl px-6 sm:px-10 sm:pt-0 sm:pb-0",
+            "items-center",
+            "[@media_(max-height:720px)]:items-start",
+            "[@media_(max-height:720px)]:pt-[clamp(18px,5vh,56px)]",
+            "[@media_(max-height:720px)]:pb-[clamp(18px,5vh,52px)]"
+          )}
+        >
+          <div className="w-full">
+            <div className="grid w-full grid-cols-12 items-center gap-6 sm:gap-10">
+              {/* LEFT: Text */}
+              <div
+                className={cn(
+                  "relative col-span-12 sm:col-span-6 lg:col-span-5",
+                  // ✅ reserve space for overlay stack on phones, using clamp so it works on SE/XR/Pixel automatically
+                  "pr-[calc(var(--stackW)+18px)] sm:pr-0"
+                )}
+                style={
+                  {
+                    // phone overlay width (scales across SE/XR/Pixel)
+                    "--stackW": "clamp(148px, 40vw, 240px)",
+                  } as React.CSSProperties
+                }
               >
-                <div className="flex flex-col gap-2.5">
-                  {/* BIG TOP IMAGE (bigger + closer to edge) */}
-                  <div
-                    className={cn(
-                      "relative w-full overflow-hidden",
-                      "rounded-[18px]",
-                      "shadow-[0_22px_66px_rgba(2,6,23,0.24)]"
-                    )}
-                    style={{ border: "7px solid rgba(255,255,255,0.86)" }}
-                  >
-                    <div className="relative aspect-[4/3] w-full">
-                      <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
-                      <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
+                {/* ✅ PHONE ONLY: overlay image stack (scales cleanly on SE / XR / Pixel) */}
+                <motion.div
+                  className={cn(
+                    "pointer-events-none absolute sm:hidden",
+                    // push toward edge, but not too far on SE
+                    "right-[clamp(-18px,-4vw,-8px)]",
+                    // push up a bit so it sits next to headline on all phones
+                    "top-[clamp(104px,12vh,150px)]",
+                    "w-[var(--stackW)]"
+                  )}
+                  initial={reduceMotion ? false : "hidden"}
+                  animate={reduceMotion ? undefined : "show"}
+                  variants={fadeInUp}
+                >
+                  <div className="flex flex-col gap-2 max-[380px]:gap-2.5">
+                    {/* TOP CARD */}
+                    <div
+                      className={cn(
+                        "relative w-full overflow-hidden rounded-[18px]",
+                        "shadow-[0_22px_66px_rgba(2,6,23,0.24)]"
+                      )}
+                      style={{ border: "7px solid rgba(255,255,255,0.86)" }}
+                    >
+                      <div className="relative aspect-[4/3] w-full">
+                        <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
+                      </div>
+                    </div>
+
+                    {/* BOTTOM CARD */}
+                    <div
+                      className={cn(
+                        "relative ml-auto w-[94%] overflow-hidden rounded-[18px]",
+                        "shadow-[0_22px_66px_rgba(2,6,23,0.22)]"
+                      )}
+                      style={{ border: "7px solid rgba(255,255,255,0.86)" }}
+                    >
+                      <div className="relative aspect-[4/3.25] w-full">
+                        <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
+                      </div>
                     </div>
                   </div>
+                </motion.div>
 
-                  {/* LOWER IMAGE (slightly narrower, aligned right, tight spacing) */}
-                  <div
-                    className={cn(
-                      "relative ml-auto w-[94%] overflow-hidden",
-                      "rounded-[18px]",
-                      "shadow-[0_22px_66px_rgba(2,6,23,0.22)]"
-                    )}
-                    style={{ border: "7px solid rgba(255,255,255,0.86)" }}
-                  >
-                    <div className="relative aspect-[4/3.25] w-full">
-                      <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
-                      <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
-                    </div>
+                {/* TEXT BLOCK */}
+                <div className="max-w-xl">
+                  {/* ✅ slightly lower min size + prevents S8+ clash */}
+                  <h1 className="font-black tracking-tight leading-[0.98] text-[clamp(34px,8.8vw,60px)] sm:text-[clamp(54px,4.8vw,76px)]">
+                    <span className="block text-slate-900">Eat better</span>
+                    <span className="block text-slate-900 text-center sm:text-left">and</span>
+
+                    {/* ✅ allow wrapping only on ultra-narrow widths (e.g., 360px) */}
+                    <span className="block whitespace-normal min-[370px]:whitespace-nowrap">
+                      <span style={{ color: BRAND_ORANGE }}>back</span>{" "}
+                      <span style={{ color: BRAND_BROWN }}>local</span>
+                    </span>
+                  </h1>
+
+                  <p className="mt-4 sm:mt-5 text-[clamp(14px,3.4vw,18px)] sm:text-[clamp(16px,1.4vw,20px)] font-semibold text-slate-700 leading-relaxed max-w-[32ch]">
+                    authentic home-cooked meals from trusted cooks and bakers.
+                  </p>
+
+                  <div className="mt-6 sm:mt-7 flex flex-col gap-3 w-full max-w-[340px] sm:max-w-[420px]">
+                    <Link
+                      href="/join"
+                      className={cn(
+                        "w-full whitespace-nowrap text-center",
+                        "rounded-2xl px-7 py-3.5 font-extrabold",
+                        "bg-[#fcb040]",
+                        "shadow-[0_16px_40px_rgba(252,176,64,0.25)]",
+                        "hover:opacity-95 transition"
+                      )}
+                    >
+                      Join waitlist
+                    </Link>
+
+                    <Link
+                      href="/queue"
+                      className={cn(
+                        "w-full whitespace-nowrap text-center",
+                        "rounded-2xl px-7 py-3.5 font-extrabold",
+                        "border border-slate-200",
+                        "bg-white/65 backdrop-blur",
+                        "shadow-[0_16px_40px_rgba(2,6,23,0.10)]",
+                        "hover:bg-white/75 transition"
+                      )}
+                    >
+                      Check queue
+                    </Link>
                   </div>
-                </div>
-              </motion.div>
-
-       <div className="max-w-xl -mt-40 sm:mt-0">
-<h1 className="font-black tracking-tight leading-[0.98] text-[clamp(40px,9.2vw,66px)] sm:text-[clamp(44px,5.4vw,72px)]">
-  <span className="text-slate-900 block">Eat better</span>
-
-  {/* centered "and" */}
-  <span className="text-slate-900 block text-center">and</span>
-
-  {/* back + local on one line */}
-  <span className="block whitespace-nowrap">
-    <span style={{ color: BRAND_ORANGE }}>back</span>{" "}
-    <span style={{ color: BRAND_BROWN }}>local</span>
-  </span>
-</h1>
-
-
-                <p className="mt-5 text-[clamp(16px,1.7vw,20px)] font-semibold text-slate-700 leading-relaxed">
-                  authentic home-cooked meals from trusted cooks and bakers.
-                </p>
-
-                <div className="mt-7 flex flex-col gap-3 w-full max-w-[340px] sm:max-w-[520px]">
-                  <Link
-                    href="/join"
-                    className={cn(
-                      "rounded-2xl px-7 py-3.5 font-extrabold",
-                      "bg-[#fcb040]",
-                      "shadow-[0_16px_40px_rgba(252,176,64,0.25)]",
-                      "hover:opacity-95 transition"
-                    )}
-                  >
-                    Join waitlist
-                  </Link>
-
-                  <Link
-                    href="/queue"
-                    className={cn(
-                      "rounded-2xl px-7 py-3.5 font-extrabold",
-                      "border border-slate-200",
-                      "bg-white/65 backdrop-blur",
-                      "shadow-[0_16px_40px_rgba(2,6,23,0.10)]",
-                      "hover:bg-white/75 transition"
-                    )}
-                  >
-                    Check queue
-                  </Link>
                 </div>
               </div>
-            </div>
 
-            {/* RIGHT VISUAL COLUMN (sm+ only; mobile handled by overlay above) */}
-            <div className="hidden sm:block col-span-5 md:col-span-6 lg:col-span-7" />
+              {/* RIGHT: Visual column (TABLET/DESKTOP) */}
+              <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
+                <div className="flex h-full w-full items-center justify-end">
+                  <div className="w-full max-w-[560px]">
+                    <div className="flex flex-col gap-4">
+                      {/* TOP CARD */}
+                      <div
+                        className={cn(
+                          "relative w-full overflow-hidden rounded-[22px]",
+                          "shadow-[0_24px_80px_rgba(2,6,23,0.22)]"
+                        )}
+                        style={{ border: "8px solid rgba(255,255,255,0.82)" }}
+                      >
+                        <div className="relative aspect-[4/2.45] w-full">
+                          <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                        </div>
+                      </div>
+
+                      {/* BOTTOM CARD */}
+                      <div
+                        className={cn(
+                          "relative w-full overflow-hidden rounded-[22px]",
+                          "shadow-[0_24px_80px_rgba(2,6,23,0.20)]"
+                        )}
+                        style={{ border: "8px solid rgba(255,255,255,0.82)" }}
+                      >
+                        <div className="relative aspect-[4/2.45] w-full">
+                          <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* END RIGHT */}
+            </div>
           </div>
         </div>
       </div>
