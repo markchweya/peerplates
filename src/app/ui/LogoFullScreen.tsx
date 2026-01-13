@@ -101,7 +101,7 @@ export default function LogoFullScreen({
       {/* ================= BACKGROUND ================= */}
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0">
-          <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover" priority />
+          <Image src="/images/gallery/gallery17.jpeg" fill alt="" className="object-cover" priority />
           <div className="absolute inset-0 bg-white/30" />
           <div className="absolute inset-0" style={{ backdropFilter: "blur(10px)" }} />
           <div
