@@ -109,7 +109,7 @@ export default function LogoFullScreen({
             priority
           />
 
-          {/* Background treatment */}
+          {/* Background treatment (kept light so the image still reads on the right) */}
           <div className="absolute inset-0 bg-white/18" />
           <div className="absolute inset-0" style={{ backdropFilter: "blur(8px)" }} />
           <div
@@ -121,12 +121,12 @@ export default function LogoFullScreen({
           />
         </div>
 
-        {/* ✅ LEFT SIDE FADE (readability on the text side; right side stays clear) */}
+        {/* ✅ LEFT SIDE FADE (almost completely) */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(90deg, rgba(255,255,255,0.84) 0%, rgba(255,255,255,0.66) 26%, rgba(255,255,255,0.34) 46%, rgba(255,255,255,0.14) 58%, rgba(255,255,255,0.06) 66%, rgba(255,255,255,0.00) 74%)",
+              "linear-gradient(90deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.95) 22%, rgba(255,255,255,0.80) 40%, rgba(255,255,255,0.40) 54%, rgba(255,255,255,0.14) 62%, rgba(255,255,255,0.04) 68%, rgba(255,255,255,0.00) 74%)",
           }}
         />
 
@@ -166,19 +166,23 @@ export default function LogoFullScreen({
               <div
                 className={cn(
                   "relative col-span-12 sm:col-span-6 lg:col-span-5",
+                  // ✅ reserve space for overlay stack on phones, using clamp so it works on SE/XR/Pixel automatically
                   "pr-[calc(var(--stackW)+18px)] sm:pr-0"
                 )}
                 style={
                   {
+                    // phone overlay width (scales across SE/XR/Pixel)
                     "--stackW": "clamp(148px, 40vw, 240px)",
                   } as React.CSSProperties
                 }
               >
-                {/* ✅ PHONE ONLY: overlay image stack */}
+                {/* ✅ PHONE ONLY: overlay image stack (scales cleanly on SE / XR / Pixel) */}
                 <motion.div
                   className={cn(
                     "pointer-events-none absolute sm:hidden",
+                    // push toward edge, but not too far on SE
                     "right-[clamp(-18px,-4vw,-8px)]",
+                    // push up a bit so it sits next to headline on all phones
                     "top-[clamp(104px,12vh,150px)]",
                     "w-[var(--stackW)]"
                   )}
@@ -233,6 +237,7 @@ export default function LogoFullScreen({
                     <span className="block text-slate-900">Eat better</span>
                     <span className="block text-slate-900 text-center sm:text-left">and</span>
 
+                    {/* ✅ allow wrapping only on ultra-narrow widths (e.g., 360px) */}
                     <span className="block whitespace-normal min-[370px]:whitespace-nowrap">
                       <span style={{ color: BRAND_ORANGE }}>back</span>{" "}
                       <span style={{ color: BRAND_BROWN }}>local</span>
