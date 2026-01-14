@@ -1,7 +1,7 @@
 // src/app/ui/LogoFullScreen.tsx
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, type Variants } from "framer-motion";
@@ -90,7 +90,6 @@ export default function LogoFullScreen({
     setReduceMotion(prefersReducedMotion());
   }, []);
 
-  // Motion variants
   const fadeInUp: Variants = {
     hidden: { opacity: 0, y: 10 },
     show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: easeOut } },
@@ -116,7 +115,6 @@ export default function LogoFullScreen({
               className="object-cover"
               quality={100}
               style={{
-                // Bigger + higher spotlight so the TOP-RIGHT background looks like the other photos
                 WebkitMaskImage:
                   "radial-gradient(70% 62% at 74% 22%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 58%, rgba(0,0,0,0) 82%)",
                 maskImage:
@@ -166,14 +164,14 @@ export default function LogoFullScreen({
 
       {/* ================= CONTENT ================= */}
       <div className="relative z-10 h-[calc(100%-84px)]">
-        {/* ✅ Tall phones center; short phones use top padding */}
+        {/* ✅ Tall phones center; ONLY very short viewports use top alignment */}
         <div
           className={cn(
             "mx-auto flex h-full w-full max-w-7xl px-6 sm:px-10 sm:pt-0 sm:pb-0",
             "items-center",
-            "[@media_(max-height:720px)]:items-start",
-            "[@media_(max-height:720px)]:pt-[clamp(18px,5vh,56px)]",
-            "[@media_(max-height:720px)]:pb-[clamp(18px,5vh,52px)]"
+            "[@media_(max-height:640px)]:items-start",
+            "[@media_(max-height:640px)]:pt-[clamp(10px,3.2vh,28px)]",
+            "[@media_(max-height:640px)]:pb-[clamp(10px,3.2vh,24px)]"
           )}
         >
           <div className="w-full">
@@ -182,23 +180,25 @@ export default function LogoFullScreen({
               <div
                 className={cn(
                   "relative col-span-12 sm:col-span-6 lg:col-span-5",
-                  // ✅ reserve space for overlay stack on phones, using clamp so it works on SE/XR/Pixel automatically
+                  // ✅ lift headline + buttons significantly (this is the fix)
+                  "-translate-y-4",
+                  "sm:-translate-y-10 lg:-translate-y-12",
+                  // ✅ on very short heights, don't lift (avoid clipping)
+                  "[@media_(max-height:640px)]:translate-y-0",
+                  // ✅ reserve space for overlay stack on phones
                   "pr-[calc(var(--stackW)+18px)] sm:pr-0"
                 )}
                 style={
                   {
-                    // phone overlay width (scales across SE/XR/Pixel)
                     "--stackW": "clamp(148px, 40vw, 240px)",
                   } as React.CSSProperties
                 }
               >
-                {/* ✅ PHONE ONLY: overlay image stack (scales cleanly on SE / XR / Pixel) */}
+                {/* ✅ PHONE ONLY: overlay image stack */}
                 <motion.div
                   className={cn(
                     "pointer-events-none absolute sm:hidden",
-                    // push toward edge, but not too far on SE
                     "right-[clamp(-18px,-4vw,-8px)]",
-                    // push up a bit so it sits next to headline on all phones
                     "top-[clamp(104px,12vh,150px)]",
                     "w-[var(--stackW)]"
                   )}
@@ -243,7 +243,6 @@ export default function LogoFullScreen({
                     <span className="block text-slate-900">Eat better</span>
                     <span className="block text-slate-900 text-center sm:text-left">and</span>
 
-                    {/* ✅ allow wrapping only on ultra-narrow widths (e.g., 360px) */}
                     <span className="block whitespace-normal min-[370px]:whitespace-nowrap">
                       <span style={{ color: BRAND_ORANGE }}>back</span>{" "}
                       <span style={{ color: BRAND_BROWN }}>local</span>
