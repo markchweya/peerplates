@@ -103,14 +103,14 @@ export default function LogoFullScreen({
           <Image src="/images/gallery/gallery18.jpg" fill alt="" className="object-cover" priority />
 
           {/* Background treatment (kept light so the image still reads on the right) */}
-         <div className="absolute inset-0 bg-black/55" />
+          <div className="absolute inset-0 bg-black/55" />
 
           <div className="absolute inset-0" style={{ backdropFilter: "blur(8px)" }} />
 
           {/* ✅ Remove blur/fade ONLY on the food/hero background area (top-right black-marked region) */}
           <div className="absolute inset-0">
             <Image
-              src="/images/gallery/gallery18.jpg"
+              src="/images/gallery/gallery18.jpzg"
               fill
               alt=""
               className="object-cover"
@@ -293,14 +293,13 @@ export default function LogoFullScreen({
                     - centered vertically within column
                     - shifted LEFT (but never past the middle line)
                     - slightly smaller */}
-                <div className="flex h-full w-full items-center justify-end overflow-hidden">
+                <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(130px,18vh,220px)]">
                   <div
                     className="w-full"
                     style={
                       {
                         // Smaller than before + tied to viewport height so it doesn't go above/below the red bounds
-                      "--rightW": "min(410px, calc((100vh - 280px) / 1.32))",
-
+                        "--rightW": "min(410px, calc((100vh - 280px) / 1.32))",
                       } as React.CSSProperties
                     }
                   >
@@ -310,7 +309,7 @@ export default function LogoFullScreen({
                         "ml-auto w-full max-w-[var(--rightW)]",
                         "translate-x-[-clamp(0px, 3.2vw, 44px)]",
                         // keep it vertically centered and not touching top/bottom
-                        "sm:-translate-y-1 lg:-translate-y-2"
+                        ""
                       )}
                     >
                       <div className="flex flex-col gap-4">
