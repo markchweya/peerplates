@@ -108,6 +108,17 @@ export default function LogoFullScreen({
     transform: "translateY(-8%) scale(1.10) translateZ(0)",
   };
 
+  // ✅ NEW: premium “no-plain-white” card shell (used only on the two PC cards)
+  const CARD_SHELL_STYLE: React.CSSProperties = {
+    border: "1px solid rgba(252,176,64,0.30)", // warm orange glass border
+    background:
+      "linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.10) 55%, rgba(255,255,255,0.06) 100%)",
+    boxShadow:
+      "0 28px 95px rgba(2,6,23,0.34), 0 10px 32px rgba(2,6,23,0.18)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+  };
+
   return (
     <section className={cn("relative isolate h-screen w-screen overflow-hidden", className)}>
       {/* ================= BACKGROUND ================= */}
@@ -301,17 +312,12 @@ export default function LogoFullScreen({
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
                       <div className="relative aspect-[16/10] w-full">
-                        <Image
-                          src="/images/gallery/gallery11.png"
-                          fill
-                          alt=""
-                          className="object-cover object-center"
-                        />
+                        <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
                     </div>
 
-                    {/* BOTTOM CARD (✅ SAME SIZE + ALIGNED) */}
+                    {/* BOTTOM CARD */}
                     <div
                       className={cn(
                         "relative w-full overflow-hidden rounded-[18px]",
@@ -320,12 +326,7 @@ export default function LogoFullScreen({
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
                       <div className="relative aspect-[16/10] w-full">
-                        <Image
-                          src="/images/gallery/gallery14.png"
-                          fill
-                          alt=""
-                          className="object-cover object-center"
-                        />
+                        <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
                     </div>
@@ -386,7 +387,6 @@ export default function LogoFullScreen({
                     className="w-full"
                     style={
                       {
-                        // ✅ bigger cards to match your drawn boxes + same size for both cards
                         "--rightW": "clamp(440px, 36vw, 600px)",
                         "--cardH": "clamp(190px, 22vh, 260px)",
                       } as React.CSSProperties
@@ -398,42 +398,61 @@ export default function LogoFullScreen({
                         "translate-x-[-clamp(185px,19vw,460px)]"
                       )}
                     >
-                      <div className="flex flex-col gap-4">
-                        {/* 1) TOP CARD */}
+                      <div className="flex flex-col gap-5">
+                        {/* 1) TOP CARD (restyled, no plain white frame) */}
                         <div
-                          className={cn(
-                            "relative w-full overflow-hidden rounded-[22px]",
-                            "shadow-[0_24px_80px_rgba(2,6,23,0.22)]"
-                          )}
-                          style={{ border: "7px solid rgba(255,255,255,0.82)" }}
+                          className={cn("relative w-full overflow-hidden rounded-[26px]")}
+                          style={CARD_SHELL_STYLE}
                         >
-                          <div className="relative w-full h-[var(--cardH)]">
-                            <Image
-                              src="/images/gallery/gallery11.png"
-                              fill
-                              alt=""
-                              className="object-cover object-center"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                          {/* subtle inner ring + highlight */}
+                          <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-1 ring-white/15" />
+                          <div
+                            className="pointer-events-none absolute inset-0 rounded-[26px]"
+                            style={{
+                              background:
+                                "radial-gradient(110% 85% at 25% 10%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 38%, rgba(255,255,255,0.00) 70%)",
+                            }}
+                          />
+
+                          <div className="relative w-full h-[var(--cardH)] rounded-[26px] p-[10px]">
+                            <div className="relative h-full w-full overflow-hidden rounded-[20px]">
+                              <Image
+                                src="/images/gallery/gallery11.png"
+                                fill
+                                alt=""
+                                className="object-cover object-center"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
+                              <div className="absolute inset-0 ring-1 ring-white/10" />
+                            </div>
                           </div>
                         </div>
 
-                        {/* 2) BOTTOM CARD */}
+                        {/* 2) BOTTOM CARD (restyled, same as top) */}
                         <div
-                          className={cn(
-                            "relative w-full overflow-hidden rounded-[22px]",
-                            "shadow-[0_24px_80px_rgba(2,6,23,0.20)]"
-                          )}
-                          style={{ border: "7px solid rgba(255,255,255,0.82)" }}
+                          className={cn("relative w-full overflow-hidden rounded-[26px]")}
+                          style={CARD_SHELL_STYLE}
                         >
-                          <div className="relative w-full h-[var(--cardH)]">
-                            <Image
-                              src="/images/gallery/gallery14.png"
-                              fill
-                              alt=""
-                              className="object-cover object-center"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                          <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-1 ring-white/15" />
+                          <div
+                            className="pointer-events-none absolute inset-0 rounded-[26px]"
+                            style={{
+                              background:
+                                "radial-gradient(110% 85% at 25% 10%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 38%, rgba(255,255,255,0.00) 70%)",
+                            }}
+                          />
+
+                          <div className="relative w-full h-[var(--cardH)] rounded-[26px] p-[10px]">
+                            <div className="relative h-full w-full overflow-hidden rounded-[20px]">
+                              <Image
+                                src="/images/gallery/gallery14.png"
+                                fill
+                                alt=""
+                                className="object-cover object-center"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
+                              <div className="absolute inset-0 ring-1 ring-white/10" />
+                            </div>
                           </div>
                         </div>
                       </div>
