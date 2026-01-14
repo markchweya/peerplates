@@ -95,12 +95,33 @@ export default function LogoFullScreen({
     show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: easeOut } },
   };
 
+  // ✅ Background shift (FORCES image to move UP)
+  // Change -14% to -10% (less) or -18% (more)
+  const BG_SHIFT_STYLE: React.CSSProperties = {
+    objectPosition: "50% 0%",
+    transform: "translateY(-8) scale(1.10)",
+  };
+
+  // ✅ Same shift for the masked/unblur layers (keep translateZ(0) you already had)
+  const BG_SHIFT_MASKED_STYLE: React.CSSProperties = {
+    objectPosition: "50% 0%",
+    transform: "translateY(-8%) scale(1.10) translateZ(0)",
+  };
+
   return (
     <section className={cn("relative isolate h-screen w-screen overflow-hidden", className)}>
       {/* ================= BACKGROUND ================= */}
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0">
-          <Image src="/images/gallery/gallery19.png" fill alt="" className="object-cover" priority />
+          {/* BASE BACKGROUND (SHIFTED UP) */}
+          <Image
+            src="/images/gallery/gallery19.png"
+            fill
+            alt=""
+            className="object-cover"
+            priority
+            style={BG_SHIFT_STYLE}
+          />
 
           {/* Background treatment (kept light so the image still reads on the right) */}
           <div className="absolute inset-0 bg-black/55" />
@@ -116,12 +137,12 @@ export default function LogoFullScreen({
               className="object-cover"
               quality={100}
               style={{
+                ...BG_SHIFT_MASKED_STYLE, // ✅ shifted up
                 WebkitMaskImage:
                   "radial-gradient(70% 62% at 74% 22%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 58%, rgba(0,0,0,0) 82%)",
                 maskImage:
                   "radial-gradient(70% 62% at 74% 22%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 58%, rgba(0,0,0,0) 82%)",
                 opacity: 0.99,
-                transform: "translateZ(0)",
                 filter: "contrast(1.06) saturate(1.06)",
               }}
             />
@@ -136,12 +157,12 @@ export default function LogoFullScreen({
               className="object-cover"
               quality={100}
               style={{
+                ...BG_SHIFT_MASKED_STYLE, // ✅ shifted up
                 WebkitMaskImage:
                   "radial-gradient(55% 42% at 70% 12%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 78%)",
                 maskImage:
                   "radial-gradient(55% 42% at 70% 12%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 78%)",
                 opacity: 0.98,
-                transform: "translateZ(0)",
                 filter: "contrast(1.05) saturate(1.05)",
               }}
             />
@@ -234,7 +255,12 @@ export default function LogoFullScreen({
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
                       <div className="relative aspect-[16/10] w-full">
-                        <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
+                        <Image
+                          src="/images/gallery/gallery11.png"
+                          fill
+                          alt=""
+                          className="object-cover object-center"
+                        />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
                     </div>
@@ -248,7 +274,12 @@ export default function LogoFullScreen({
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
                       <div className="relative aspect-[16/10] w-full">
-                        <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                        <Image
+                          src="/images/gallery/gallery14.png"
+                          fill
+                          alt=""
+                          className="object-cover object-center"
+                        />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
                     </div>
@@ -259,8 +290,7 @@ export default function LogoFullScreen({
                 <div className="max-w-xl">
                   <h1 className="font-black tracking-tight leading-[0.98] text-[clamp(34px,8.8vw,60px)] sm:text-[clamp(54px,4.8vw,76px)]">
                     <span className="block text-slate-900">Eat better</span>
-                   <span className="block text-slate-900 text-left">and</span>
-
+                    <span className="block text-slate-900 text-left">and</span>
 
                     <span className="block whitespace-normal min-[370px]:whitespace-nowrap">
                       <span style={{ color: BRAND_ORANGE }}>back</span>{" "}
@@ -317,7 +347,6 @@ export default function LogoFullScreen({
                     <div
                       className={cn(
                         "ml-auto w-full max-w-[var(--rightW)]",
-                        // ✅ adjusted so the stack's CENTER line sits on your black marker
                         "translate-x-[-clamp(185px,19vw,460px)]"
                       )}
                     >
@@ -331,7 +360,12 @@ export default function LogoFullScreen({
                           style={{ border: "7px solid rgba(255,255,255,0.82)" }}
                         >
                           <div className="relative aspect-[16/9] w-full">
-                            <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
+                            <Image
+                              src="/images/gallery/gallery11.png"
+                              fill
+                              alt=""
+                              className="object-cover object-center"
+                            />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
                           </div>
                         </div>
@@ -345,7 +379,12 @@ export default function LogoFullScreen({
                           style={{ border: "7px solid rgba(255,255,255,0.82)" }}
                         >
                           <div className="relative aspect-[16/9] w-full">
-                            <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                            <Image
+                              src="/images/gallery/gallery14.png"
+                              fill
+                              alt=""
+                              className="object-cover object-center"
+                            />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
                           </div>
                         </div>
