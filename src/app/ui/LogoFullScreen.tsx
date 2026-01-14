@@ -100,16 +100,17 @@ export default function LogoFullScreen({
       {/* ================= BACKGROUND ================= */}
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0">
-          <Image src="/images/gallery/gallery17.jpeg" fill alt="" className="object-cover" priority />
+          <Image src="/images/gallery/gallery18.jpg" fill alt="" className="object-cover" priority />
 
           {/* Background treatment (kept light so the image still reads on the right) */}
-          <div className="absolute inset-0 bg-white/18" />
+         <div className="absolute inset-0 bg-black/55" />
+
           <div className="absolute inset-0" style={{ backdropFilter: "blur(8px)" }} />
 
           {/* ✅ Remove blur/fade ONLY on the food/hero background area (top-right black-marked region) */}
           <div className="absolute inset-0">
             <Image
-              src="/images/gallery/gallery17.jpeg"
+              src="/images/gallery/gallery18.jpg"
               fill
               alt=""
               className="object-cover"
@@ -288,35 +289,68 @@ export default function LogoFullScreen({
 
               {/* RIGHT: Visual column (TABLET/DESKTOP) */}
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
-                <div className="flex h-full w-full items-center justify-end">
-              <div className="w-full max-w-[520px] lg:max-w-[500px] xl:max-w-[360px]">
-                    {/* ✅ 2 images */}
-                    <div className="flex flex-col gap-4">
-                      {/* 1) TOP CARD */}
-                      <div
-                        className={cn(
-                          "relative w-full overflow-hidden rounded-[22px]",
-                          "shadow-[0_24px_80px_rgba(2,6,23,0.22)]"
-                        )}
-                        style={{ border: "8px solid rgba(255,255,255,0.82)" }}
-                      >
-                        <div className="relative aspect-[4/2.45] w-full">
-                          <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
-                        </div>
-                      </div>
+                {/* ✅ Keep stack inside “red box”:
+                    - centered vertically within column
+                    - shifted LEFT (but never past the middle line)
+                    - slightly smaller */}
+                <div className="flex h-full w-full items-center justify-end overflow-hidden">
+                  <div
+                    className="w-full"
+                    style={
+                      {
+                        // Smaller than before + tied to viewport height so it doesn't go above/below the red bounds
+                      "--rightW": "min(410px, calc((100vh - 280px) / 1.32))",
 
-                      {/* 2) BOTTOM CARD */}
-                      <div
-                        className={cn(
-                          "relative w-full overflow-hidden rounded-[22px]",
-                          "shadow-[0_24px_80px_rgba(2,6,23,0.20)]"
-                        )}
-                        style={{ border: "8px solid rgba(255,255,255,0.82)" }}
-                      >
-                        <div className="relative aspect-[4/2.45] w-full">
-                          <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                      } as React.CSSProperties
+                    }
+                  >
+                    <div
+                      className={cn(
+                        // move LEFT but clamp so it never crosses the “middle” boundary too far
+                        "ml-auto w-full max-w-[var(--rightW)]",
+                        "translate-x-[-clamp(0px, 3.2vw, 44px)]",
+                        // keep it vertically centered and not touching top/bottom
+                        "sm:-translate-y-1 lg:-translate-y-2"
+                      )}
+                    >
+                      <div className="flex flex-col gap-4">
+                        {/* 1) TOP CARD */}
+                        <div
+                          className={cn(
+                            "relative w-full overflow-hidden rounded-[22px]",
+                            "shadow-[0_24px_80px_rgba(2,6,23,0.22)]"
+                          )}
+                          // slightly lighter border so it feels smaller without changing content
+                          style={{ border: "7px solid rgba(255,255,255,0.82)" }}
+                        >
+                          <div className="relative aspect-[4/2.55] w-full">
+                            <Image
+                              src="/images/gallery/gallery11.png"
+                              fill
+                              alt=""
+                              className="object-cover object-center"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                          </div>
+                        </div>
+
+                        {/* 2) BOTTOM CARD */}
+                        <div
+                          className={cn(
+                            "relative w-full overflow-hidden rounded-[22px]",
+                            "shadow-[0_24px_80px_rgba(2,6,23,0.20)]"
+                          )}
+                          style={{ border: "7px solid rgba(255,255,255,0.82)" }}
+                        >
+                          <div className="relative aspect-[4/2.55] w-full">
+                            <Image
+                              src="/images/gallery/gallery14.png"
+                              fill
+                              alt=""
+                              className="object-cover object-center"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                          </div>
                         </div>
                       </div>
                     </div>
