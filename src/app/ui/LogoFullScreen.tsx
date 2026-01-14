@@ -180,7 +180,7 @@ export default function LogoFullScreen({
               <div
                 className={cn(
                   "relative col-span-12 sm:col-span-6 lg:col-span-5",
-                  // ✅ lift headline + buttons significantly (this is the fix)
+                  // ✅ keep desktop lift modest so PC layout stays balanced
                   "-translate-y-4",
                   "sm:-translate-y-10 lg:-translate-y-12",
                   // ✅ on very short heights, don't lift (avoid clipping)
@@ -287,70 +287,83 @@ export default function LogoFullScreen({
               {/* RIGHT: Visual column (TABLET/DESKTOP) */}
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
                 <div className="flex h-full w-full items-center justify-end">
-                  <div className="w-full max-w-[560px]">
-                    {/* ✅ EXACTLY 3 images */}
-                    <div className="flex flex-col gap-4">
-                      {/* 1) TOP “BACKGROUND/SCENE” CARD */}
-                      <div
-                        className={cn(
-                          "relative w-full overflow-hidden rounded-[22px]",
-                          "shadow-[0_30px_110px_rgba(2,6,23,0.24)]"
-                        )}
-                        style={{ border: "8px solid rgba(255,255,255,0.82)" }}
-                      >
-                        <div className="relative aspect-[4/2.05] w-full">
-                          <Image
-                            src="/images/gallery/gallery17.jpeg"
-                            fill
-                            alt=""
-                            quality={100}
-                            className="object-cover"
-                            style={{
-                              objectPosition: "62% 40%",
-                              filter: "contrast(1.12) saturate(1.12) brightness(1.02)",
-                              transform: "translateZ(0)",
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/12" />
-                          <div
-                            className="absolute inset-0"
-                            style={{
-                              boxShadow:
-                                "inset 0 1px 0 rgba(255,255,255,0.40), inset 0 -1px 0 rgba(0,0,0,0.10)",
-                            }}
-                          />
+                  {/* ✅ PC FIX: scale the whole 3-card stack down when viewport height is limited
+                      so the 2nd/3rd cards don't get clipped by the full-screen container. */}
+                  <div
+                    className="w-full"
+                    style={
+                      {
+                        // total stack height ≈ 1.74 * width + gaps/borders; this keeps it within the viewport
+                        "--rightW": "min(560px, calc((100vh - 180px) / 1.78))",
+                      } as React.CSSProperties
+                    }
+                  >
+                    <div className="ml-auto w-full max-w-[var(--rightW)]">
+                      {/* ✅ EXACTLY 3 images */}
+                      <div className="flex flex-col gap-4">
+                        {/* 1) TOP “BACKGROUND/SCENE” CARD */}
+                        <div
+                          className={cn(
+                            "relative w-full overflow-hidden rounded-[22px]",
+                            "shadow-[0_30px_110px_rgba(2,6,23,0.24)]"
+                          )}
+                          style={{ border: "8px solid rgba(255,255,255,0.82)" }}
+                        >
+                          <div className="relative aspect-[4/2.05] w-full">
+                            <Image
+                              src="/images/gallery/gallery17.jpeg"
+                              fill
+                              alt=""
+                              quality={100}
+                              className="object-cover"
+                              style={{
+                                objectPosition: "62% 40%",
+                                filter: "contrast(1.12) saturate(1.12) brightness(1.02)",
+                                transform: "translateZ(0)",
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/12" />
+                            <div
+                              className="absolute inset-0"
+                              style={{
+                                boxShadow:
+                                  "inset 0 1px 0 rgba(255,255,255,0.40), inset 0 -1px 0 rgba(0,0,0,0.10)",
+                              }}
+                            />
+                          </div>
                         </div>
-                      </div>
 
-                      {/* 2) ORIGINAL TOP CARD */}
-                      <div
-                        className={cn(
-                          "relative w-full overflow-hidden rounded-[22px]",
-                          "shadow-[0_24px_80px_rgba(2,6,23,0.22)]"
-                        )}
-                        style={{ border: "8px solid rgba(255,255,255,0.82)" }}
-                      >
-                        <div className="relative aspect-[4/2.45] w-full">
-                          <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                        {/* 2) ORIGINAL TOP CARD */}
+                        <div
+                          className={cn(
+                            "relative w-full overflow-hidden rounded-[22px]",
+                            "shadow-[0_24px_80px_rgba(2,6,23,0.22)]"
+                          )}
+                          style={{ border: "8px solid rgba(255,255,255,0.82)" }}
+                        >
+                          <div className="relative aspect-[4/2.45] w-full">
+                            <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                          </div>
                         </div>
-                      </div>
 
-                      {/* 3) ORIGINAL BOTTOM CARD */}
-                      <div
-                        className={cn(
-                          "relative w-full overflow-hidden rounded-[22px]",
-                          "shadow-[0_24px_80px_rgba(2,6,23,0.20)]"
-                        )}
-                        style={{ border: "8px solid rgba(255,255,255,0.82)" }}
-                      >
-                        <div className="relative aspect-[4/2.45] w-full">
-                          <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                        {/* 3) ORIGINAL BOTTOM CARD */}
+                        <div
+                          className={cn(
+                            "relative w-full overflow-hidden rounded-[22px]",
+                            "shadow-[0_24px_80px_rgba(2,6,23,0.20)]"
+                          )}
+                          style={{ border: "8px solid rgba(255,255,255,0.82)" }}
+                        >
+                          <div className="relative aspect-[4/2.45] w-full">
+                            <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                            <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
+                  {/* END PC FIX */}
                 </div>
               </div>
               {/* END RIGHT */}
