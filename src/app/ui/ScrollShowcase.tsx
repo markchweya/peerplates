@@ -123,11 +123,8 @@ export default function ScrollShowcase({
           <h2
             className="mt-6 font-extrabold tracking-tight leading-[0.98] text-[clamp(2.2rem,4.8vw,3.4rem)]"
             style={{
-              backgroundImage: "linear-gradient(135deg, #fcb040 0%, #8a6b43 100%)",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-              color: "transparent",
-              textShadow: "0 1px 0 rgba(255,255,255,0.85)",
+              color: "#B8833A",
+              textShadow: "0 1px 0 rgba(255,255,255,0.92), 0 10px 26px rgba(184,131,58,0.18)",
             }}
           >
             App Previews
