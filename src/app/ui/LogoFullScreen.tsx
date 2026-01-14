@@ -1,7 +1,7 @@
 // src/app/ui/LogoFullScreen.tsx
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, type Variants } from "framer-motion";
@@ -90,7 +90,6 @@ export default function LogoFullScreen({
     setReduceMotion(prefersReducedMotion());
   }, []);
 
-  // Motion variants
   const fadeInUp: Variants = {
     hidden: { opacity: 0, y: 10 },
     show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: easeOut } },
@@ -101,17 +100,32 @@ export default function LogoFullScreen({
       {/* ================= BACKGROUND ================= */}
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0">
-          <Image
-            src="/images/gallery/gallery17.jpeg"
-            fill
-            alt=""
-            className="object-cover"
-            priority
-          />
+          <Image src="/images/gallery/gallery17.jpeg" fill alt="" className="object-cover" priority />
 
           {/* Background treatment (kept light so the image still reads on the right) */}
           <div className="absolute inset-0 bg-white/18" />
           <div className="absolute inset-0" style={{ backdropFilter: "blur(8px)" }} />
+
+          {/* ✅ Remove blur/fade ONLY on the food/hero background area (top-right black-marked region) */}
+          <div className="absolute inset-0">
+            <Image
+              src="/images/gallery/gallery17.jpeg"
+              fill
+              alt=""
+              className="object-cover"
+              quality={100}
+              style={{
+                WebkitMaskImage:
+                  "radial-gradient(70% 62% at 74% 22%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 58%, rgba(0,0,0,0) 82%)",
+                maskImage:
+                  "radial-gradient(70% 62% at 74% 22%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 58%, rgba(0,0,0,0) 82%)",
+                opacity: 0.99,
+                transform: "translateZ(0)",
+                filter: "contrast(1.06) saturate(1.06)",
+              }}
+            />
+          </div>
+
           <div
             className="absolute inset-0"
             style={{
@@ -121,12 +135,12 @@ export default function LogoFullScreen({
           />
         </div>
 
-        {/* ✅ LEFT SIDE FADE (almost completely) */}
+        {/* ✅ LEFT SIDE FADE (almost completely) — BUT it no longer washes out the TOP-RIGHT background */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-y-0 left-0 w-[72%] sm:w-[62%] lg:w-[58%]"
           style={{
             background:
-              "linear-gradient(90deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.95) 22%, rgba(255,255,255,0.80) 40%, rgba(255,255,255,0.40) 54%, rgba(255,255,255,0.14) 62%, rgba(255,255,255,0.04) 68%, rgba(255,255,255,0.00) 74%)",
+              "linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.96) 30%, rgba(255,255,255,0.82) 52%, rgba(255,255,255,0.42) 70%, rgba(255,255,255,0.14) 82%, rgba(255,255,255,0.05) 90%, rgba(255,255,255,0.00) 100%)",
           }}
         />
 
@@ -150,14 +164,14 @@ export default function LogoFullScreen({
 
       {/* ================= CONTENT ================= */}
       <div className="relative z-10 h-[calc(100%-84px)]">
-        {/* ✅ Tall phones center; short phones use top padding */}
+        {/* ✅ Tall phones center; ONLY very short viewports use top alignment */}
         <div
           className={cn(
             "mx-auto flex h-full w-full max-w-7xl px-6 sm:px-10 sm:pt-0 sm:pb-0",
             "items-center",
-            "[@media_(max-height:720px)]:items-start",
-            "[@media_(max-height:720px)]:pt-[clamp(18px,5vh,56px)]",
-            "[@media_(max-height:720px)]:pb-[clamp(18px,5vh,52px)]"
+            "[@media_(max-height:640px)]:items-start",
+            "[@media_(max-height:640px)]:pt-[clamp(10px,3.2vh,28px)]",
+            "[@media_(max-height:640px)]:pb-[clamp(10px,3.2vh,24px)]"
           )}
         >
           <div className="w-full">
@@ -166,23 +180,25 @@ export default function LogoFullScreen({
               <div
                 className={cn(
                   "relative col-span-12 sm:col-span-6 lg:col-span-5",
-                  // ✅ reserve space for overlay stack on phones, using clamp so it works on SE/XR/Pixel automatically
+                  // ✅ lift headline + buttons significantly (this is the fix)
+                  "-translate-y-4",
+                  "sm:-translate-y-10 lg:-translate-y-12",
+                  // ✅ on very short heights, don't lift (avoid clipping)
+                  "[@media_(max-height:640px)]:translate-y-0",
+                  // ✅ reserve space for overlay stack on phones
                   "pr-[calc(var(--stackW)+18px)] sm:pr-0"
                 )}
                 style={
                   {
-                    // phone overlay width (scales across SE/XR/Pixel)
                     "--stackW": "clamp(148px, 40vw, 240px)",
                   } as React.CSSProperties
                 }
               >
-                {/* ✅ PHONE ONLY: overlay image stack (scales cleanly on SE / XR / Pixel) */}
+                {/* ✅ PHONE ONLY: overlay image stack */}
                 <motion.div
                   className={cn(
                     "pointer-events-none absolute sm:hidden",
-                    // push toward edge, but not too far on SE
                     "right-[clamp(-18px,-4vw,-8px)]",
-                    // push up a bit so it sits next to headline on all phones
                     "top-[clamp(104px,12vh,150px)]",
                     "w-[var(--stackW)]"
                   )}
@@ -200,12 +216,7 @@ export default function LogoFullScreen({
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
                       <div className="relative aspect-[4/3] w-full">
-                        <Image
-                          src="/images/gallery/gallery11.png"
-                          fill
-                          alt=""
-                          className="object-cover object-center"
-                        />
+                        <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
                     </div>
@@ -219,12 +230,7 @@ export default function LogoFullScreen({
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
                       <div className="relative aspect-[4/3.25] w-full">
-                        <Image
-                          src="/images/gallery/gallery14.png"
-                          fill
-                          alt=""
-                          className="object-cover object-center"
-                        />
+                        <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
                     </div>
@@ -237,7 +243,6 @@ export default function LogoFullScreen({
                     <span className="block text-slate-900">Eat better</span>
                     <span className="block text-slate-900 text-center sm:text-left">and</span>
 
-                    {/* ✅ allow wrapping only on ultra-narrow widths (e.g., 360px) */}
                     <span className="block whitespace-normal min-[370px]:whitespace-nowrap">
                       <span style={{ color: BRAND_ORANGE }}>back</span>{" "}
                       <span style={{ color: BRAND_BROWN }}>local</span>
@@ -283,8 +288,41 @@ export default function LogoFullScreen({
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
                 <div className="flex h-full w-full items-center justify-end">
                   <div className="w-full max-w-[560px]">
+                    {/* ✅ EXACTLY 3 images */}
                     <div className="flex flex-col gap-4">
-                      {/* TOP CARD */}
+                      {/* 1) TOP “BACKGROUND/SCENE” CARD */}
+                      <div
+                        className={cn(
+                          "relative w-full overflow-hidden rounded-[22px]",
+                          "shadow-[0_30px_110px_rgba(2,6,23,0.24)]"
+                        )}
+                        style={{ border: "8px solid rgba(255,255,255,0.82)" }}
+                      >
+                        <div className="relative aspect-[4/2.05] w-full">
+                          <Image
+                            src="/images/gallery/gallery17.jpeg"
+                            fill
+                            alt=""
+                            quality={100}
+                            className="object-cover"
+                            style={{
+                              objectPosition: "62% 40%",
+                              filter: "contrast(1.12) saturate(1.12) brightness(1.02)",
+                              transform: "translateZ(0)",
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/12" />
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              boxShadow:
+                                "inset 0 1px 0 rgba(255,255,255,0.40), inset 0 -1px 0 rgba(0,0,0,0.10)",
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* 2) ORIGINAL TOP CARD */}
                       <div
                         className={cn(
                           "relative w-full overflow-hidden rounded-[22px]",
@@ -293,17 +331,12 @@ export default function LogoFullScreen({
                         style={{ border: "8px solid rgba(255,255,255,0.82)" }}
                       >
                         <div className="relative aspect-[4/2.45] w-full">
-                          <Image
-                            src="/images/gallery/gallery11.png"
-                            fill
-                            alt=""
-                            className="object-cover object-center"
-                          />
+                          <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
                         </div>
                       </div>
 
-                      {/* BOTTOM CARD */}
+                      {/* 3) ORIGINAL BOTTOM CARD */}
                       <div
                         className={cn(
                           "relative w-full overflow-hidden rounded-[22px]",
@@ -312,12 +345,7 @@ export default function LogoFullScreen({
                         style={{ border: "8px solid rgba(255,255,255,0.82)" }}
                       >
                         <div className="relative aspect-[4/2.45] w-full">
-                          <Image
-                            src="/images/gallery/gallery14.png"
-                            fill
-                            alt=""
-                            className="object-cover object-center"
-                          />
+                          <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
                         </div>
                       </div>
