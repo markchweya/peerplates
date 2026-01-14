@@ -100,7 +100,7 @@ export default function LogoFullScreen({
       {/* ================= BACKGROUND ================= */}
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0">
-          <Image src="/images/gallery/gallery18.jpg" fill alt="" className="object-cover" priority />
+          <Image src="/images/gallery/gallery19.png" fill alt="" className="object-cover" priority />
 
           {/* Background treatment (kept light so the image still reads on the right) */}
           <div className="absolute inset-0 bg-black/55" />
@@ -110,7 +110,7 @@ export default function LogoFullScreen({
           {/* ✅ Remove blur/fade ONLY on the food/hero background area (top-right) */}
           <div className="absolute inset-0">
             <Image
-              src="/images/gallery/gallery18.jpzg"
+              src="/images/gallery/gallery19.png"
               fill
               alt=""
               className="object-cover"
@@ -130,7 +130,7 @@ export default function LogoFullScreen({
           {/* ✅ Unblur only the top area (near header/menu) */}
           <div className="absolute inset-0">
             <Image
-              src="/images/gallery/gallery18.jpg"
+              src="/images/gallery/gallery19.png"
               fill
               alt=""
               className="object-cover"
