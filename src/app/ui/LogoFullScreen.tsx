@@ -127,7 +127,7 @@ export default function LogoFullScreen({
             />
           </div>
 
-          {/* ✅ NEW: Unblur only the black-marked top area (near header/menu) */}
+          {/* ✅ Unblur only the top area (near header/menu) */}
           <div className="absolute inset-0">
             <Image
               src="/images/gallery/gallery18.jpg"
@@ -233,7 +233,7 @@ export default function LogoFullScreen({
                       )}
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
-                      <div className="relative aspect-[4/3] w-full">
+                      <div className="relative aspect-[16/10] w-full">
                         <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
@@ -247,7 +247,7 @@ export default function LogoFullScreen({
                       )}
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
-                      <div className="relative aspect-[4/3.25] w-full">
+                      <div className="relative aspect-[16/10] w-full">
                         <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
@@ -259,7 +259,8 @@ export default function LogoFullScreen({
                 <div className="max-w-xl">
                   <h1 className="font-black tracking-tight leading-[0.98] text-[clamp(34px,8.8vw,60px)] sm:text-[clamp(54px,4.8vw,76px)]">
                     <span className="block text-slate-900">Eat better</span>
-                    <span className="block text-slate-900 text-center sm:text-left">and</span>
+                   <span className="block text-slate-900 text-left">and</span>
+
 
                     <span className="block whitespace-normal min-[370px]:whitespace-nowrap">
                       <span style={{ color: BRAND_ORANGE }}>back</span>{" "}
@@ -309,11 +310,17 @@ export default function LogoFullScreen({
                     className="w-full"
                     style={
                       {
-                        "--rightW": "min(410px, calc((100vh - 280px) / 1.32))",
+                        "--rightW": "min(810px, calc((100vh - 280px) / 1.32))",
                       } as React.CSSProperties
                     }
                   >
-                    <div className={cn("ml-auto w-full max-w-[var(--rightW)]", "translate-x-[-clamp(170px,18vw,420px)]")}>
+                    <div
+                      className={cn(
+                        "ml-auto w-full max-w-[var(--rightW)]",
+                        // ✅ adjusted so the stack's CENTER line sits on your black marker
+                        "translate-x-[-clamp(185px,19vw,460px)]"
+                      )}
+                    >
                       <div className="flex flex-col gap-4">
                         {/* 1) TOP CARD */}
                         <div
@@ -323,7 +330,7 @@ export default function LogoFullScreen({
                           )}
                           style={{ border: "7px solid rgba(255,255,255,0.82)" }}
                         >
-                          <div className="relative aspect-[4/2.55] w-full">
+                          <div className="relative aspect-[16/9] w-full">
                             <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
                           </div>
@@ -337,7 +344,7 @@ export default function LogoFullScreen({
                           )}
                           style={{ border: "7px solid rgba(255,255,255,0.82)" }}
                         >
-                          <div className="relative aspect-[4/2.55] w-full">
+                          <div className="relative aspect-[16/9] w-full">
                             <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
                           </div>
