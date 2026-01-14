@@ -101,17 +101,33 @@ export default function LogoFullScreen({
       {/* ================= BACKGROUND ================= */}
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0">
-          <Image
-            src="/images/gallery/gallery17.jpeg"
-            fill
-            alt=""
-            className="object-cover"
-            priority
-          />
+          <Image src="/images/gallery/gallery17.jpeg" fill alt="" className="object-cover" priority />
 
           {/* Background treatment (kept light so the image still reads on the right) */}
           <div className="absolute inset-0 bg-white/18" />
           <div className="absolute inset-0" style={{ backdropFilter: "blur(8px)" }} />
+
+          {/* ✅ Remove blur/fade ONLY on the food/hero background area (top-right black-marked region) */}
+          <div className="absolute inset-0">
+            <Image
+              src="/images/gallery/gallery17.jpeg"
+              fill
+              alt=""
+              className="object-cover"
+              quality={100}
+              style={{
+                // Bigger + higher spotlight so the TOP-RIGHT background looks like the other photos
+                WebkitMaskImage:
+                  "radial-gradient(70% 62% at 74% 22%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 58%, rgba(0,0,0,0) 82%)",
+                maskImage:
+                  "radial-gradient(70% 62% at 74% 22%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 58%, rgba(0,0,0,0) 82%)",
+                opacity: 0.99,
+                transform: "translateZ(0)",
+                filter: "contrast(1.06) saturate(1.06)",
+              }}
+            />
+          </div>
+
           <div
             className="absolute inset-0"
             style={{
@@ -121,12 +137,12 @@ export default function LogoFullScreen({
           />
         </div>
 
-        {/* ✅ LEFT SIDE FADE (almost completely) */}
+        {/* ✅ LEFT SIDE FADE (almost completely) — BUT it no longer washes out the TOP-RIGHT background */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-y-0 left-0 w-[72%] sm:w-[62%] lg:w-[58%]"
           style={{
             background:
-              "linear-gradient(90deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.95) 22%, rgba(255,255,255,0.80) 40%, rgba(255,255,255,0.40) 54%, rgba(255,255,255,0.14) 62%, rgba(255,255,255,0.04) 68%, rgba(255,255,255,0.00) 74%)",
+              "linear-gradient(90deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.96) 30%, rgba(255,255,255,0.82) 52%, rgba(255,255,255,0.42) 70%, rgba(255,255,255,0.14) 82%, rgba(255,255,255,0.05) 90%, rgba(255,255,255,0.00) 100%)",
           }}
         />
 
@@ -200,12 +216,7 @@ export default function LogoFullScreen({
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
                       <div className="relative aspect-[4/3] w-full">
-                        <Image
-                          src="/images/gallery/gallery11.png"
-                          fill
-                          alt=""
-                          className="object-cover object-center"
-                        />
+                        <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
                     </div>
@@ -219,12 +230,7 @@ export default function LogoFullScreen({
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
                       <div className="relative aspect-[4/3.25] w-full">
-                        <Image
-                          src="/images/gallery/gallery14.png"
-                          fill
-                          alt=""
-                          className="object-cover object-center"
-                        />
+                        <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
                     </div>
@@ -283,8 +289,41 @@ export default function LogoFullScreen({
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
                 <div className="flex h-full w-full items-center justify-end">
                   <div className="w-full max-w-[560px]">
+                    {/* ✅ EXACTLY 3 images */}
                     <div className="flex flex-col gap-4">
-                      {/* TOP CARD */}
+                      {/* 1) TOP “BACKGROUND/SCENE” CARD */}
+                      <div
+                        className={cn(
+                          "relative w-full overflow-hidden rounded-[22px]",
+                          "shadow-[0_30px_110px_rgba(2,6,23,0.24)]"
+                        )}
+                        style={{ border: "8px solid rgba(255,255,255,0.82)" }}
+                      >
+                        <div className="relative aspect-[4/2.05] w-full">
+                          <Image
+                            src="/images/gallery/gallery17.jpeg"
+                            fill
+                            alt=""
+                            quality={100}
+                            className="object-cover"
+                            style={{
+                              objectPosition: "62% 40%",
+                              filter: "contrast(1.12) saturate(1.12) brightness(1.02)",
+                              transform: "translateZ(0)",
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/12" />
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              boxShadow:
+                                "inset 0 1px 0 rgba(255,255,255,0.40), inset 0 -1px 0 rgba(0,0,0,0.10)",
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* 2) ORIGINAL TOP CARD */}
                       <div
                         className={cn(
                           "relative w-full overflow-hidden rounded-[22px]",
@@ -293,17 +332,12 @@ export default function LogoFullScreen({
                         style={{ border: "8px solid rgba(255,255,255,0.82)" }}
                       >
                         <div className="relative aspect-[4/2.45] w-full">
-                          <Image
-                            src="/images/gallery/gallery11.png"
-                            fill
-                            alt=""
-                            className="object-cover object-center"
-                          />
+                          <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
                         </div>
                       </div>
 
-                      {/* BOTTOM CARD */}
+                      {/* 3) ORIGINAL BOTTOM CARD */}
                       <div
                         className={cn(
                           "relative w-full overflow-hidden rounded-[22px]",
@@ -312,12 +346,7 @@ export default function LogoFullScreen({
                         style={{ border: "8px solid rgba(255,255,255,0.82)" }}
                       >
                         <div className="relative aspect-[4/2.45] w-full">
-                          <Image
-                            src="/images/gallery/gallery14.png"
-                            fill
-                            alt=""
-                            className="object-cover object-center"
-                          />
+                          <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
                         </div>
                       </div>
