@@ -107,7 +107,7 @@ export default function LogoFullScreen({
 
           <div className="absolute inset-0" style={{ backdropFilter: "blur(8px)" }} />
 
-          {/* ✅ Remove blur/fade ONLY on the food/hero background area (top-right black-marked region) */}
+          {/* ✅ Remove blur/fade ONLY on the food/hero background area (top-right) */}
           <div className="absolute inset-0">
             <Image
               src="/images/gallery/gallery18.jpzg"
@@ -123,6 +123,26 @@ export default function LogoFullScreen({
                 opacity: 0.99,
                 transform: "translateZ(0)",
                 filter: "contrast(1.06) saturate(1.06)",
+              }}
+            />
+          </div>
+
+          {/* ✅ NEW: Unblur only the black-marked top area (near header/menu) */}
+          <div className="absolute inset-0">
+            <Image
+              src="/images/gallery/gallery18.jpg"
+              fill
+              alt=""
+              className="object-cover"
+              quality={100}
+              style={{
+                WebkitMaskImage:
+                  "radial-gradient(55% 42% at 70% 12%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 78%)",
+                maskImage:
+                  "radial-gradient(55% 42% at 70% 12%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 78%)",
+                opacity: 0.98,
+                transform: "translateZ(0)",
+                filter: "contrast(1.05) saturate(1.05)",
               }}
             />
           </div>
@@ -165,7 +185,6 @@ export default function LogoFullScreen({
 
       {/* ================= CONTENT ================= */}
       <div className="relative z-10 h-[calc(100%-84px)]">
-        {/* ✅ Tall phones center; ONLY very short viewports use top alignment */}
         <div
           className={cn(
             "mx-auto flex h-full w-full max-w-7xl px-6 sm:px-10 sm:pt-0 sm:pb-0",
@@ -285,7 +304,6 @@ export default function LogoFullScreen({
 
               {/* RIGHT: Visual column (TABLET/DESKTOP) */}
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
-                {/* ✅ more right padding + more left shift to open space at the red line */}
                 <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(130px,18vh,220px)] pr-[clamp(34px,5vw,120px)]">
                   <div
                     className="w-full"
@@ -295,13 +313,7 @@ export default function LogoFullScreen({
                       } as React.CSSProperties
                     }
                   >
-                    <div
-                      className={cn(
-                        "ml-auto w-full max-w-[var(--rightW)]",
-                        // ✅ PUSH MORE LEFT
-                        "translate-x-[-clamp(170px,18vw,420px)]"
-                      )}
-                    >
+                    <div className={cn("ml-auto w-full max-w-[var(--rightW)]", "translate-x-[-clamp(170px,18vw,420px)]")}>
                       <div className="flex flex-col gap-4">
                         {/* 1) TOP CARD */}
                         <div
@@ -312,12 +324,7 @@ export default function LogoFullScreen({
                           style={{ border: "7px solid rgba(255,255,255,0.82)" }}
                         >
                           <div className="relative aspect-[4/2.55] w-full">
-                            <Image
-                              src="/images/gallery/gallery11.png"
-                              fill
-                              alt=""
-                              className="object-cover object-center"
-                            />
+                            <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
                           </div>
                         </div>
@@ -331,12 +338,7 @@ export default function LogoFullScreen({
                           style={{ border: "7px solid rgba(255,255,255,0.82)" }}
                         >
                           <div className="relative aspect-[4/2.55] w-full">
-                            <Image
-                              src="/images/gallery/gallery14.png"
-                              fill
-                              alt=""
-                              className="object-cover object-center"
-                            />
+                            <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                             <div className="absolute inset-0 bg-gradient-to-b from-black/8 via-transparent to-black/18" />
                           </div>
                         </div>
