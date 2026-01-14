@@ -99,7 +99,7 @@ export default function LogoFullScreen({
   // Change -14% to -10% (less) or -18% (more)
   const BG_SHIFT_STYLE: React.CSSProperties = {
     objectPosition: "50% 0%",
-    transform: "translateY(-8) scale(1.10)",
+    transform: "translateY(-8%) scale(1.10)",
   };
 
   // ✅ Same shift for the masked/unblur layers (keep translateZ(0) you already had)
@@ -114,11 +114,21 @@ export default function LogoFullScreen({
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0">
           {/* BASE BACKGROUND (SHIFTED UP) */}
+          {/* ✅ Mobile/Tablet keep gallery19 */}
           <Image
             src="/images/gallery/gallery19.png"
             fill
             alt=""
-            className="object-cover"
+            className="object-cover sm:hidden"
+            priority
+            style={BG_SHIFT_STYLE}
+          />
+          {/* ✅ PC/Desktop use gallery18 */}
+          <Image
+            src="/images/gallery/gallery18.jpg"
+            fill
+            alt=""
+            className="object-cover hidden sm:block"
             priority
             style={BG_SHIFT_STYLE}
           />
@@ -130,14 +140,32 @@ export default function LogoFullScreen({
 
           {/* ✅ Remove blur/fade ONLY on the food/hero background area (top-right) */}
           <div className="absolute inset-0">
+            {/* Mobile/Tablet */}
             <Image
               src="/images/gallery/gallery19.png"
               fill
               alt=""
-              className="object-cover"
+              className="object-cover sm:hidden"
               quality={100}
               style={{
-                ...BG_SHIFT_MASKED_STYLE, // ✅ shifted up
+                ...BG_SHIFT_MASKED_STYLE,
+                WebkitMaskImage:
+                  "radial-gradient(70% 62% at 74% 22%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 58%, rgba(0,0,0,0) 82%)",
+                maskImage:
+                  "radial-gradient(70% 62% at 74% 22%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 58%, rgba(0,0,0,0) 82%)",
+                opacity: 0.99,
+                filter: "contrast(1.06) saturate(1.06)",
+              }}
+            />
+            {/* PC/Desktop */}
+            <Image
+              src="/images/gallery/gallery18.jpg"
+              fill
+              alt=""
+              className="object-cover hidden sm:block"
+              quality={100}
+              style={{
+                ...BG_SHIFT_MASKED_STYLE,
                 WebkitMaskImage:
                   "radial-gradient(70% 62% at 74% 22%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 58%, rgba(0,0,0,0) 82%)",
                 maskImage:
@@ -150,14 +178,32 @@ export default function LogoFullScreen({
 
           {/* ✅ Unblur only the top area (near header/menu) */}
           <div className="absolute inset-0">
+            {/* Mobile/Tablet */}
             <Image
               src="/images/gallery/gallery19.png"
               fill
               alt=""
-              className="object-cover"
+              className="object-cover sm:hidden"
               quality={100}
               style={{
-                ...BG_SHIFT_MASKED_STYLE, // ✅ shifted up
+                ...BG_SHIFT_MASKED_STYLE,
+                WebkitMaskImage:
+                  "radial-gradient(55% 42% at 70% 12%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 78%)",
+                maskImage:
+                  "radial-gradient(55% 42% at 70% 12%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 78%)",
+                opacity: 0.98,
+                filter: "contrast(1.05) saturate(1.05)",
+              }}
+            />
+            {/* PC/Desktop */}
+            <Image
+              src="/images/gallery/gallery18.jpg"
+              fill
+              alt=""
+              className="object-cover hidden sm:block"
+              quality={100}
+              style={{
+                ...BG_SHIFT_MASKED_STYLE,
                 WebkitMaskImage:
                   "radial-gradient(55% 42% at 70% 12%, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 55%, rgba(0,0,0,0) 78%)",
                 maskImage:
@@ -265,11 +311,11 @@ export default function LogoFullScreen({
                       </div>
                     </div>
 
-                    {/* BOTTOM CARD */}
+                    {/* BOTTOM CARD (✅ SAME SIZE + ALIGNED) */}
                     <div
                       className={cn(
-                        "relative ml-auto w-[94%] overflow-hidden rounded-[18px]",
-                        "shadow-[0_22px_66px_rgba(2,6,23,0.22)]"
+                        "relative w-full overflow-hidden rounded-[18px]",
+                        "shadow-[0_22px_66px_rgba(2,6,23,0.24)]"
                       )}
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
@@ -340,7 +386,9 @@ export default function LogoFullScreen({
                     className="w-full"
                     style={
                       {
-                        "--rightW": "min(810px, calc((100vh - 280px) / 1.32))",
+                        // ✅ bigger cards to match your drawn boxes + same size for both cards
+                        "--rightW": "clamp(440px, 36vw, 600px)",
+                        "--cardH": "clamp(190px, 22vh, 260px)",
                       } as React.CSSProperties
                     }
                   >
@@ -359,7 +407,7 @@ export default function LogoFullScreen({
                           )}
                           style={{ border: "7px solid rgba(255,255,255,0.82)" }}
                         >
-                          <div className="relative aspect-[16/9] w-full">
+                          <div className="relative w-full h-[var(--cardH)]">
                             <Image
                               src="/images/gallery/gallery11.png"
                               fill
@@ -378,7 +426,7 @@ export default function LogoFullScreen({
                           )}
                           style={{ border: "7px solid rgba(255,255,255,0.82)" }}
                         >
-                          <div className="relative aspect-[16/9] w-full">
+                          <div className="relative w-full h-[var(--cardH)]">
                             <Image
                               src="/images/gallery/gallery14.png"
                               fill
