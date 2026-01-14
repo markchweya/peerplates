@@ -289,7 +289,7 @@ export default function LogoFullScreen({
               {/* RIGHT: Visual column (TABLET/DESKTOP) */}
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
                 <div className="flex h-full w-full items-center justify-end">
-                  <div className="w-full max-w-[560px]">
+              <div className="w-full max-w-[520px] lg:max-w-[500px] xl:max-w-[360px]">
                     {/* ✅ 2 images */}
                     <div className="flex flex-col gap-4">
                       {/* 1) TOP CARD */}
