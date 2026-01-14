@@ -108,13 +108,13 @@ export default function LogoFullScreen({
     transform: "translateY(-8%) scale(1.10) translateZ(0)",
   };
 
-  // ✅ NEW: premium “no-plain-white” card shell (used only on the two PC cards)
+  // ✅ premium “no-plain-white” card shell (used only on the two PC cards)
+  // (thinner border + thinner rings)
   const CARD_SHELL_STYLE: React.CSSProperties = {
-    border: "1px solid rgba(252,176,64,0.30)", // warm orange glass border
+    border: "0.75px solid rgba(252,176,64,0.28)", // thinner
     background:
       "linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.10) 55%, rgba(255,255,255,0.06) 100%)",
-    boxShadow:
-      "0 28px 95px rgba(2,6,23,0.34), 0 10px 32px rgba(2,6,23,0.18)",
+    boxShadow: "0 28px 95px rgba(2,6,23,0.34), 0 10px 32px rgba(2,6,23,0.18)",
     backdropFilter: "blur(10px)",
     WebkitBackdropFilter: "blur(10px)",
   };
@@ -234,7 +234,7 @@ export default function LogoFullScreen({
           />
         </div>
 
-        {/* ✅ LEFT SIDE FADE (almost completely) — BUT it no longer washes out the TOP-RIGHT background */}
+        {/* ✅ LEFT SIDE FADE */}
         <div
           className="absolute inset-y-0 left-0 w-[72%] sm:w-[62%] lg:w-[58%]"
           style={{
@@ -253,7 +253,7 @@ export default function LogoFullScreen({
           style={{ background: "rgba(138,107,67,0.09)" }}
         />
 
-        {/* Bottom blend (lighter + shorter so it doesn’t wash out the hero) */}
+        {/* Bottom blend */}
         <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent via-white/30 to-white/45" />
       </div>
 
@@ -312,7 +312,7 @@ export default function LogoFullScreen({
                       style={{ border: "7px solid rgba(255,255,255,0.86)" }}
                     >
                       <div className="relative aspect-[16/10] w-full">
-                        <Image src="/images/gallery/gallery11.png" fill alt="" className="object-cover object-center" />
+                        <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
                         <div className="absolute inset-0 bg-gradient-to-b from-black/6 via-transparent to-black/14" />
                       </div>
                     </div>
@@ -382,7 +382,10 @@ export default function LogoFullScreen({
 
               {/* RIGHT: Visual column (TABLET/DESKTOP) */}
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
-                <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(130px,18vh,220px)] pr-[clamp(34px,5vw,120px)]">
+                <div
+                  className="flex h-full w-full items-start justify-end overflow-hidden
+                             pt-[clamp(165px,22vh,260px)] pr-[clamp(34px,5vw,120px)]"
+                >
                   <div
                     className="w-full"
                     style={
@@ -398,14 +401,10 @@ export default function LogoFullScreen({
                         "translate-x-[-clamp(185px,19vw,460px)]"
                       )}
                     >
-                      <div className="flex flex-col gap-5">
-                        {/* 1) TOP CARD (restyled, no plain white frame) */}
-                        <div
-                          className={cn("relative w-full overflow-hidden rounded-[26px]")}
-                          style={CARD_SHELL_STYLE}
-                        >
-                          {/* subtle inner ring + highlight */}
-                          <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-1 ring-white/15" />
+                      <div className="flex flex-col gap-3">
+                        {/* 1) TOP CARD */}
+                        <div className={cn("relative w-full overflow-hidden rounded-[26px]")} style={CARD_SHELL_STYLE}>
+                          <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-[0.75px] ring-white/15" />
                           <div
                             className="pointer-events-none absolute inset-0 rounded-[26px]"
                             style={{
@@ -414,26 +413,24 @@ export default function LogoFullScreen({
                             }}
                           />
 
-                          <div className="relative w-full h-[var(--cardH)] rounded-[26px] p-[10px]">
+                          {/* thinner “frame” padding */}
+                          <div className="relative w-full h-[var(--cardH)] rounded-[26px] p-[7px]">
                             <div className="relative h-full w-full overflow-hidden rounded-[20px]">
                               <Image
-                                src="/images/gallery/gallery11.png"
+                                src="/images/gallery/gallery12.png"
                                 fill
                                 alt=""
                                 className="object-cover object-center"
                               />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
-                              <div className="absolute inset-0 ring-1 ring-white/10" />
+                              <div className="absolute inset-0 ring-[0.75px] ring-white/10" />
                             </div>
                           </div>
                         </div>
 
-                        {/* 2) BOTTOM CARD (restyled, same as top) */}
-                        <div
-                          className={cn("relative w-full overflow-hidden rounded-[26px]")}
-                          style={CARD_SHELL_STYLE}
-                        >
-                          <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-1 ring-white/15" />
+                        {/* 2) BOTTOM CARD */}
+                        <div className={cn("relative w-full overflow-hidden rounded-[26px]")} style={CARD_SHELL_STYLE}>
+                          <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-[0.75px] ring-white/15" />
                           <div
                             className="pointer-events-none absolute inset-0 rounded-[26px]"
                             style={{
@@ -442,7 +439,8 @@ export default function LogoFullScreen({
                             }}
                           />
 
-                          <div className="relative w-full h-[var(--cardH)] rounded-[26px] p-[10px]">
+                          {/* thinner “frame” padding */}
+                          <div className="relative w-full h-[var(--cardH)] rounded-[26px] p-[7px]">
                             <div className="relative h-full w-full overflow-hidden rounded-[20px]">
                               <Image
                                 src="/images/gallery/gallery14.png"
@@ -451,11 +449,12 @@ export default function LogoFullScreen({
                                 className="object-cover object-center"
                               />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
-                              <div className="absolute inset-0 ring-1 ring-white/10" />
+                              <div className="absolute inset-0 ring-[0.75px] ring-white/10" />
                             </div>
                           </div>
                         </div>
                       </div>
+                      {/* end stack */}
                     </div>
                   </div>
                 </div>
