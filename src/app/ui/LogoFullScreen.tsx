@@ -181,13 +181,10 @@ export default function LogoFullScreen({
               <div
                 className={cn(
                   "relative col-span-12 sm:col-span-6 lg:col-span-5",
-                  // ✅ PC FIX: lift a bit more so BOTH buttons stay visible
                   "-translate-y-6",
                   "sm:-translate-y-12 lg:-translate-y-16",
                   "[@media_(max-height:760px)]:-translate-y-6",
-                  // ✅ on very short heights, don't lift (avoid clipping)
                   "[@media_(max-height:640px)]:translate-y-0",
-                  // ✅ reserve space for overlay stack on phones
                   "pr-[calc(var(--stackW)+18px)] sm:pr-0"
                 )}
                 style={
@@ -255,7 +252,6 @@ export default function LogoFullScreen({
                     authentic home-cooked meals from trusted cooks and bakers.
                   </p>
 
-                  {/* ✅ slightly tighter top margin so “Check queue” doesn’t get clipped */}
                   <div className="mt-5 sm:mt-6 [@media_(max-height:760px)]:mt-4 flex flex-col gap-3 w-full max-w-[340px] sm:max-w-[420px]">
                     <Link
                       href="/join"
@@ -289,27 +285,20 @@ export default function LogoFullScreen({
 
               {/* RIGHT: Visual column (TABLET/DESKTOP) */}
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
-                {/* ✅ Keep stack inside “red box”:
-                    - centered vertically within column
-                    - shifted LEFT (but never past the middle line)
-                    - slightly smaller */}
-                <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(130px,18vh,220px)]">
+                {/* ✅ more right padding + more left shift to open space at the red line */}
+                <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(130px,18vh,220px)] pr-[clamp(34px,5vw,120px)]">
                   <div
                     className="w-full"
                     style={
                       {
-                        // Smaller than before + tied to viewport height so it doesn't go above/below the red bounds
                         "--rightW": "min(410px, calc((100vh - 280px) / 1.32))",
                       } as React.CSSProperties
                     }
                   >
                     <div
                       className={cn(
-                        // move LEFT but clamp so it never crosses the “middle” boundary too far
                         "ml-auto w-full max-w-[var(--rightW)]",
-                        "translate-x-[-clamp(0px, 3.2vw, 44px)]",
-                        // keep it vertically centered and not touching top/bottom
-                        ""
+                        "translate-x-[-clamp(130px,15vw,340px)]"
                       )}
                     >
                       <div className="flex flex-col gap-4">
@@ -319,7 +308,6 @@ export default function LogoFullScreen({
                             "relative w-full overflow-hidden rounded-[22px]",
                             "shadow-[0_24px_80px_rgba(2,6,23,0.22)]"
                           )}
-                          // slightly lighter border so it feels smaller without changing content
                           style={{ border: "7px solid rgba(255,255,255,0.82)" }}
                         >
                           <div className="relative aspect-[4/2.55] w-full">
