@@ -562,7 +562,7 @@ export default function MissionPage() {
           kicker=""
           title="Why we started"
           highlight="PeerPlates."
-          body="University life moves fast — and cooking proper meals consistently just wasn’t realistic. Takeaways were expensive, meal-prep often felt like poor value… and not the kind of food we actually craved."
+          body="University life moves fast and cooking proper meals consistently just wasn’t realistic. Takeaways were expensive, meal-prep often felt like poor value and not the kind of food we actually craved."
         >
           <div className="grid gap-6 md:grid-cols-2 items-stretch">
             <ScrollFade>
@@ -576,8 +576,8 @@ export default function MissionPage() {
                   The solution already existed — it just wasn’t easy to access.
                 </div>
                 <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-                  We ordered a big bowl of jollof rice from a local home cook — and realised: authentic, great-value food
-                  is nearby… but discovery + ordering needed to feel effortless.
+                  We ordered a big bowl of jollof rice from a local home cook and realised: authentic, great-value food
+                  is nearby, but discovery + ordering needed to feel effortless.
                 </div>
               </div>
             </ScrollFade>
@@ -593,7 +593,7 @@ export default function MissionPage() {
                   A community-driven marketplace for home cooks &amp; bakers.
                 </div>
                 <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-                  Independent vendors sell authentic, affordable meals to nearby customers — built for speed, clarity,
+                  Independent vendors sell authentic, affordable meals to nearby customers, built for speed, clarity,
                   and trust.
                 </div>
               </div>
@@ -608,7 +608,7 @@ export default function MissionPage() {
           kicker=""
           title="Our mission is"
           highlight="two-sided."
-          body="We’re building a platform that works for both sides of the marketplace — vendors and customers — with the same level of care."
+          body="We’re building a platform that works for both sides of the marketplace; vendors and customers, with the same level of care."
         >
           <div className="grid gap-6 md:grid-cols-2 items-stretch">
             <ScrollFade>
@@ -629,7 +629,7 @@ export default function MissionPage() {
                   </div>
                 </div>
                 <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
-                  To empower local food entrepreneurs with the tools, visibility, and support to grow — turning passion
+                  To empower local food entrepreneurs with the tools, visibility, and support to grow, turning passion
                   into meaningful income.
                 </div>
               </div>
@@ -653,7 +653,7 @@ export default function MissionPage() {
                   </div>
                 </div>
                 <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
-                  To make it easy to find great-value, home-cooked meals that taste authentic — made with real warmth,
+                  To make it easy to find great-value, home-cooked meals that taste authentic and are made with real warmth,
                   not factory production.
                 </div>
               </div>
