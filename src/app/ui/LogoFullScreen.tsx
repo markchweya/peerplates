@@ -298,7 +298,8 @@ export default function LogoFullScreen({
                     <div
                       className={cn(
                         "ml-auto w-full max-w-[var(--rightW)]",
-                        "translate-x-[-clamp(130px,15vw,340px)]"
+                        // ✅ PUSH MORE LEFT
+                        "translate-x-[-clamp(170px,18vw,420px)]"
                       )}
                     >
                       <div className="flex flex-col gap-4">
