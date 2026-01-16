@@ -105,24 +105,22 @@ export default function LogoFullScreen({
     transform: "translateY(-8%) scale(1.10) translateZ(0)",
   };
 
-  // ✅ premium “no-plain-white” card shell (PC)
+  // ✅ WHITE card shell (PC)
   const CARD_SHELL_STYLE: React.CSSProperties = {
-    border: "0.75px solid rgba(252,176,64,0.28)",
-    background:
-      "linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.10) 55%, rgba(255,255,255,0.06) 100%)",
+    border: "1px solid rgba(255,255,255,0.92)",
+    background: "rgba(255,255,255,0.96)",
     boxShadow: "0 28px 95px rgba(2,6,23,0.34), 0 10px 32px rgba(2,6,23,0.18)",
-    backdropFilter: "blur(10px)",
-    WebkitBackdropFilter: "blur(10px)",
+    backdropFilter: "blur(0px)",
+    WebkitBackdropFilter: "blur(0px)",
   };
 
-  // ✅ premium “no-plain-white” card shell (PHONE)
+  // ✅ WHITE card shell (PHONE)
   const PHONE_CARD_SHELL_STYLE: React.CSSProperties = {
-    border: "0.9px solid rgba(252,176,64,0.30)",
-    background:
-      "linear-gradient(180deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.10) 58%, rgba(255,255,255,0.06) 100%)",
+    border: "1px solid rgba(255,255,255,0.92)",
+    background: "rgba(255,255,255,0.96)",
     boxShadow: "0 18px 60px rgba(2,6,23,0.32), 0 8px 24px rgba(2,6,23,0.16)",
-    backdropFilter: "blur(10px)",
-    WebkitBackdropFilter: "blur(10px)",
+    backdropFilter: "blur(0px)",
+    WebkitBackdropFilter: "blur(0px)",
   };
 
   return (
@@ -283,7 +281,7 @@ export default function LogoFullScreen({
                   } as React.CSSProperties
                 }
               >
-                {/* ✅ PHONE ONLY: overlay image stack (RESTYLED) */}
+                {/* ✅ PHONE ONLY: merged card (two photos in one shell) */}
                 <motion.div
                   className={cn(
                     "pointer-events-none absolute sm:hidden",
@@ -295,51 +293,21 @@ export default function LogoFullScreen({
                   animate={reduceMotion ? undefined : "show"}
                   variants={fadeInUp}
                 >
-                  <div className="flex flex-col gap-2.5 max-[380px]:gap-2.5">
-                    {/* TOP CARD */}
-                    <div className={cn("relative w-full overflow-hidden rounded-[18px]")} style={PHONE_CARD_SHELL_STYLE}>
-                      <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-[0.75px] ring-white/14" />
-                      <div
-                        className="pointer-events-none absolute inset-0 rounded-[18px]"
-                        style={{
-                          background:
-                            "radial-gradient(120% 90% at 20% 0%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 42%, rgba(255,255,255,0.00) 72%)",
-                        }}
-                      />
-                      <div className="relative w-full rounded-[18px] p-[6px]">
-                        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[14px]">
-                          <Image
-                            src="/images/gallery/gallery12.png"
-                            fill
-                            alt=""
-                            className="object-cover object-center"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
-                          <div className="absolute inset-0 ring-[0.75px] ring-white/10" />
-                        </div>
-                      </div>
-                    </div>
+                  <div className={cn("relative w-full overflow-hidden rounded-[18px]")} style={PHONE_CARD_SHELL_STYLE}>
+                    <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-[0.75px] ring-white/90" />
 
-                    {/* BOTTOM CARD */}
-                    <div className={cn("relative w-full overflow-hidden rounded-[18px]")} style={PHONE_CARD_SHELL_STYLE}>
-                      <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-[0.75px] ring-white/14" />
-                      <div
-                        className="pointer-events-none absolute inset-0 rounded-[18px]"
-                        style={{
-                          background:
-                            "radial-gradient(120% 90% at 20% 0%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 42%, rgba(255,255,255,0.00) 72%)",
-                        }}
-                      />
-                      <div className="relative w-full rounded-[18px] p-[6px]">
-                        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[14px]">
-                          <Image
-                            src="/images/gallery/gallery14.png"
-                            fill
-                            alt=""
-                            className="object-cover object-center"
-                          />
+                    <div className="relative w-full rounded-[18px] p-[6px]">
+                      <div className="grid grid-rows-2 gap-[10px]">
+                        {/* TOP IMAGE (white border) */}
+                        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[14px] border border-white/90">
+                          <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
-                          <div className="absolute inset-0 ring-[0.75px] ring-white/10" />
+                        </div>
+
+                        {/* BOTTOM IMAGE (white border) */}
+                        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[14px] border border-white/90">
+                          <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
                       </div>
                     </div>
@@ -349,8 +317,9 @@ export default function LogoFullScreen({
                 {/* TEXT BLOCK */}
                 <div className="max-w-xl">
                   <h1 className="font-black tracking-tight leading-[0.98] text-[clamp(34px,8.8vw,60px)] sm:text-[clamp(54px,4.8vw,76px)]">
-                    <span className="block text-slate-900">Eat better</span>
-                    <span className="block text-slate-900 text-left">and</span>
+                    <span className="block text-slate-900 whitespace-nowrap">
+                      Eat better <span className="text-slate-900">and</span>
+                    </span>
 
                     <span className="block whitespace-normal min-[370px]:whitespace-nowrap">
                       <span style={{ color: BRAND_ORANGE }}>back</span>{" "}
@@ -406,44 +375,27 @@ export default function LogoFullScreen({
                     }
                   >
                     <div className={cn("ml-auto w-full max-w-[var(--rightW)]", "translate-x-[-clamp(185px,19vw,460px)]")}>
-                      <div className="flex flex-col gap-3">
-                        <div className={cn("relative w-full overflow-hidden rounded-[26px]")} style={CARD_SHELL_STYLE}>
-                          <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-[0.75px] ring-white/15" />
-                          <div
-                            className="pointer-events-none absolute inset-0 rounded-[26px]"
-                            style={{
-                              background:
-                                "radial-gradient(110% 85% at 25% 10%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 38%, rgba(255,255,255,0.00) 70%)",
-                            }}
-                          />
-                          <div className="relative w-full h-[var(--cardH)] rounded-[26px] p-[7px]">
-                            <div className="relative h-full w-full overflow-hidden rounded-[20px]">
+                      {/* ✅ MERGED: one shell holding BOTH photos */}
+                      <div className={cn("relative w-full overflow-hidden rounded-[26px]")} style={CARD_SHELL_STYLE}>
+                        <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-[0.75px] ring-white/90" />
+
+                        <div className="relative w-full rounded-[26px] p-[7px]">
+                          <div className="grid grid-rows-2 gap-3">
+                            {/* TOP IMAGE (white border) */}
+                            <div className="relative h-[var(--cardH)] w-full overflow-hidden rounded-[20px] border border-white/90">
                               <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
-                              <div className="absolute inset-0 ring-[0.75px] ring-white/10" />
                             </div>
-                          </div>
-                        </div>
 
-                        <div className={cn("relative w-full overflow-hidden rounded-[26px]")} style={CARD_SHELL_STYLE}>
-                          <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-[0.75px] ring-white/15" />
-                          <div
-                            className="pointer-events-none absolute inset-0 rounded-[26px]"
-                            style={{
-                              background:
-                                "radial-gradient(110% 85% at 25% 10%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 38%, rgba(255,255,255,0.00) 70%)",
-                            }}
-                          />
-                          <div className="relative w-full h-[var(--cardH)] rounded-[26px] p-[7px]">
-                            <div className="relative h-full w-full overflow-hidden rounded-[20px]">
+                            {/* BOTTOM IMAGE (white border) */}
+                            <div className="relative h-[var(--cardH)] w-full overflow-hidden rounded-[20px] border border-white/90">
                               <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
-                              <div className="absolute inset-0 ring-[0.75px] ring-white/10" />
                             </div>
                           </div>
                         </div>
                       </div>
-                      {/* end stack */}
+                      {/* end merged */}
                     </div>
                   </div>
                 </div>
