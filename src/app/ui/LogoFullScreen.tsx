@@ -272,26 +272,42 @@ export default function LogoFullScreen({
                   "sm:-translate-y-12 lg:-translate-y-16",
                   "[@media_(max-height:760px)]:-translate-y-6",
                   "[@media_(max-height:640px)]:translate-y-0",
-                  // ✅ FIX iPhone 12 Pro: reserve LESS space for the photo stack so text isn't squeezed
-                  "pr-[calc(var(--stackW)+8px)] sm:pr-0",
+
+                  // ✅ RESPONSIVE STACK RULES
+                  // SE-ish (<=389): keep stack decent but don't squeeze text
+                  "[--stackW:clamp(160px,44vw,215px)]",
+                  // 12 Pro / 390-ish
+                  "min-[390px]:[--stackW:clamp(190px,52vw,270px)]",
+                  // XR / 414-ish and above: slightly bigger stack but reserve LESS space for text
+                  "min-[414px]:[--stackW:clamp(210px,54vw,300px)]",
+
+                  // ✅ reservation (padding-right):
+                  // default: safe
+                  "pr-[calc(var(--stackW)+10px)]",
+                  // 390+: a bit more
+                  "min-[390px]:pr-[calc(var(--stackW)+14px)]",
+                  // 414+: reserve LESS so the headline/paragraph get wider on XR
+                  "min-[414px]:pr-[calc(var(--stackW)-6px)]",
+                  "sm:pr-0",
+
                   "lg:pl-6 xl:pl-8"
                 )}
-                style={
-                  {
-                    // ✅ FIX iPhone 12 Pro: smaller stack width on phones
-                    "--stackW": "clamp(118px, 32vw, 175px)",
-                  } as React.CSSProperties
-                }
               >
-                {/* ✅ PHONE ONLY: overlay image stack (position tuned for iPhone 12 Pro) */}
+                {/* ✅ PHONE ONLY: overlay image stack */}
                 <motion.div
                   className={cn(
                     "pointer-events-none absolute sm:hidden",
-                    // ✅ less negative so it doesn't drift too far right
-                    "right-[clamp(-10px,-2.2vw,-2px)]",
-                    // ✅ slightly higher so it aligns with the headline block
-                    "top-[clamp(92px,11vh,132px)]",
-                    "w-[var(--stackW)]"
+                    "w-[var(--stackW)]",
+
+                    // ✅ right position: default, then per device width
+                    "right-[clamp(-10px,-2.6vw,-4px)]",
+                    "min-[390px]:right-[clamp(-14px,-3vw,-6px)]",
+                    "min-[414px]:right-[clamp(-22px,-4vw,-10px)]",
+
+                    // ✅ top position: default, then per device width
+                    "top-[clamp(98px,12vh,146px)]",
+                    "min-[390px]:top-[clamp(108px,13vh,160px)]",
+                    "min-[414px]:top-[clamp(112px,12.5vh,154px)]"
                   )}
                   initial={reduceMotion ? false : "hidden"}
                   animate={reduceMotion ? undefined : "show"}
@@ -301,24 +317,14 @@ export default function LogoFullScreen({
                     <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-[0.75px] ring-white/90" />
 
                     <div className="relative w-full rounded-[18px] p-[6px]">
-                      <div className="grid grid-rows-2 gap-[10px]">
+                      <div className="grid grid-rows-2 gap-[12px]">
                         <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[14px] border border-white/90">
-                          <Image
-                            src="/images/gallery/gallery12.png"
-                            fill
-                            alt=""
-                            className="object-cover object-center"
-                          />
+                          <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
 
                         <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[14px] border border-white/90">
-                          <Image
-                            src="/images/gallery/gallery14.png"
-                            fill
-                            alt=""
-                            className="object-cover object-center"
-                          />
+                          <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
                       </div>
@@ -329,7 +335,6 @@ export default function LogoFullScreen({
                 {/* TEXT BLOCK */}
                 <div className="max-w-xl">
                   <h1 className="font-black tracking-tight leading-[0.98] text-[clamp(34px,8.8vw,60px)] sm:text-[clamp(54px,4.8vw,76px)]">
-                    {/* ✅ iPhone layout: keep "Eat better" on one line, "and" on 2nd line */}
                     <span className="block text-slate-900 whitespace-nowrap">Eat better</span>
                     <span className="block text-slate-900">and</span>
 
@@ -393,22 +398,12 @@ export default function LogoFullScreen({
                         <div className="relative w-full rounded-[26px] p-[7px]">
                           <div className="grid grid-rows-2 gap-3">
                             <div className="relative h-[var(--cardH)] w-full overflow-hidden rounded-[20px] border border-white/90">
-                              <Image
-                                src="/images/gallery/gallery12.png"
-                                fill
-                                alt=""
-                                className="object-cover object-center"
-                              />
+                              <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
                             </div>
 
                             <div className="relative h-[var(--cardH)] w-full overflow-hidden rounded-[20px] border border-white/90">
-                              <Image
-                                src="/images/gallery/gallery14.png"
-                                fill
-                                alt=""
-                                className="object-cover object-center"
-                              />
+                              <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
                             </div>
                           </div>
