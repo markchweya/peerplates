@@ -309,12 +309,14 @@ export default function LogoFullScreen({
 
                     <div className="relative w-full rounded-[18px] p-[6px]">
                       <div className="grid grid-rows-2 gap-[12px]">
-                        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[14px] border border-white/90">
+                      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[14px] border border-white/90">
+
                           <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
 
-                        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[14px] border border-white/90">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[14px] border border-white/90">
+
                           <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
