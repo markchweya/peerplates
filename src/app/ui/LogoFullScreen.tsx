@@ -273,21 +273,21 @@ export default function LogoFullScreen({
                   "[@media_(max-height:760px)]:-translate-y-6",
                   "[@media_(max-height:640px)]:translate-y-0",
 
-                  // ✅ RESPONSIVE STACK RULES
-                  // SE-ish (<=389): keep stack decent but don't squeeze text
+                  // ✅ DEVICE WIDTH BREAKPOINTS (PHONE)
+                  // iPhone SE-ish: keep stack solid but don't squeeze copy
                   "[--stackW:clamp(160px,44vw,215px)]",
-                  // 12 Pro / 390-ish
-                  "min-[390px]:[--stackW:clamp(190px,52vw,270px)]",
-                  // XR / 414-ish and above: slightly bigger stack but reserve LESS space for text
+                  // iPhone 12/13/14/15 width (390): big images but give text more width
+                  "min-[390px]:[--stackW:clamp(182px,50vw,255px)]",
+                  // XR / 414+: a touch bigger
                   "min-[414px]:[--stackW:clamp(210px,54vw,300px)]",
 
-                  // ✅ reservation (padding-right):
-                  // default: safe
+                  // ✅ right padding reservation:
+                  // base
                   "pr-[calc(var(--stackW)+10px)]",
-                  // 390+: a bit more
-                  "min-[390px]:pr-[calc(var(--stackW)+14px)]",
-                  // 414+: reserve LESS so the headline/paragraph get wider on XR
-                  "min-[414px]:pr-[calc(var(--stackW)-6px)]",
+                  // 390: reserve LESS than before (fixes iPhone 14 squeeze)
+                  "min-[390px]:pr-[calc(var(--stackW)-2px)]",
+                  // 414+: reserve less still (XR)
+                  "min-[414px]:pr-[calc(var(--stackW)-10px)]",
                   "sm:pr-0",
 
                   "lg:pl-6 xl:pl-8"
@@ -299,14 +299,14 @@ export default function LogoFullScreen({
                     "pointer-events-none absolute sm:hidden",
                     "w-[var(--stackW)]",
 
-                    // ✅ right position: default, then per device width
+                    // ✅ keep stack visually “outside” so it doesn’t choke text
                     "right-[clamp(-10px,-2.6vw,-4px)]",
-                    "min-[390px]:right-[clamp(-14px,-3vw,-6px)]",
-                    "min-[414px]:right-[clamp(-22px,-4vw,-10px)]",
+                    "min-[390px]:right-[clamp(-22px,-4.2vw,-10px)]",
+                    "min-[414px]:right-[clamp(-24px,-4.4vw,-12px)]",
 
-                    // ✅ top position: default, then per device width
+                    // ✅ top tuning
                     "top-[clamp(98px,12vh,146px)]",
-                    "min-[390px]:top-[clamp(108px,13vh,160px)]",
+                    "min-[390px]:top-[clamp(110px,13vh,160px)]",
                     "min-[414px]:top-[clamp(112px,12.5vh,154px)]"
                   )}
                   initial={reduceMotion ? false : "hidden"}
