@@ -273,21 +273,13 @@ export default function LogoFullScreen({
                   "[@media_(max-height:760px)]:-translate-y-6",
                   "[@media_(max-height:640px)]:translate-y-0",
 
-                  // ✅ DEVICE WIDTH BREAKPOINTS (PHONE)
-                  // iPhone SE-ish: keep stack solid but don't squeeze copy
-                  "[--stackW:clamp(160px,44vw,215px)]",
-                  // iPhone 12/13/14/15 width (390): big images but give text more width
-                  "min-[390px]:[--stackW:clamp(182px,50vw,255px)]",
-                  // XR / 414+: a touch bigger
-                  "min-[414px]:[--stackW:clamp(210px,54vw,300px)]",
+                  // ✅ PHONE STACK WIDTHS (tuned so iPhone 14 text isn't squeezed)
+                  "[--stackW:clamp(150px,42vw,205px)]",          // small phones
+                  "min-[390px]:[--stackW:clamp(172px,44vw,225px)]", // iPhone 12/13/14 (390)
+                  "min-[414px]:[--stackW:clamp(190px,46vw,250px)]", // XR/Plus-ish (414+)
 
-                  // ✅ right padding reservation:
-                  // base
+                  // Reserve space so text never sits under the stack
                   "pr-[calc(var(--stackW)+10px)]",
-                  // 390: reserve LESS than before (fixes iPhone 14 squeeze)
-                  "min-[390px]:pr-[calc(var(--stackW)-2px)]",
-                  // 414+: reserve less still (XR)
-                  "min-[414px]:pr-[calc(var(--stackW)-10px)]",
                   "sm:pr-0",
 
                   "lg:pl-6 xl:pl-8"
@@ -299,14 +291,13 @@ export default function LogoFullScreen({
                     "pointer-events-none absolute sm:hidden",
                     "w-[var(--stackW)]",
 
-                    // ✅ keep stack visually “outside” so it doesn’t choke text
+                    // keep it tight to the right edge on iPhone 14
                     "right-[clamp(-10px,-2.6vw,-4px)]",
-                    "min-[390px]:right-[clamp(-22px,-4.2vw,-10px)]",
-                    "min-[414px]:right-[clamp(-24px,-4.4vw,-12px)]",
+                    "min-[390px]:right-[clamp(-16px,-3.4vw,-7px)]",
+                    "min-[414px]:right-[clamp(-22px,-4vw,-10px)]",
 
-                    // ✅ top tuning
                     "top-[clamp(98px,12vh,146px)]",
-                    "min-[390px]:top-[clamp(110px,13vh,160px)]",
+                    "min-[390px]:top-[clamp(108px,13vh,160px)]",
                     "min-[414px]:top-[clamp(112px,12.5vh,154px)]"
                   )}
                   initial={reduceMotion ? false : "hidden"}
@@ -337,7 +328,6 @@ export default function LogoFullScreen({
                   <h1 className="font-black tracking-tight leading-[0.98] text-[clamp(34px,8.8vw,60px)] sm:text-[clamp(54px,4.8vw,76px)]">
                     <span className="block text-slate-900 whitespace-nowrap">Eat better</span>
                     <span className="block text-slate-900">and</span>
-
                     <span className="block whitespace-normal min-[370px]:whitespace-nowrap">
                       <span style={{ color: BRAND_ORANGE }}>back</span>{" "}
                       <span style={{ color: BRAND_BROWN }}>local</span>
