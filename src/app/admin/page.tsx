@@ -10,10 +10,6 @@ type RoleFilter = "all" | "consumer" | "vendor";
 type StatusFilter = "all" | "pending" | "reviewed" | "approved" | "rejected";
 type ReviewStatus = "pending" | "reviewed" | "approved" | "rejected";
 
-// ✅ ONLY THE SECTIONS TO FIX (admin table + vendor filters + Entry type)
-// Goal: remove bus/minutes and replace with postcode_area
-
-// 1) Entry type: remove bus_minutes, add postcode_area
 type Entry = {
   id: string;
   role: "consumer" | "vendor";
@@ -37,9 +33,9 @@ type Entry = {
   certificate_url: string | null;
   certificate_signed_url?: string | null;
 
-  // vendor clean columns
+  // extracted columns
   instagram_handle?: string | null;
-  postcode_area?: string | null; // ✅ NEW
+  postcode_area?: string | null;
   compliance_readiness?: string[] | null;
   top_cuisines?: string[] | null;
   delivery_area?: string | null;
@@ -55,8 +51,6 @@ type Entry = {
   score?: number;
 };
 
-
-const BRAND = "#fcb040";
 const SECRET_KEY = "peerplates_admin_secret";
 
 function getErrorMessage(e: unknown, fallback = "Something went wrong") {
@@ -88,7 +82,6 @@ function normalizeAnswerValue(v: unknown): string {
 }
 
 function pillClass(status: ReviewStatus) {
-  // orange + neutrals only
   if (status === "approved")
     return "bg-[rgba(252,176,64,0.18)] text-black border border-[rgba(252,176,64,0.55)]";
   if (status === "rejected") return "bg-black/5 text-black border border-black/10";
@@ -96,14 +89,11 @@ function pillClass(status: ReviewStatus) {
   return "bg-[rgba(252,176,64,0.12)] text-black border border-[rgba(252,176,64,0.45)]";
 }
 
-// Branded controls
 const controlBase =
   "h-10 w-full rounded-2xl border border-[#fcb040] bg-white px-3 font-semibold text-black outline-none " +
   "focus:ring-4 focus:ring-[rgba(252,176,64,0.25)]";
 
-/**
- * Custom dropdown (so we avoid the OS blue highlight from native <select>)
- */
+/** Custom dropdown */
 function BrandSelect<T extends string>({
   value,
   onChange,
@@ -188,6 +178,24 @@ function BrandSelect<T extends string>({
   );
 }
 
+function extractIgHandle(r: Entry): string {
+  const fromColumn = safeStr(r.instagram_handle).trim();
+
+  const a = r.answers || {};
+  const fromAnswersIg =
+    typeof a["ig_handle"] === "string"
+      ? String(a["ig_handle"]).trim()
+      : typeof a["instagram_handle"] === "string"
+        ? String(a["instagram_handle"]).trim()
+        : typeof a["instagram"] === "string"
+          ? String(a["instagram"]).trim()
+          : "";
+
+  const ig = fromColumn || fromAnswersIg;
+  if (!ig) return "No";
+  return ig.startsWith("@") ? ig : `@${ig}`;
+}
+
 export default function AdminPage() {
   const [adminSecret, setAdminSecret] = useState("");
   const [secretReady, setSecretReady] = useState(false);
@@ -197,7 +205,6 @@ export default function AdminPage() {
   const [q, setQ] = useState("");
 
   // Vendor-only filters
-  
   const [hasInstagram, setHasInstagram] = useState<"" | "true" | "false">("");
   const [compliance, setCompliance] = useState("");
 
@@ -224,18 +231,15 @@ export default function AdminPage() {
     }
   }, []);
 
-  // reset vendor-only filters
-useEffect(() => {
-  if (role !== "vendor") {
-    
-    setHasInstagram("");
-    setCompliance("");
-  }
-  setOffset(0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [role]);
+  useEffect(() => {
+    if (role !== "vendor") {
+      setHasInstagram("");
+      setCompliance("");
+    }
+    setOffset(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
 
-  // Build compliance options from the actual data (so filtering is usable)
   const complianceOptions = useMemo(() => {
     const set = new Set<string>();
     for (const r of rows) {
@@ -247,42 +251,50 @@ useEffect(() => {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [rows]);
 
-  // ✅ Build dynamic answer columns from all rows (so Answers become table columns)
+  // ✅ Hide "IG-ish" keys from dynamic columns to prevent duplicates
+  const HIDE_ANSWER_KEYS = useMemo(
+    () =>
+      new Set<string>([
+        "ig_handle",
+        "instagram_handle",
+        "instagram",
+        "has_food_ig",
+        "has_instagram",
+      ]),
+    []
+  );
+
   const answerKeys = useMemo(() => {
     const set = new Set<string>();
     for (const r of rows) {
       const a = r.answers || {};
       for (const k of Object.keys(a)) {
         const key = String(k || "").trim();
-        if (key) set.add(key);
+        if (!key) continue;
+        if (HIDE_ANSWER_KEYS.has(key)) continue;
+        set.add(key);
       }
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [rows]);
+  }, [rows, HIDE_ANSWER_KEYS]);
 
-  const tableColCount = 10 /* fixed cols */ + answerKeys.length + 1 /* Action */;
+  const tableColCount = 10 /* fixed */ + answerKeys.length + 1 /* Action */;
 
- // 3) queryString builder: remove max_bus_minutes
-const queryString = useMemo(() => {
-  const sp = new URLSearchParams();
-  if (role !== "all") sp.set("role", role);
-  if (status !== "all") sp.set("status", status);
-  if (q.trim()) sp.set("q", q.trim());
+  const queryString = useMemo(() => {
+    const sp = new URLSearchParams();
+    if (role !== "all") sp.set("role", role);
+    if (status !== "all") sp.set("status", status);
+    if (q.trim()) sp.set("q", q.trim());
 
-  if (showVendorFilters) {
-    // ❌ remove max bus minutes
-    // const mbm = maxBusMinutes.trim();
-    // if (mbm) sp.set("max_bus_minutes", mbm);
+    if (showVendorFilters) {
+      if (hasInstagram) sp.set("has_instagram", hasInstagram);
+      if (compliance.trim()) sp.set("compliance", compliance.trim());
+    }
 
-    if (hasInstagram) sp.set("has_instagram", hasInstagram);
-    if (compliance.trim()) sp.set("compliance", compliance.trim());
-  }
-
-  sp.set("limit", String(limit));
-  sp.set("offset", String(offset));
-  return sp.toString();
-}, [role, status, q, showVendorFilters, hasInstagram, compliance, limit, offset]);
-
+    sp.set("limit", String(limit));
+    sp.set("offset", String(offset));
+    return sp.toString();
+  }, [role, status, q, showVendorFilters, hasInstagram, compliance, limit, offset]);
 
   const fetchRows = async () => {
     setErr("");
@@ -292,7 +304,7 @@ const queryString = useMemo(() => {
         headers: { "x-admin-secret": adminSecret },
       });
 
-      const data = (await res.json().catch(() => ({}))) as unknown as {
+      const data = (await res.json().catch(() => ({}))) as {
         rows?: unknown;
         total?: unknown;
         error?: unknown;
@@ -349,7 +361,7 @@ const queryString = useMemo(() => {
       body: JSON.stringify(payload),
     });
 
-    const data = (await res.json().catch(() => ({}))) as unknown as { row?: unknown; error?: unknown };
+    const data = (await res.json().catch(() => ({}))) as { row?: unknown; error?: unknown };
 
     if (!res.ok) {
       const msg = typeof data?.error === "string" ? data.error : `Update failed (${res.status})`;
@@ -431,7 +443,7 @@ const queryString = useMemo(() => {
       });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as unknown as { error?: unknown };
+        const data = (await res.json().catch(() => ({}))) as { error?: unknown };
         const msg = typeof data?.error === "string" ? data.error : `Export failed (${res.status})`;
         throw new Error(msg);
       }
@@ -472,7 +484,6 @@ const queryString = useMemo(() => {
             className="flex items-center justify-between gap-4"
           >
             <Link href="/" className="flex items-center gap-3 min-w-0">
-              {/* Logo only (no menus) */}
               <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
                 <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
                   <LogoCinematic size={56} wordScale={1} />
@@ -541,7 +552,6 @@ const queryString = useMemo(() => {
           className="flex items-center justify-between gap-4"
         >
           <Link href="/" className="flex items-center gap-3 min-w-0">
-            {/* Logo only (no menus) */}
             <span className="min-w-0 max-w-[170px] sm:max-w-none overflow-visible">
               <span className="inline-flex shrink-0 overflow-visible py-1 -my-1">
                 <LogoCinematic size={56} wordScale={1} />
@@ -607,37 +617,36 @@ const queryString = useMemo(() => {
                 ]}
               />
 
-{showVendorFilters ? (
-  <>
-    <BrandSelect<"" | "true" | "false">
-      value={hasInstagram}
-      onChange={(v) => {
-        setHasInstagram(v);
-        setOffset(0);
-      }}
-      options={[
-        { value: "", label: "Has IG: All" },
-        { value: "true", label: "Has IG: Yes" },
-        { value: "false", label: "Has IG: No" },
-      ]}
-    />
+              {showVendorFilters ? (
+                <>
+                  <BrandSelect<"" | "true" | "false">
+                    value={hasInstagram}
+                    onChange={(v) => {
+                      setHasInstagram(v);
+                      setOffset(0);
+                    }}
+                    options={[
+                      { value: "", label: "Has IG: All" },
+                      { value: "true", label: "Has IG: Yes" },
+                      { value: "false", label: "Has IG: No" },
+                    ]}
+                  />
 
-    <BrandSelect<string>
-      value={compliance}
-      onChange={(v) => {
-        setCompliance(v);
-        setOffset(0);
-      }}
-      options={[
-        { value: "", label: "Compliance: All" },
-        ...complianceOptions.map((c) => ({ value: c, label: c })),
-      ]}
-    />
-  </>
-) : (
-  <div className="hidden lg:block lg:col-span-3" />
-)}
-
+                  <BrandSelect<string>
+                    value={compliance}
+                    onChange={(v) => {
+                      setCompliance(v);
+                      setOffset(0);
+                    }}
+                    options={[
+                      { value: "", label: "Compliance: All" },
+                      ...complianceOptions.map((c) => ({ value: c, label: c })),
+                    ]}
+                  />
+                </>
+              ) : (
+                <div className="hidden lg:block lg:col-span-3" />
+              )}
 
               <input
                 value={q}
@@ -658,40 +667,39 @@ const queryString = useMemo(() => {
           {/* Table */}
           <div className="mt-4 overflow-auto rounded-2xl border border-black/10">
             <table className="w-full text-sm table-auto min-w-max">
-          
-<thead className="bg-black/5 text-black/80 sticky top-0 z-10">
-  <tr>
-    <th className="p-3 text-left whitespace-nowrap">Role</th>
-    <th className="p-3 text-left whitespace-nowrap">Name</th>
-    <th className="p-3 text-left whitespace-nowrap">Email</th>
+              <thead className="bg-black/5 text-black/80 sticky top-0 z-10">
+                <tr>
+                  <th className="p-3 text-left whitespace-nowrap">Role</th>
+                  <th className="p-3 text-left whitespace-nowrap">Name</th>
+                  <th className="p-3 text-left whitespace-nowrap">Email</th>
+                  <th className="p-3 text-left whitespace-nowrap">Postcode</th>
 
-    {/* ✅ replace Bus with Postcode */}
-    <th className="p-3 text-left whitespace-nowrap">Postcode</th>
-    <th className="p-3 text-left whitespace-nowrap">IG</th>
+                  {/* ✅ One column only: shows handle or "No" */}
+                  <th className="p-3 text-left whitespace-nowrap">Instagram</th>
 
-    <th className="p-3 text-left whitespace-nowrap">Status</th>
-    <th className="p-3 text-left whitespace-nowrap">Override</th>
-    <th className="p-3 text-left whitespace-nowrap">Score</th>
-    <th className="p-3 text-left whitespace-nowrap">Referrals</th>
-    <th className="p-3 text-left whitespace-nowrap">Created</th>
+                  <th className="p-3 text-left whitespace-nowrap">Status</th>
+                  <th className="p-3 text-left whitespace-nowrap">Override</th>
+                  <th className="p-3 text-left whitespace-nowrap">Score</th>
+                  <th className="p-3 text-left whitespace-nowrap">Referrals</th>
+                  <th className="p-3 text-left whitespace-nowrap">Created</th>
 
-    {answerKeys.map((k) => (
-      <th key={k} className="p-3 text-left whitespace-nowrap">
-        {k}
-      </th>
-    ))}
+                  {answerKeys.map((k) => (
+                    <th key={k} className="p-3 text-left whitespace-nowrap">
+                      {k}
+                    </th>
+                  ))}
 
-    <th className="p-3 text-right whitespace-nowrap">Action</th>
-  </tr>
-</thead>
+                  <th className="p-3 text-right whitespace-nowrap">Action</th>
+                </tr>
+              </thead>
 
               <tbody className="[&>tr:nth-child(even)]:bg-black/[0.02]">
                 {rows.map((r) => {
                   const points = r.referral_points ?? 0;
                   const count = r.referrals_count ?? 0;
 
-                  const ig = safeStr(r.instagram_handle || "").trim();
-                  const hasIgVal = ig.length > 0;
+                  const pc = safeStr(r.postcode_area || "").trim();
+                  const igDisplay = extractIgHandle(r);
 
                   return (
                     <tr
@@ -706,15 +714,11 @@ const queryString = useMemo(() => {
                         {r.email}
                       </td>
 
+                      <td className="p-3 text-black/70 whitespace-nowrap">{pc ? pc : "No"}</td>
 
-                     <td className="p-3 text-black/70 whitespace-nowrap">
-  {safeStr(r.postcode_area).trim() ? safeStr(r.postcode_area).trim() : "No"}
-</td>
-
-
-
-                      {/* Always Yes/No (never blank) */}
-                      <td className="p-3 text-black/70 whitespace-nowrap">{hasIgVal ? "Yes" : "No"}</td>
+                      <td className="p-3 text-black/70 whitespace-nowrap" title={igDisplay}>
+                        {igDisplay}
+                      </td>
 
                       <td className="p-3 whitespace-nowrap">
                         <span
@@ -726,7 +730,10 @@ const queryString = useMemo(() => {
                         </span>
                       </td>
 
-                      <td className="p-3 whitespace-nowrap">{r.role === "vendor" ? r.vendor_queue_override ?? "—" : "—"}</td>
+                      <td className="p-3 whitespace-nowrap">
+                        {r.role === "vendor" ? r.vendor_queue_override ?? "—" : "—"}
+                      </td>
+
                       <td className="p-3 font-semibold whitespace-nowrap">
                         {r.role === "vendor" ? r.vendor_priority_score : points}
                       </td>
@@ -744,7 +751,6 @@ const queryString = useMemo(() => {
 
                       <td className="p-3 text-black/60 whitespace-nowrap">{new Date(r.created_at).toLocaleString()}</td>
 
-                      {/* ✅ Answer cells: show "No" instead of dashes when empty */}
                       {answerKeys.map((k) => {
                         const raw = r.answers ? r.answers[k] : undefined;
                         const val = normalizeAnswerValue(raw).trim();
@@ -805,7 +811,7 @@ const queryString = useMemo(() => {
         </MotionDiv>
       </div>
 
-      {/* Drawer (answers removed already; table shows them) */}
+      {/* Drawer */}
       {selected ? (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/30" onClick={closeDrawer} />
@@ -831,13 +837,14 @@ const queryString = useMemo(() => {
               {selected.role === "vendor" ? (
                 <div className="mt-5 grid gap-2 rounded-3xl border border-[#fcb040] bg-white p-4">
                   <div className="text-sm font-extrabold">Vendor summary</div>
-                 <div className="text-sm text-black/80">
-<span className="font-semibold">Postcode:</span>{" "}
-{safeStr(selected.postcode_area).trim() ? safeStr(selected.postcode_area).trim() : "No"}
 
-  <span className="text-black/40">•</span> <span className="font-semibold">IG:</span>{" "}
-  {safeStr(selected.instagram_handle).trim() ? safeStr(selected.instagram_handle) : "No"}
-</div>
+                  <div className="text-sm text-black/80">
+                    <span className="font-semibold">Postcode:</span>{" "}
+                    {safeStr(selected.postcode_area).trim() ? safeStr(selected.postcode_area).trim() : "No"}{" "}
+                    <span className="text-black/40">•</span> <span className="font-semibold">Instagram:</span>{" "}
+                    {extractIgHandle(selected)}
+                  </div>
+
                   <div className="text-sm text-black/80">
                     <span className="font-semibold">Compliance:</span> {joinArr(selected.compliance_readiness) || "—"}
                   </div>

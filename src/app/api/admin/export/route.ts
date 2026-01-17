@@ -10,34 +10,36 @@ function supabaseAdmin() {
   if (!SUPABASE_URL || !SERVICE_KEY) {
     throw new Error("Missing Supabase env vars. Check .env.local");
   }
-  return createClient(SUPABASE_URL, SERVICE_KEY, {
-    auth: { persistSession: false },
-  });
+  return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 }
 
-function requireAdmin(req: Request) {
-  // If ADMIN_SECRET isn't set, allow (dev-friendly)
+function isAuthorized(req: Request) {
+  // dev-friendly
   if (!ADMIN_SECRET) return true;
-
   const provided = (req.headers.get("x-admin-secret") || "").trim();
   return provided === ADMIN_SECRET;
 }
 
-function csvEscape(v: any) {
+function csvEscape(v: unknown) {
   const s = String(v ?? "");
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
 
-function joinArray(v: any): string {
+function joinArray(v: unknown): string {
   if (!v) return "";
-  if (Array.isArray(v)) return v.join(" | ");
+  if (Array.isArray(v)) return v.filter(Boolean).join(" | ");
+  return String(v);
+}
+
+function safeStr(v: unknown) {
+  if (v === null || v === undefined) return "";
   return String(v);
 }
 
 export async function GET(req: Request) {
   try {
-    if (!requireAdmin(req)) {
+    if (!isAuthorized(req)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -58,28 +60,32 @@ export async function GET(req: Request) {
           "email",
           "phone",
 
-          // referral stuff
+          // extracted / clean columns (aligned to YOUR schema.sql)
+          "postcode_area",
+          "instagram_handle",
+          "compliance_readiness",
+          "top_cuisines",
+          "delivery_area",
+          "dietary_preferences",
+
+          // referral
           "referral_code",
           "referred_by",
           "referrals_count",
           "referral_points",
 
-          // vendor sorting / review
+          // vendor
           "vendor_priority_score",
           "vendor_queue_override",
-          "review_status",
-          "admin_notes",
           "certificate_url",
 
-          // ✅ clean review columns (NEW)
-          "city",
-          "neighborhood",
-          "cuisines",
-          "instagram_handle",
-          "bus_minutes",
-          "compliance_readiness",
+          // review
+          "review_status",
+          "admin_notes",
+          "reviewed_at",
+          "reviewed_by",
 
-          // keep JSON too (optional but useful as fallback)
+          // optional fallback
           "answers",
         ].join(",")
       )
@@ -102,6 +108,13 @@ export async function GET(req: Request) {
       "email",
       "phone",
 
+      "postcode_area",
+      "instagram_handle",
+      "compliance_readiness",
+      "top_cuisines",
+      "delivery_area",
+      "dietary_preferences",
+
       "referral_code",
       "referred_by",
       "referrals_count",
@@ -109,19 +122,13 @@ export async function GET(req: Request) {
 
       "vendor_priority_score",
       "vendor_queue_override",
-      "review_status",
-      "admin_notes",
       "certificate_url",
 
-      // ✅ clean fields (no cleanup needed)
-      "city",
-      "neighborhood",
-      "cuisines",
-      "instagram_handle",
-      "bus_minutes",
-      "compliance_readiness",
+      "review_status",
+      "admin_notes",
+      "reviewed_at",
+      "reviewed_by",
 
-      // optional (still here if you want deeper inspection)
       "answers_json",
     ];
 
@@ -136,6 +143,13 @@ export async function GET(req: Request) {
           r.email ?? "",
           r.phone ?? "",
 
+          r.postcode_area ?? "",
+          r.instagram_handle ?? "",
+          joinArray(r.compliance_readiness),
+          joinArray(r.top_cuisines),
+          r.delivery_area ?? "",
+          joinArray(r.dietary_preferences),
+
           r.referral_code ?? "",
           r.referred_by ?? "",
           r.referrals_count ?? 0,
@@ -143,16 +157,12 @@ export async function GET(req: Request) {
 
           r.vendor_priority_score ?? 0,
           r.vendor_queue_override ?? "",
-          r.review_status ?? "",
-          r.admin_notes ?? "",
           r.certificate_url ?? "",
 
-          r.city ?? "",
-          r.neighborhood ?? "",
-          joinArray(r.cuisines),
-          r.instagram_handle ?? "",
-          r.bus_minutes ?? "",
-          joinArray(r.compliance_readiness),
+          r.review_status ?? "",
+          safeStr(r.admin_notes ?? ""),
+          r.reviewed_at ?? "",
+          r.reviewed_by ?? "",
 
           JSON.stringify(r.answers ?? {}),
         ]
@@ -170,9 +180,6 @@ export async function GET(req: Request) {
       },
     });
   } catch (e: any) {
-    return NextResponse.json(
-      { error: e?.message || "Unexpected server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: e?.message || "Unexpected server error" }, { status: 500 });
   }
 }

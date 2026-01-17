@@ -78,6 +78,33 @@ function normalizeBool(v: unknown): boolean {
   return false;
 }
 
+function normalizeYesNo(v: unknown): boolean | null {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    if (s === "yes" || s === "true" || s === "1") return true;
+    if (s === "no" || s === "false" || s === "0") return false;
+  }
+  if (typeof v === "number") {
+    if (v === 1) return true;
+    if (v === 0) return false;
+  }
+  return null;
+}
+
+function cleanIgHandle(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  let s = raw.trim();
+  if (!s) return null;
+  // remove leading @ if they typed it; store without @ OR keep with @? choose one.
+  // We'll store WITHOUT @ for consistency.
+  if (s.startsWith("@")) s = s.slice(1).trim();
+  if (!s) return null;
+  // basic sanity: no spaces
+  if (/\s/.test(s)) return null;
+  return s;
+}
+
 function enforceMax3Cuisines(answers: any) {
   const keys = ["top_cuisines", "cuisines", "sell_categories", "favourite_cuisine", "favorite_cuisine"];
   for (const k of keys) {
@@ -178,9 +205,29 @@ export async function POST(req: Request) {
 
     enforceMax3Cuisines(answers);
 
+    // ✅ Student fields
     const isStudent = normalizeStudent(answers?.is_student);
     let university = pickUniversity(answers?.university);
     if (isStudent === false) university = null;
+
+    // ✅ Instagram logic (NEW):
+    // - has_food_ig must be Yes/No (optional overall, but if present and "Yes" => require handle)
+    // - accept old keys for backward compatibility: instagram_handle
+    const hasFoodIg = normalizeYesNo(answers?.has_food_ig);
+
+    const igRaw = answers?.ig_handle ?? answers?.instagram_handle ?? answers?.instagram;
+    const igHandle = cleanIgHandle(igRaw);
+
+    if (hasFoodIg === true && !igHandle) {
+      return jsonError("Please provide your IG handle.", 400);
+    }
+
+    // Normalize into answers so DB trigger can extract consistently
+    if (typeof answers === "object" && answers) {
+      if (hasFoodIg !== null) answers.has_food_ig = hasFoodIg ? "Yes" : "No";
+      if (igHandle) answers.ig_handle = igHandle; // store without @
+      if (hasFoodIg === false) answers.ig_handle = ""; // clear if No
+    }
 
     // Validate referral code
     let referred_by: string | null = null;
@@ -216,6 +263,7 @@ export async function POST(req: Request) {
       is_student: isStudent,
       university,
 
+      // ✅ store raw answers (trigger extracts has_food_ig + instagram_handle from it)
       answers,
 
       referral_code,
