@@ -137,7 +137,7 @@ export default function LogoFullScreen({
             style={BG_SHIFT_STYLE}
           />
           <Image
-            src="/images/gallery/gallery18.jpg"
+            src="/images/gallery/gallery20.png"
             fill
             alt=""
             className="object-cover hidden sm:block"
@@ -166,7 +166,7 @@ export default function LogoFullScreen({
               }}
             />
             <Image
-              src="/images/gallery/gallery18.jpg"
+              src="/images/gallery/gallery20.png"
               fill
               alt=""
               className="object-cover hidden sm:block"
@@ -201,7 +201,7 @@ export default function LogoFullScreen({
               }}
             />
             <Image
-              src="/images/gallery/gallery18.jpg"
+              src="/images/gallery/gallery20.png"
               fill
               alt=""
               className="object-cover hidden sm:block"
