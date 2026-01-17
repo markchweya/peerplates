@@ -244,7 +244,16 @@ export default function LogoFullScreen({
           style={{ background: "rgba(138,107,67,0.09)" }}
         />
 
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-transparent to-black/5" />
+        {/* ✅ FIXED: replace muddy dark band with a clean frosted fade */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-28 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.18) 38%, rgba(255,255,255,0.52) 72%, rgba(255,255,255,0.82) 100%)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+          }}
+        />
       </div>
 
       {/* ================= HEADER (UNCHANGED) ================= */}
@@ -272,16 +281,11 @@ export default function LogoFullScreen({
                   "sm:-translate-y-12 lg:-translate-y-16",
                   "[@media_(max-height:760px)]:-translate-y-6",
                   "[@media_(max-height:640px)]:translate-y-0",
-
-                  // ✅ PHONE STACK WIDTHS (tuned so iPhone 14 text isn't squeezed)
-                  "[--stackW:clamp(150px,42vw,205px)]",          // small phones
-                  "min-[390px]:[--stackW:clamp(172px,44vw,225px)]", // iPhone 12/13/14 (390)
-                  "min-[414px]:[--stackW:clamp(190px,46vw,250px)]", // XR/Plus-ish (414+)
-
-                  // Reserve space so text never sits under the stack
+                  "[--stackW:clamp(150px,42vw,205px)]",
+                  "min-[390px]:[--stackW:clamp(172px,44vw,225px)]",
+                  "min-[414px]:[--stackW:clamp(190px,46vw,250px)]",
                   "pr-[calc(var(--stackW)+10px)]",
                   "sm:pr-0",
-
                   "lg:pl-6 xl:pl-8"
                 )}
               >
@@ -290,12 +294,9 @@ export default function LogoFullScreen({
                   className={cn(
                     "pointer-events-none absolute sm:hidden",
                     "w-[var(--stackW)]",
-
-                    // keep it tight to the right edge on iPhone 14
                     "right-[clamp(-10px,-2.6vw,-4px)]",
                     "min-[390px]:right-[clamp(-16px,-3.4vw,-7px)]",
                     "min-[414px]:right-[clamp(-22px,-4vw,-10px)]",
-
                     "top-[clamp(98px,12vh,146px)]",
                     "min-[390px]:top-[clamp(108px,13vh,160px)]",
                     "min-[414px]:top-[clamp(112px,12.5vh,154px)]"
@@ -309,16 +310,12 @@ export default function LogoFullScreen({
 
                     <div className="relative w-full rounded-[18px] p-[6px]">
                       <div className="grid grid-rows-2 gap-[12px]">
-                      <div className="relative aspect-[16/12] w-full overflow-hidden rounded-[14px] border border-white/90">
-
-
+                        <div className="relative aspect-[16/12] w-full overflow-hidden rounded-[14px] border border-white/90">
                           <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
 
-                  <div className="relative aspect-[16/12] w-full overflow-hidden rounded-[14px] border border-white/90">
-
-
+                        <div className="relative aspect-[16/12] w-full overflow-hidden rounded-[14px] border border-white/90">
                           <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
