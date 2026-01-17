@@ -85,9 +85,24 @@ export default function LogoFullScreen({
   const [mounted, setMounted] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(true);
 
+  // ✅ NEW: scroll cue (auto-hide after scroll)
+  const [showScrollCue, setShowScrollCue] = useState(true);
+
   useEffect(() => {
     setMounted(true);
     setReduceMotion(prefersReducedMotion());
+  }, []);
+
+  // ✅ NEW: hide cue once user scrolls a bit
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.scrollY > 10) setShowScrollCue(false);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const fadeInUp: Variants = {
@@ -244,6 +259,7 @@ export default function LogoFullScreen({
           style={{ background: "rgba(138,107,67,0.09)" }}
         />
 
+        {/* subtle bottom fade (your existing) */}
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-transparent to-black/5" />
       </div>
 
@@ -274,9 +290,9 @@ export default function LogoFullScreen({
                   "[@media_(max-height:640px)]:translate-y-0",
 
                   // ✅ PHONE STACK WIDTHS (tuned so iPhone 14 text isn't squeezed)
-                  "[--stackW:clamp(150px,42vw,205px)]",          // small phones
-                  "min-[390px]:[--stackW:clamp(172px,44vw,225px)]", // iPhone 12/13/14 (390)
-                  "min-[414px]:[--stackW:clamp(190px,46vw,250px)]", // XR/Plus-ish (414+)
+                  "[--stackW:clamp(150px,42vw,205px)]",
+                  "min-[390px]:[--stackW:clamp(172px,44vw,225px)]",
+                  "min-[414px]:[--stackW:clamp(190px,46vw,250px)]",
 
                   // Reserve space so text never sits under the stack
                   "pr-[calc(var(--stackW)+10px)]",
@@ -309,16 +325,12 @@ export default function LogoFullScreen({
 
                     <div className="relative w-full rounded-[18px] p-[6px]">
                       <div className="grid grid-rows-2 gap-[12px]">
-                      <div className="relative aspect-[16/12] w-full overflow-hidden rounded-[14px] border border-white/90">
-
-
+                        <div className="relative aspect-[16/12] w-full overflow-hidden rounded-[14px] border border-white/90">
                           <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
 
-                  <div className="relative aspect-[16/12] w-full overflow-hidden rounded-[14px] border border-white/90">
-
-
+                        <div className="relative aspect-[16/12] w-full overflow-hidden rounded-[14px] border border-white/90">
                           <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
@@ -413,6 +425,46 @@ export default function LogoFullScreen({
           </div>
         </div>
       </div>
+
+      {/* ================= SCROLL CUE (NEW) ================= */}
+      {showScrollCue && (
+        <motion.div
+          className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2 sm:bottom-7"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: easeOut }}
+        >
+          <div className="flex flex-col items-center gap-2">
+            {/* Mouse outline */}
+            <div
+              className="relative h-10 w-6 rounded-full"
+              style={{
+                border: "1.4px solid rgba(15,23,42,0.35)",
+                background: "rgba(255,255,255,0.22)",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                boxShadow: "0 10px 30px rgba(2,6,23,0.10)",
+              }}
+            >
+              {/* Animated scroll dot */}
+              <motion.span
+                className="absolute left-1/2 top-2 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
+                style={{ background: "rgba(15,23,42,0.55)" }}
+                animate={{ y: [0, 10, 0], opacity: [0.6, 0.25, 0.6] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+
+            {/* Tiny label */}
+            <div
+              className="text-[11px] font-semibold tracking-wide"
+              style={{ color: "rgba(15,23,42,0.55)" }}
+            >
+              SCROLL
+            </div>
+          </div>
+        </motion.div>
+      )}
     </section>
   );
 }
