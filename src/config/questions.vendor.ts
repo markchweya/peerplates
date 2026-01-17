@@ -23,6 +23,25 @@ export const vendorQuestions = [
     type: "select",
     options: ["Yes", "No"],
   },
+
+  // ✅ Instagram questions (added)
+  {
+    key: "has_food_ig",
+    label: "Do you have a food business IG page?",
+    required: true,
+    type: "select",
+    options: ["Yes", "No"],
+  },
+  {
+    key: "ig_handle",
+    label: "If yes, what’s your IG handle?",
+    required: false, // becomes required via conditional logic
+    type: "text",
+    helper: "Example: @yourpage (optional if you selected No above)",
+    // 👇 this enables conditional required-ness in the form layer
+    requiredWhen: { key: "has_food_ig", equals: "Yes" },
+  },
+
   {
     key: "sell_categories",
     label: "What do you sell / would you like to sell?",
