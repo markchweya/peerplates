@@ -85,9 +85,24 @@ export default function LogoFullScreen({
   const [mounted, setMounted] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(true);
 
+  // ✅ NEW: scroll cue (auto-hide after scroll)
+  const [showScrollCue, setShowScrollCue] = useState(true);
+
   useEffect(() => {
     setMounted(true);
     setReduceMotion(prefersReducedMotion());
+  }, []);
+
+  // ✅ NEW: hide cue once user scrolls a bit
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.scrollY > 10) setShowScrollCue(false);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const fadeInUp: Variants = {
@@ -244,16 +259,8 @@ export default function LogoFullScreen({
           style={{ background: "rgba(138,107,67,0.09)" }}
         />
 
-        {/* ✅ FIXED: replace muddy dark band with a clean frosted fade */}
-        <div
-          className="absolute inset-x-0 bottom-0 h-28 pointer-events-none"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.18) 38%, rgba(255,255,255,0.52) 72%, rgba(255,255,255,0.82) 100%)",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-          }}
-        />
+        {/* subtle bottom fade (your existing) */}
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent via-transparent to-black/5" />
       </div>
 
       {/* ================= HEADER (UNCHANGED) ================= */}
@@ -281,11 +288,16 @@ export default function LogoFullScreen({
                   "sm:-translate-y-12 lg:-translate-y-16",
                   "[@media_(max-height:760px)]:-translate-y-6",
                   "[@media_(max-height:640px)]:translate-y-0",
+
+                  // ✅ PHONE STACK WIDTHS (tuned so iPhone 14 text isn't squeezed)
                   "[--stackW:clamp(150px,42vw,205px)]",
                   "min-[390px]:[--stackW:clamp(172px,44vw,225px)]",
                   "min-[414px]:[--stackW:clamp(190px,46vw,250px)]",
+
+                  // Reserve space so text never sits under the stack
                   "pr-[calc(var(--stackW)+10px)]",
                   "sm:pr-0",
+
                   "lg:pl-6 xl:pl-8"
                 )}
               >
@@ -294,9 +306,12 @@ export default function LogoFullScreen({
                   className={cn(
                     "pointer-events-none absolute sm:hidden",
                     "w-[var(--stackW)]",
+
+                    // keep it tight to the right edge on iPhone 14
                     "right-[clamp(-10px,-2.6vw,-4px)]",
                     "min-[390px]:right-[clamp(-16px,-3.4vw,-7px)]",
                     "min-[414px]:right-[clamp(-22px,-4vw,-10px)]",
+
                     "top-[clamp(98px,12vh,146px)]",
                     "min-[390px]:top-[clamp(108px,13vh,160px)]",
                     "min-[414px]:top-[clamp(112px,12.5vh,154px)]"
@@ -410,6 +425,46 @@ export default function LogoFullScreen({
           </div>
         </div>
       </div>
+
+      {/* ================= SCROLL CUE (NEW) ================= */}
+      {showScrollCue && (
+        <motion.div
+          className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2 sm:bottom-7"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: easeOut }}
+        >
+          <div className="flex flex-col items-center gap-2">
+            {/* Mouse outline */}
+            <div
+              className="relative h-10 w-6 rounded-full"
+              style={{
+                border: "1.4px solid rgba(15,23,42,0.35)",
+                background: "rgba(255,255,255,0.22)",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                boxShadow: "0 10px 30px rgba(2,6,23,0.10)",
+              }}
+            >
+              {/* Animated scroll dot */}
+              <motion.span
+                className="absolute left-1/2 top-2 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
+                style={{ background: "rgba(15,23,42,0.55)" }}
+                animate={{ y: [0, 10, 0], opacity: [0.6, 0.25, 0.6] }}
+                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+
+            {/* Tiny label */}
+            <div
+              className="text-[11px] font-semibold tracking-wide"
+              style={{ color: "rgba(15,23,42,0.55)" }}
+            >
+              SCROLL
+            </div>
+          </div>
+        </motion.div>
+      )}
     </section>
   );
 }
