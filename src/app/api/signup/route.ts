@@ -3,12 +3,19 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { vendorPriorityScoreFromAnswers } from "@/lib/vendorPriorityScore";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// email
+import { sendEmail } from "@/lib/email";
+import { vendorWaitlistEmail } from "@/lib/emails/vendorWaitlist";
+import { consumerWaitlistEmail } from "@/lib/emails/consumerWaitlist";
 
-// MUST be your production domain on Vercel
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://peerplates.vercel.app";
+export const runtime = "nodejs";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+// localhost ok for dev; production should be your real domain
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 type Role = "consumer" | "vendor";
 const REFERRAL_POINTS_PER_SIGNUP = 10;
@@ -96,11 +103,10 @@ function cleanIgHandle(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   let s = raw.trim();
   if (!s) return null;
-  // remove leading @ if they typed it; store without @ OR keep with @? choose one.
-  // We'll store WITHOUT @ for consistency.
+
   if (s.startsWith("@")) s = s.slice(1).trim();
   if (!s) return null;
-  // basic sanity: no spaces
+
   if (/\s/.test(s)) return null;
   return s;
 }
@@ -114,8 +120,7 @@ function enforceMax3Cuisines(answers: any) {
 }
 
 /**
- * ✅ Sends a Supabase Auth Magic Link that redirects to /queue?code=QUEUE_CODE
- * This keeps your “token” (queue_code) in the URL and avoids any typed OTP flow.
+ * Sends Supabase Auth magic link that redirects to /queue?code=QUEUE_CODE
  */
 async function sendQueueMagicLink(email: string, queueCode: string) {
   const auth = supabaseAuthMailer();
@@ -126,7 +131,7 @@ async function sendQueueMagicLink(email: string, queueCode: string) {
     options: { emailRedirectTo },
   });
 
-  if (error) console.warn("Supabase magic link send failed:", error.message);
+  if (error) console.warn("[signup] Supabase magic link send failed:", error.message);
 }
 
 export async function POST(req: Request) {
@@ -195,6 +200,8 @@ export async function POST(req: Request) {
     const phone = phoneRaw ? String(phoneRaw).trim() : null;
     const ref = refRaw ? String(refRaw).trim() : null;
 
+    console.log("[signup] ROLE FROM REQUEST:", role, "EMAIL:", email);
+
     const accepted_privacy = normalizeBool(acceptedPrivacyRaw);
     const marketing_consent = normalizeBool(marketingConsentRaw);
 
@@ -205,16 +212,13 @@ export async function POST(req: Request) {
 
     enforceMax3Cuisines(answers);
 
-    // ✅ Student fields
+    // Student fields
     const isStudent = normalizeStudent(answers?.is_student);
     let university = pickUniversity(answers?.university);
     if (isStudent === false) university = null;
 
-    // ✅ Instagram logic (NEW):
-    // - has_food_ig must be Yes/No (optional overall, but if present and "Yes" => require handle)
-    // - accept old keys for backward compatibility: instagram_handle
+    // Instagram logic
     const hasFoodIg = normalizeYesNo(answers?.has_food_ig);
-
     const igRaw = answers?.ig_handle ?? answers?.instagram_handle ?? answers?.instagram;
     const igHandle = cleanIgHandle(igRaw);
 
@@ -222,11 +226,10 @@ export async function POST(req: Request) {
       return jsonError("Please provide your IG handle.", 400);
     }
 
-    // Normalize into answers so DB trigger can extract consistently
     if (typeof answers === "object" && answers) {
       if (hasFoodIg !== null) answers.has_food_ig = hasFoodIg ? "Yes" : "No";
-      if (igHandle) answers.ig_handle = igHandle; // store without @
-      if (hasFoodIg === false) answers.ig_handle = ""; // clear if No
+      if (igHandle) answers.ig_handle = igHandle;
+      if (hasFoodIg === false) answers.ig_handle = "";
     }
 
     // Validate referral code
@@ -263,7 +266,6 @@ export async function POST(req: Request) {
       is_student: isStudent,
       university,
 
-      // ✅ store raw answers (trigger extracts has_food_ig + instagram_handle from it)
       answers,
 
       referral_code,
@@ -275,34 +277,70 @@ export async function POST(req: Request) {
 
       accepted_privacy,
       consented_at: new Date().toISOString(),
-    };
 
-    insertPayload["marketing_consent"] = marketing_consent;
-    insertPayload["accepted_marketing"] = marketing_consent;
+      marketing_consent,
+      accepted_marketing: marketing_consent,
+    };
 
     const { data, error } = await sb
       .from("waitlist_entries")
       .insert(insertPayload)
-      .select("id, referral_code, queue_code")
+      .select("id, referral_code, queue_code, role, full_name, email")
       .single();
 
     if (error) {
       const msg = String(error.message || "");
+      console.error("[signup] INSERT ERROR:", msg);
       if (msg.toLowerCase().includes("duplicate") || msg.includes("23505")) {
         return jsonError("This email is already on the waitlist.", 409);
       }
       return jsonError(msg || "Database insert failed.", 500);
     }
 
+    console.log("[signup] INSERT OK:", data?.id, "ROLE:", data?.role);
+
+    // ✅ Send welcome email for consumer + vendor
+    if (data?.role === "vendor") {
+      try {
+        console.log("[signup] ABOUT TO SEND VENDOR EMAIL:", data.email);
+        const { subject, text, html } = vendorWaitlistEmail({ fullName: data.full_name || fullName });
+        const r = await sendEmail({ to: data.email || email, subject, text, html });
+        console.log("[signup] Vendor email result:", r);
+      } catch (e) {
+        console.error("[signup] Vendor email failed FULL:", e);
+      }
+    }
+
+    if (data?.role === "consumer") {
+      try {
+        const referralLink = data.referral_code
+          ? `${SITE_URL}/join?ref=${encodeURIComponent(data.referral_code)}`
+          : null;
+
+        console.log("[signup] ABOUT TO SEND CONSUMER EMAIL:", data.email, "REF:", referralLink);
+
+        const { subject, text, html } = consumerWaitlistEmail({
+          fullName: data.full_name || fullName,
+          referralLink,
+        });
+
+        const r = await sendEmail({ to: data.email || email, subject, text, html });
+        console.log("[signup] Consumer email result:", r);
+      } catch (e) {
+        console.error("[signup] Consumer email failed FULL:", e);
+      }
+    }
+
+    // Award referral points
     if (referrer_id) {
       const { error: rpcErr } = await sb.rpc("increment_referral_stats", {
         p_referrer_id: referrer_id,
         p_points: REFERRAL_POINTS_PER_SIGNUP,
       });
-      if (rpcErr) console.error("Referral award failed:", rpcErr);
+      if (rpcErr) console.error("[signup] Referral award failed:", rpcErr);
     }
 
-    // ✅ Send magic link to /queue?code=QUEUE_CODE
+    // Send magic link (Supabase Auth)
     await sendQueueMagicLink(email, data.queue_code);
 
     return NextResponse.json({
@@ -311,6 +349,7 @@ export async function POST(req: Request) {
       queue_code: data.queue_code,
     });
   } catch (e: any) {
+    console.error("[signup] FAIL:", e);
     return jsonError(e?.message || "Unexpected server error.", 500);
   }
 }

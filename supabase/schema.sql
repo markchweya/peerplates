@@ -21,7 +21,7 @@ create table if not exists public.waitlist_entries (
   -- Raw form answers JSON
   answers jsonb not null default '{}'::jsonb,
 
-  -- ✅ Extracted / denormalized columns (from answers)
+  -- Extracted / denormalized columns (from answers)
   compliance_readiness text[] not null default '{}'::text[],
   has_food_ig boolean,
   instagram_handle text,
@@ -57,7 +57,7 @@ create table if not exists public.waitlist_entries (
   accepted_marketing boolean not null default false,
   marketing_consent boolean not null default false,
 
-  -- Existing extra fields (optional but harmless)
+  -- Extra fields (optional but harmless)
   captcha_verified boolean,
   flagged boolean,
   flagged_reason text,
@@ -77,7 +77,7 @@ alter table public.waitlist_entries
   add column if not exists accepted_marketing boolean not null default false,
   add column if not exists marketing_consent boolean not null default false,
 
-  -- extra fields you already have (safe)
+  -- extra fields (safe)
   add column if not exists captcha_verified boolean,
   add column if not exists flagged boolean,
   add column if not exists flagged_reason text,
@@ -91,10 +91,10 @@ alter table public.waitlist_entries
   add column if not exists has_food_ig boolean,
   add column if not exists instagram_handle text,
 
-  -- ✅ postcode (safe)
+  -- postcode (safe)
   add column if not exists postcode_area text,
 
-  -- NOTE: city exists in your current schema; leaving it harmless even if unused
+  -- optional city
   add column if not exists city text,
 
   add column if not exists top_cuisines text[] not null default '{}'::text[],
@@ -110,11 +110,23 @@ alter table public.waitlist_entries
 
 drop index if exists waitlist_entries_bus_minutes_idx;
 
--- 3c) ✅ Enforce: if has_food_ig = true then instagram_handle must be present
--- NOT VALID avoids breaking existing rows; you can VALIDATE later after cleanup/backfill
-alter table public.waitlist_entries
-  add constraint if not exists waitlist_entries_ig_handle_required
-  check (has_food_ig is distinct from true or instagram_handle is not null) not valid;
+-- 3c) Enforce: if has_food_ig = true then instagram_handle must be present
+-- Postgres DOES NOT support "ADD CONSTRAINT IF NOT EXISTS", so we use a DO block.
+-- NOT VALID avoids breaking existing rows; you can VALIDATE later after cleanup/backfill.
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint c
+    where c.conname = 'waitlist_entries_ig_handle_required'
+      and c.conrelid = 'public.waitlist_entries'::regclass
+  ) then
+    alter table public.waitlist_entries
+      add constraint waitlist_entries_ig_handle_required
+      check (has_food_ig is distinct from true or instagram_handle is not null)
+      not valid;
+  end if;
+end $$;
 
 -- 4) Indexes
 create index if not exists waitlist_entries_role_created_at_idx
@@ -146,7 +158,7 @@ create index if not exists waitlist_entries_consumer_order_idx
   on public.waitlist_entries (referral_points desc, created_at asc)
   where role = 'consumer';
 
--- Optional: case-insensitive unique email (comment out if you have duplicates)
+-- Optional: case-insensitive unique email
 create unique index if not exists waitlist_entries_email_lower_uniq
   on public.waitlist_entries (lower(email));
 
@@ -192,7 +204,7 @@ begin
       ''
     );
 
-  -- ✅ postcode_area (store first segment only, uppercase)
+  -- postcode_area (store first segment only, uppercase)
   new.postcode_area :=
     nullif(
       upper(split_part(trim(coalesce(v->>'postcode_area', v->>'postcode', '')), ' ', 1)),
@@ -207,7 +219,7 @@ begin
     new.compliance_readiness := '{}'::text[];
   end if;
 
-  -- ✅ has_food_ig (supports "Yes/No" and boolean-ish strings)
+  -- has_food_ig (supports "Yes/No" and boolean-ish strings)
   ig_yes := lower(trim(coalesce(v->>'has_food_ig', '')));
   if ig_yes in ('yes','true','1') then
     new.has_food_ig := true;
@@ -217,13 +229,13 @@ begin
     new.has_food_ig := null;
   end if;
 
-  -- ✅ instagram_handle (support new key + backward compat)
+  -- instagram_handle (support new key + backward compat)
   new.instagram_handle :=
     nullif(
       trim(
         coalesce(
-          v->>'ig_handle',         -- NEW (your current form key)
-          v->>'instagram_handle',  -- backward compat (old key)
+          v->>'ig_handle',         -- your current form key
+          v->>'instagram_handle',  -- backward compat
           v->>'instagram',         -- optional fallback
           ''
         )
@@ -288,8 +300,23 @@ update public.waitlist_entries
 set answers = answers
 where true;
 
--- 9) Optional: validate constraint after you’re confident old rows won’t violate it
+-- 9) Optional: validate constraint later
 -- alter table public.waitlist_entries validate constraint waitlist_entries_ig_handle_required;
 
--- 10) Optional RLS (leave off unless you’re ready to write policies)
+-- 10) IMPORTANT: FIX "permission denied" (GRANTS)
+-- If your Postgres privileges got tightened, inserts/selects will fail even without RLS.
+grant usage on schema public to anon, authenticated, service_role;
+
+grant select, insert, update, delete
+on table public.waitlist_entries
+to anon, authenticated, service_role;
+
+grant execute
+on function public.increment_referral_stats(uuid, integer)
+to anon, authenticated, service_role;
+
+-- Helpful when you changed schema and PostgREST is caching
+select pg_notify('pgrst', 'reload schema');
+
+-- 11) Optional RLS (DO NOT enable unless you’re ready to write policies)
 -- alter table public.waitlist_entries enable row level security;
