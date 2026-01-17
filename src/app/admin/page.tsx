@@ -323,11 +323,12 @@ export default function AdminPage() {
     }
   };
 
+  // ✅ FIX: dependency array must NOT change size between renders
   useEffect(() => {
-    if (!secretReady) return;
+    if (!secretReady || !adminSecret.trim()) return;
     fetchRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secretReady, queryString]);
+  }, [secretReady, adminSecret, queryString]);
 
   const openRow = (r: Entry) => {
     setSelected(r);

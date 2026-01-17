@@ -2,15 +2,25 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+export const runtime = "nodejs"; // ensure server env access
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "";
+
+// If you ever move schemas, this keeps it explicit.
+const DB_SCHEMA = "public";
+const WAITLIST_TABLE = "waitlist_entries";
 
 function supabaseAdmin() {
   if (!SUPABASE_URL || !SERVICE_KEY) {
     throw new Error("Missing Supabase env vars. Check .env.local");
   }
-  return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+
+  return createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { persistSession: false },
+    db: { schema: DB_SCHEMA },
+  });
 }
 
 function isAuthorized(req: Request) {
@@ -33,6 +43,18 @@ function clampInt(v: string | null, def: number, min: number, max: number) {
   return Math.min(Math.max(Math.trunc(n), min), max);
 }
 
+function normalizePostgrestError(msg: string) {
+  const m = String(msg || "");
+  if (m.includes("schema cache") && m.includes("waitlist_entries")) {
+    return (
+      "Supabase cannot see the table public.waitlist_entries.\n" +
+      "This usually means the schema SQL was not run in THIS Supabase project, or your app is pointing at a different project URL.\n" +
+      "Fix: run schema.sql in Supabase SQL Editor, then run: select pg_notify('pgrst','reload schema');"
+    );
+  }
+  return m || "Unexpected database error";
+}
+
 export async function GET(req: Request) {
   try {
     if (!isAuthorized(req)) {
@@ -42,6 +64,16 @@ export async function GET(req: Request) {
     const sb = supabaseAdmin();
     const { searchParams } = new URL(req.url);
 
+    // Optional: quick sanity ping (still protected by admin secret)
+    if ((searchParams.get("ping") || "").trim() === "1") {
+      return NextResponse.json({
+        ok: true,
+        schema: DB_SCHEMA,
+        table: `${DB_SCHEMA}.${WAITLIST_TABLE}`,
+        hasAdminSecret: !!ADMIN_SECRET,
+      });
+    }
+
     const limit = clampInt(searchParams.get("limit"), 50, 1, 200);
     const offset = clampInt(searchParams.get("offset"), 0, 0, 1_000_000);
 
@@ -50,14 +82,14 @@ export async function GET(req: Request) {
     const q = (searchParams.get("q") || "").trim();
 
     const role: "all" | "consumer" | "vendor" =
-      roleRaw === "consumer" || roleRaw === "vendor" ? roleRaw : "all";
+      roleRaw === "consumer" || roleRaw === "vendor" ? (roleRaw as any) : "all";
 
     const status: "all" | "pending" | "reviewed" | "approved" | "rejected" =
       statusRaw === "pending" ||
       statusRaw === "reviewed" ||
       statusRaw === "approved" ||
       statusRaw === "rejected"
-        ? statusRaw
+        ? (statusRaw as any)
         : "all";
 
     // Vendor-only filters
@@ -65,7 +97,7 @@ export async function GET(req: Request) {
     const compliance = (searchParams.get("compliance") || "").trim(); // exact label match inside compliance_readiness[]
 
     let query = sb
-      .from("waitlist_entries")
+      .from(WAITLIST_TABLE)
       .select(
         [
           "id",
@@ -91,7 +123,6 @@ export async function GET(req: Request) {
           "reviewed_at",
           "reviewed_by",
 
-          // vendor clean columns
           "instagram_handle",
           "postcode_area",
           "compliance_readiness",
@@ -105,26 +136,19 @@ export async function GET(req: Request) {
         { count: "exact" }
       );
 
-    if (role !== "all") {
-      query = query.eq("role", role);
-    }
-
-    if (status !== "all") {
-      query = query.eq("review_status", status);
-    }
+    if (role !== "all") query = query.eq("role", role);
+    if (status !== "all") query = query.eq("review_status", status);
 
     if (q) {
-      // Search full_name OR email
       const safe = q.replace(/,/g, " ").trim();
       query = query.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%`);
     }
 
-    // Apply vendor-only filters ONLY when role is explicitly vendor
+    // Vendor-only filters ONLY when role === vendor
     if (role === "vendor") {
       if (hasInstagram === true) {
         query = query.not("instagram_handle", "is", null).neq("instagram_handle", "");
       } else if (hasInstagram === false) {
-        // NULL or empty string
         query = query.or("instagram_handle.is.null,instagram_handle.eq.");
       }
 
@@ -146,7 +170,10 @@ export async function GET(req: Request) {
     }
 
     const { data, error, count } = await query.range(offset, offset + limit - 1);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    if (error) {
+      return NextResponse.json({ error: normalizePostgrestError(error.message) }, { status: 500 });
+    }
 
     const rows = (data || []).map((r: any) => ({
       ...r,
