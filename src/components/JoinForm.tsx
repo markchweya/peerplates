@@ -8,9 +8,6 @@ import { MotionDiv } from "@/app/ui/motion";
 import SelectField from "@/components/fields/SelectField";
 import LogoCinematic from "@/app/ui/LogoCinematic";
 
-// ✅ FIX: your `QuestionType` name is either missing OR misspelled as `QuestionTyp`.
-// Put this *directly above* `export type Question = { ... }` and ensure the spelling matches.
-
 export type QuestionType =
   | "text"
   | "email"
@@ -24,25 +21,26 @@ export type QuestionType =
 export type Question = {
   key: string;
   label: string;
+
+  // base required
   required?: boolean;
 
-  // ✅ must be EXACTLY `QuestionType` (not `QuestionTyp`)
-  type?: QuestionType;
+  // ✅ conditional required (e.g., ig_handle required when has_food_ig === "Yes")
+  requiredWhen?: { key: string; equals: string };
 
+  type?: QuestionType;
   placeholder?: string;
   options?: string[];
-
   maxSelections?: number;
 
   accept?: string[];
   helpText?: string;
 
-  // ✅ add this for your postcode helper
+  // alias helper
   helper?: string;
 
   uploadKey?: string;
 };
-
 
 type Props = {
   role: "consumer" | "vendor";
@@ -53,8 +51,6 @@ type Props = {
 
 type AnswerValue = string | string[];
 type AnswersState = Record<string, AnswerValue>;
-
-const BRAND = "#fcb040";
 
 // update these to your real pages later
 const PRIVACY_URL = "/privacy";
@@ -80,7 +76,9 @@ function splitCampusBus(value: string) {
   }
 
   // fallback if old format was "Jubilee Campus, 20 minutes"
-  const m = raw.match(/^(.*?)(?:,|\s)\s*(\d+\s*(?:min|mins|minutes)|1\s*hour|more\s*than\s*1\s*hour)$/i);
+  const m = raw.match(
+    /^(.*?)(?:,|\s)\s*(\d+\s*(?:min|mins|minutes)|1\s*hour|more\s*than\s*1\s*hour)$/i
+  );
   if (m) return { campus: m[1].trim(), minutes: m[2].trim() };
 
   return { campus: raw, minutes: "" };
@@ -137,23 +135,6 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
     setHp("");
   }, [initialAnswers]);
 
-  // --- Logic helpers ---
-  const isStudentYes = String(answers["is_student"] || "").toLowerCase() === "yes";
-
-  // Hide “university” unless student === Yes
-  const shouldHideQuestion = (q: Question) => {
-    if (q.key === "university") return !isStudentYes;
-    return false;
-  };
-
-  // If we hide university, also clear it so it doesn’t submit stale values
-  useEffect(() => {
-    if (!isStudentYes) {
-      setAnswers((prev) => ({ ...prev, university: "" }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStudentYes]);
-
   const setAnswer = (key: string, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [key]: value }));
   };
@@ -163,7 +144,49 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
     return !String(v ?? "").trim();
   };
 
-  const toggleCheckbox = (key: string, option: string, allOptions: string[], maxSelections?: number) => {
+  // --- Conditional logic ---
+  const isStudentYes = String(answers["is_student"] || "").toLowerCase() === "yes";
+  const hasFoodIgYes = String(answers["has_food_ig"] || "").toLowerCase() === "yes";
+
+  const isRequired = (q: Question) => {
+    if (q.required) return true;
+    if (q.requiredWhen) {
+      const actual = String(answers[q.requiredWhen.key] ?? "");
+      return actual === q.requiredWhen.equals;
+    }
+    return false;
+  };
+
+  // Hide “university” unless student === Yes
+  // Hide “ig_handle” unless has_food_ig === Yes
+  const shouldHideQuestion = (q: Question) => {
+    if (q.key === "university") return !isStudentYes;
+    if (q.key === "ig_handle") return !hasFoodIgYes;
+    return false;
+  };
+
+  // If we hide university, clear it so it doesn’t submit stale values
+  useEffect(() => {
+    if (!isStudentYes) {
+      setAnswers((prev) => ({ ...prev, university: "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStudentYes]);
+
+  // If IG is No, clear handle (prevents stale submission)
+  useEffect(() => {
+    if (!hasFoodIgYes) {
+      setAnswers((prev) => ({ ...prev, ig_handle: "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasFoodIgYes]);
+
+  const toggleCheckbox = (
+    key: string,
+    option: string,
+    allOptions: string[],
+    maxSelections?: number
+  ) => {
     const current = Array.isArray(answers[key]) ? (answers[key] as string[]) : [];
 
     const hasNone = allOptions.includes("None") || allOptions.includes("None of the above");
@@ -198,7 +221,9 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
 
     for (const q of questions) {
       if (shouldHideQuestion(q)) continue;
-      if (!q.required) continue;
+
+      const requiredNow = isRequired(q);
+      if (!requiredNow) continue;
 
       // special validation for split campus_bus (still stored as one string)
       if (q.key === "campus_bus") {
@@ -394,10 +419,9 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                 if (shouldHideQuestion(q)) return null;
 
                 const helperText = q.helper ?? q.helpText;
-
-
                 const t = q.type || "text";
                 const val = answers[q.key];
+                const requiredNow = isRequired(q);
 
                 // ✅ SPECIAL: Closest campus + minutes dropdown (same line)
                 if (q.key === "campus_bus") {
@@ -407,12 +431,14 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                   return (
                     <div key={q.key} className="grid gap-2">
                       <label className="text-sm font-semibold">
-                        Closest campus &amp; travel time by bus {q.required ? "*" : ""}
+                        Closest campus &amp; travel time by bus {requiredNow ? "*" : ""}
                       </label>
 
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div className="grid gap-2">
-                          <label className="text-sm font-semibold">Closest campus *</label>
+                          <label className="text-sm font-semibold">
+                            Closest campus {requiredNow ? "*" : ""}
+                          </label>
                           <input
                             value={campus}
                             onChange={(e) => {
@@ -427,7 +453,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                         <div className="grid gap-2">
                           <SelectField
                             label="Minutes by bus"
-                            required
+                            required={requiredNow}
                             value={minutes}
                             onChange={(v) => {
                               const next = composeCampusBus(campus, v);
@@ -446,139 +472,23 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                   );
                 }
 
-             // ✅ 3) REPLACE ONLY these render blocks to show helperText
-
-if (t === "select") {
-  return (
-    <div key={q.key} className="grid gap-2">
-      <SelectField
-        label={q.label}
-        required={q.required}
-        value={String(val ?? "")}
-        onChange={(v) => setAnswer(q.key, v)}
-        options={q.options || []}
-        placeholder={q.placeholder || "Select…"}
-      />
-      {helperText ? <div className="text-xs text-slate-900/60">{helperText}</div> : null}
-    </div>
-  );
-}
-
-if (t === "checkboxes") {
-  const arr = Array.isArray(val) ? val : [];
-  const opts = q.options || [];
-  return (
-    <div key={q.key} className="grid gap-2">
-      <label className="text-sm font-semibold">
-        {q.label} {q.required ? "*" : ""}
-        {typeof q.maxSelections === "number" ? (
-          <span className="ml-2 text-xs text-slate-500">(max {q.maxSelections})</span>
-        ) : null}
-      </label>
-
-      <div className={`${cardBase} grid gap-2`}>
-        {opts.map((opt) => {
-          const checked = arr.includes(opt);
-          return (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => toggleCheckbox(q.key, opt, opts, q.maxSelections)}
-              className={[
-                "flex items-center justify-between rounded-2xl border px-4 py-3 text-left font-semibold transition",
-                checked
-                  ? "border-[#fcb040] bg-[#fcb040] text-slate-900"
-                  : "border-[#fcb040] bg-white text-slate-900 hover:-translate-y-[1px]",
-              ].join(" ")}
-            >
-              <span className="pr-3">{opt}</span>
-              <span
-                className={[
-                  "inline-flex h-6 w-6 items-center justify-center rounded-full border",
-                  checked ? "border-slate-900 bg-white" : "border-[#fcb040] bg-white",
-                ].join(" ")}
-                aria-hidden="true"
-              >
-                {checked ? <span className="h-2.5 w-2.5 rounded-full bg-slate-900" /> : null}
-              </span>
-            </button>
-          );
-        })}
-        <div className="text-xs text-slate-900/60">You can select multiple options.</div>
-      </div>
-
-      {helperText ? <div className="text-xs text-slate-900/60">{helperText}</div> : null}
-    </div>
-  );
-}
-
-if (t === "file") {
-  const accept = (q.accept || [".pdf", ".jpg", ".jpeg", ".png"]).join(",");
-  const uploadKey = q.uploadKey || q.key;
-
-  return (
-    <div key={q.key} className="grid gap-2">
-      <label className="text-sm font-semibold">
-        {q.label} {q.required ? "*" : ""}
-      </label>
-
-      <div className={`${cardBase} grid gap-2`}>
-        <input
-          type="file"
-          accept={accept}
-          className="block w-full rounded-2xl border border-[#fcb040] bg-white px-4 py-3 font-semibold text-slate-900 file:mr-4 file:rounded-xl file:border-0 file:bg-[#fcb040] file:px-4 file:py-2 file:font-extrabold file:text-slate-900"
-          onChange={(e) => {
-            const f = e.target.files?.[0] || null;
-            setFiles((prev) => ({ ...prev, [uploadKey]: f }));
-          }}
-        />
-
-        {helperText ? <div className="text-xs text-slate-900/60">{helperText}</div> : null}
-
-        {files[uploadKey] ? (
-          <div className="text-xs font-semibold">
-            Selected: <span className="font-mono">{files[uploadKey]!.name}</span>
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-if (t === "textarea") {
-  return (
-    <div key={q.key} className="grid gap-2">
-      <label className="text-sm font-semibold">
-        {q.label} {q.required ? "*" : ""}
-      </label>
-      <textarea
-        value={String(val ?? "")}
-        onChange={(e) => setAnswer(q.key, e.target.value)}
-        className={textareaBase}
-        placeholder={q.placeholder || ""}
-      />
-      {helperText ? <div className="text-xs text-slate-900/60">{helperText}</div> : null}
-    </div>
-  );
-}
-
-// default text/email/tel/number...
-return (
-  <div key={q.key} className="grid gap-2">
-    <label className="text-sm font-semibold">
-      {q.label} {q.required ? "*" : ""}
-    </label>
-    <input
-      value={String(val ?? "")}
-      onChange={(e) => setAnswer(q.key, e.target.value)}
-      className={inputBase}
-      placeholder={q.placeholder || ""}
-      type={t === "number" ? "number" : t}
-      inputMode={t === "number" ? "numeric" : undefined}
-    />
-    {helperText ? <div className="text-xs text-slate-900/60">{helperText}</div> : null}
-  </div>
-);
+                if (t === "select") {
+                  return (
+                    <div key={q.key} className="grid gap-2">
+                      <SelectField
+                        label={q.label}
+                        required={requiredNow}
+                        value={String(val ?? "")}
+                        onChange={(v) => setAnswer(q.key, v)}
+                        options={q.options || []}
+                        placeholder={q.placeholder || "Select…"}
+                      />
+                      {helperText ? (
+                        <div className="text-xs text-slate-900/60">{helperText}</div>
+                      ) : null}
+                    </div>
+                  );
+                }
 
                 if (t === "checkboxes") {
                   const arr = Array.isArray(val) ? val : [];
@@ -586,9 +496,11 @@ return (
                   return (
                     <div key={q.key} className="grid gap-2">
                       <label className="text-sm font-semibold">
-                        {q.label} {q.required ? "*" : ""}
+                        {q.label} {requiredNow ? "*" : ""}
                         {typeof q.maxSelections === "number" ? (
-                          <span className="ml-2 text-xs text-slate-500">(max {q.maxSelections})</span>
+                          <span className="ml-2 text-xs text-slate-500">
+                            (max {q.maxSelections})
+                          </span>
                         ) : null}
                       </label>
 
@@ -611,17 +523,25 @@ return (
                               <span
                                 className={[
                                   "inline-flex h-6 w-6 items-center justify-center rounded-full border",
-                                  checked ? "border-slate-900 bg-white" : "border-[#fcb040] bg-white",
+                                  checked
+                                    ? "border-slate-900 bg-white"
+                                    : "border-[#fcb040] bg-white",
                                 ].join(" ")}
                                 aria-hidden="true"
                               >
-                                {checked ? <span className="h-2.5 w-2.5 rounded-full bg-slate-900" /> : null}
+                                {checked ? (
+                                  <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
+                                ) : null}
                               </span>
                             </button>
                           );
                         })}
                         <div className="text-xs text-slate-900/60">You can select multiple options.</div>
                       </div>
+
+                      {helperText ? (
+                        <div className="text-xs text-slate-900/60">{helperText}</div>
+                      ) : null}
                     </div>
                   );
                 }
@@ -633,7 +553,7 @@ return (
                   return (
                     <div key={q.key} className="grid gap-2">
                       <label className="text-sm font-semibold">
-                        {q.label} {q.required ? "*" : ""}
+                        {q.label} {requiredNow ? "*" : ""}
                       </label>
 
                       <div className={`${cardBase} grid gap-2`}>
@@ -646,7 +566,11 @@ return (
                             setFiles((prev) => ({ ...prev, [uploadKey]: f }));
                           }}
                         />
-                        {q.helpText ? <div className="text-xs text-slate-900/60">{q.helpText}</div> : null}
+
+                        {helperText ? (
+                          <div className="text-xs text-slate-900/60">{helperText}</div>
+                        ) : null}
+
                         {files[uploadKey] ? (
                           <div className="text-xs font-semibold">
                             Selected: <span className="font-mono">{files[uploadKey]!.name}</span>
@@ -661,7 +585,7 @@ return (
                   return (
                     <div key={q.key} className="grid gap-2">
                       <label className="text-sm font-semibold">
-                        {q.label} {q.required ? "*" : ""}
+                        {q.label} {requiredNow ? "*" : ""}
                       </label>
                       <textarea
                         value={String(val ?? "")}
@@ -669,14 +593,18 @@ return (
                         className={textareaBase}
                         placeholder={q.placeholder || ""}
                       />
+                      {helperText ? (
+                        <div className="text-xs text-slate-900/60">{helperText}</div>
+                      ) : null}
                     </div>
                   );
                 }
 
+                // default text/email/tel/number...
                 return (
                   <div key={q.key} className="grid gap-2">
                     <label className="text-sm font-semibold">
-                      {q.label} {q.required ? "*" : ""}
+                      {q.label} {requiredNow ? "*" : ""}
                     </label>
                     <input
                       value={String(val ?? "")}
@@ -686,6 +614,9 @@ return (
                       type={t === "number" ? "number" : t}
                       inputMode={t === "number" ? "numeric" : undefined}
                     />
+                    {helperText ? (
+                      <div className="text-xs text-slate-900/60">{helperText}</div>
+                    ) : null}
                   </div>
                 );
               })}
@@ -712,8 +643,6 @@ return (
                   . <span className="font-extrabold">*</span>
                 </span>
               </label>
-
-             
             </div>
 
             {error ? (
@@ -738,8 +667,6 @@ return (
                 Back
               </Link>
             </div>
-
-          
           </form>
         </MotionDiv>
       </div>
