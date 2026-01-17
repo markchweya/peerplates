@@ -27,6 +27,12 @@ function toBool(v: string | null): boolean | null {
   return null;
 }
 
+function clampInt(v: string | null, def: number, min: number, max: number) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return def;
+  return Math.min(Math.max(Math.trunc(n), min), max);
+}
+
 export async function GET(req: Request) {
   try {
     if (!isAuthorized(req)) {
@@ -36,12 +42,23 @@ export async function GET(req: Request) {
     const sb = supabaseAdmin();
     const { searchParams } = new URL(req.url);
 
-    const limit = Math.min(Number(searchParams.get("limit") || 50), 200);
-    const offset = Math.max(Number(searchParams.get("offset") || 0), 0);
+    const limit = clampInt(searchParams.get("limit"), 50, 1, 200);
+    const offset = clampInt(searchParams.get("offset"), 0, 0, 1_000_000);
 
-    const role = (searchParams.get("role") || "all").toLowerCase();
-    const status = (searchParams.get("status") || "all").toLowerCase();
+    const roleRaw = (searchParams.get("role") || "all").trim().toLowerCase();
+    const statusRaw = (searchParams.get("status") || "all").trim().toLowerCase();
     const q = (searchParams.get("q") || "").trim();
+
+    const role: "all" | "consumer" | "vendor" =
+      roleRaw === "consumer" || roleRaw === "vendor" ? roleRaw : "all";
+
+    const status: "all" | "pending" | "reviewed" | "approved" | "rejected" =
+      statusRaw === "pending" ||
+      statusRaw === "reviewed" ||
+      statusRaw === "approved" ||
+      statusRaw === "rejected"
+        ? statusRaw
+        : "all";
 
     // Vendor-only filters
     const hasInstagram = toBool(searchParams.get("has_instagram"));
@@ -88,7 +105,7 @@ export async function GET(req: Request) {
         { count: "exact" }
       );
 
-    if (role !== "all" && (role === "consumer" || role === "vendor")) {
+    if (role !== "all") {
       query = query.eq("role", role);
     }
 
@@ -97,7 +114,9 @@ export async function GET(req: Request) {
     }
 
     if (q) {
-      query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
+      // Search full_name OR email
+      const safe = q.replace(/,/g, " ").trim();
+      query = query.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%`);
     }
 
     // Apply vendor-only filters ONLY when role is explicitly vendor
@@ -126,9 +145,7 @@ export async function GET(req: Request) {
       query = query.order("created_at", { ascending: false });
     }
 
-    query = query.range(offset, offset + limit - 1);
-
-    const { data, error, count } = await query;
+    const { data, error, count } = await query.range(offset, offset + limit - 1);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     const rows = (data || []).map((r: any) => ({

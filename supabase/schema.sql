@@ -1,5 +1,5 @@
 -- supabase/schema.sql
--- PeerPlates Waitlist schema (idempotent; safe to paste into Supabase SQL Editor too)
+-- PeerPlates Waitlist schema (idempotent; safe to paste into Supabase SQL Editor)
 
 -- 1) Extensions
 create extension if not exists pgcrypto;
@@ -14,12 +14,22 @@ create table if not exists public.waitlist_entries (
   email text not null,
   phone text,
 
-  -- Student fields (derived from answers)
+  -- Student fields (optional / derived)
   is_student boolean,
   university text,
 
   -- Raw form answers JSON
   answers jsonb not null default '{}'::jsonb,
+
+  -- ✅ Extracted / denormalized columns (from answers)
+  compliance_readiness text[] not null default '{}'::text[],
+  has_food_ig boolean,
+  instagram_handle text,
+  postcode_area text,
+  city text,
+  top_cuisines text[] not null default '{}'::text[],
+  delivery_area text,
+  dietary_preferences text[] not null default '{}'::text[],
 
   -- Referral system
   referral_code text unique,
@@ -78,9 +88,10 @@ alter table public.waitlist_entries
 
   -- extracted columns (safe)
   add column if not exists compliance_readiness text[] not null default '{}'::text[],
+  add column if not exists has_food_ig boolean,
   add column if not exists instagram_handle text,
 
-  -- ✅ postcode (new)
+  -- ✅ postcode (safe)
   add column if not exists postcode_area text,
 
   -- NOTE: city exists in your current schema; leaving it harmless even if unused
@@ -98,6 +109,12 @@ alter table public.waitlist_entries
   drop column if exists bus_minutes;
 
 drop index if exists waitlist_entries_bus_minutes_idx;
+
+-- 3c) ✅ Enforce: if has_food_ig = true then instagram_handle must be present
+-- NOT VALID avoids breaking existing rows; you can VALIDATE later after cleanup/backfill
+alter table public.waitlist_entries
+  add constraint if not exists waitlist_entries_ig_handle_required
+  check (has_food_ig is distinct from true or instagram_handle is not null) not valid;
 
 -- 4) Indexes
 create index if not exists waitlist_entries_role_created_at_idx
@@ -117,6 +134,9 @@ create index if not exists waitlist_entries_city_idx
 
 create index if not exists waitlist_entries_postcode_area_idx
   on public.waitlist_entries (postcode_area);
+
+create index if not exists waitlist_entries_instagram_handle_idx
+  on public.waitlist_entries (instagram_handle);
 
 create index if not exists waitlist_entries_vendor_order_idx
   on public.waitlist_entries (vendor_queue_override, vendor_priority_score desc, created_at asc)
@@ -153,6 +173,7 @@ language plpgsql
 as $$
 declare
   v jsonb;
+  ig_yes text;
 begin
   v := coalesce(new.answers, '{}'::jsonb);
 
@@ -186,8 +207,29 @@ begin
     new.compliance_readiness := '{}'::text[];
   end if;
 
-  -- instagram_handle
-  new.instagram_handle := nullif(trim(coalesce(v->>'instagram_handle','')), '');
+  -- ✅ has_food_ig (supports "Yes/No" and boolean-ish strings)
+  ig_yes := lower(trim(coalesce(v->>'has_food_ig', '')));
+  if ig_yes in ('yes','true','1') then
+    new.has_food_ig := true;
+  elsif ig_yes in ('no','false','0') then
+    new.has_food_ig := false;
+  else
+    new.has_food_ig := null;
+  end if;
+
+  -- ✅ instagram_handle (support new key + backward compat)
+  new.instagram_handle :=
+    nullif(
+      trim(
+        coalesce(
+          v->>'ig_handle',         -- NEW (your current form key)
+          v->>'instagram_handle',  -- backward compat (old key)
+          v->>'instagram',         -- optional fallback
+          ''
+        )
+      ),
+      ''
+    );
 
   -- top_cuisines (try two keys)
   if jsonb_typeof(v->'top_cuisines') = 'array' then
@@ -239,11 +281,15 @@ $$;
 -- 8) Backfill extracted columns for existing rows (forces trigger to populate)
 update public.waitlist_entries
 set answers = coalesce(answers, '{}'::jsonb)
-where answers is not null;
+where true;
 
+-- "touch" answers to force the trigger on update-of-answers paths
 update public.waitlist_entries
 set answers = answers
 where true;
 
--- 9) Optional RLS (leave off unless you’re ready to write policies)
+-- 9) Optional: validate constraint after you’re confident old rows won’t violate it
+-- alter table public.waitlist_entries validate constraint waitlist_entries_ig_handle_required;
+
+-- 10) Optional RLS (leave off unless you’re ready to write policies)
 -- alter table public.waitlist_entries enable row level security;
