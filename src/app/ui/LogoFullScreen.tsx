@@ -129,7 +129,7 @@ export default function LogoFullScreen({
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0">
           <Image
-            src="/images/gallery/gallery19.png"
+            src="/images/gallery/21.png"
             fill
             alt=""
             className="object-cover sm:hidden"
@@ -150,7 +150,7 @@ export default function LogoFullScreen({
 
           <div className="absolute inset-0">
             <Image
-              src="/images/gallery/gallery19.png"
+              src="/images/gallery/gallery21.png"
               fill
               alt=""
               className="object-cover sm:hidden"
@@ -185,7 +185,7 @@ export default function LogoFullScreen({
 
           <div className="absolute inset-0">
             <Image
-              src="/images/gallery/gallery19.png"
+              src="/images/gallery/gallery21.png"
               fill
               alt=""
               className="object-cover sm:hidden"
