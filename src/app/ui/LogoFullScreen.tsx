@@ -85,24 +85,9 @@ export default function LogoFullScreen({
   const [mounted, setMounted] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(true);
 
-  // ✅ scroll cue (auto-hide after scroll)
-  const [showScrollCue, setShowScrollCue] = useState(true);
-
   useEffect(() => {
     setMounted(true);
     setReduceMotion(prefersReducedMotion());
-  }, []);
-
-  // ✅ hide cue once user scrolls a bit
-  useEffect(() => {
-    const onScroll = () => {
-      if (window.scrollY > 10) setShowScrollCue(false);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-
-    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const fadeInUp: Variants = {
@@ -443,43 +428,6 @@ export default function LogoFullScreen({
           </div>
         </div>
       </div>
-
-      {/* ================= SCROLL CUE ================= */}
-      {showScrollCue && (
-        <motion.div
-          className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2 sm:bottom-7"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: easeOut }}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <div
-              className="relative h-10 w-6 rounded-full"
-              style={{
-                border: "1.4px solid rgba(15,23,42,0.35)",
-                background: "rgba(255,255,255,0.22)",
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-                boxShadow: "0 10px 30px rgba(2,6,23,0.10)",
-              }}
-            >
-              <motion.span
-                className="absolute left-1/2 top-2 h-1.5 w-1.5 -translate-x-1/2 rounded-full"
-                style={{ background: "rgba(15,23,42,0.55)" }}
-                animate={{ y: [0, 10, 0], opacity: [0.6, 0.25, 0.6] }}
-                transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-              />
-            </div>
-
-            <div
-              className="text-[11px] font-semibold tracking-wide"
-              style={{ color: "rgba(15,23,42,0.55)" }}
-            >
-              SCROLL
-            </div>
-          </div>
-        </motion.div>
-      )}
     </section>
   );
 }
