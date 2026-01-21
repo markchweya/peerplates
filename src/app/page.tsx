@@ -2,7 +2,6 @@
 "use client";
 
 import LogoFullScreen from "@/app/ui/LogoFullScreen";
-
 import PeerWorks from "@/app/ui/PeerWorks";
 import ScrollShowcase from "@/app/ui/ScrollShowcase";
 
@@ -69,7 +68,6 @@ function EatBetterSection() {
           authentic home-cooked meals from trusted cooks and bakers.
         </p>
 
-        {/* ✅ FIX: add the buttons back */}
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <a
             href="/join"
@@ -94,24 +92,18 @@ function EatBetterSection() {
 export default function Home() {
   return (
     <main className="min-h-screen bg-white text-slate-900 relative overflow-hidden">
-      {/* ✅ Fix: force the fullscreen logo area to render with square corners */}
       <div className="rounded-none" style={{ borderRadius: 0 }}>
         <LogoFullScreen />
       </div>
 
-
-
-      {/* HOW IT WORKS (your section) */}
       <PeerWorks />
 
-      {/* APP PREVIEWS (below How it works) */}
       <ScrollShowcase
         heading=""
         subheading="See how PeerPlates makes ordering and managing home-cooked food effortless."
         direction="ltr"
         snap={true}
         tilt={false}
-     
         items={[
           {
             image: "/images/gallery/gallery1.jpeg",
@@ -119,6 +111,7 @@ export default function Home() {
             title: "TikTok-style scroll experience, built for ordering.",
             subtitle: "",
             desc: 'Discover home-cooked meals in short, shoppable videos. Tap “Add to cart” straight from the video.',
+            stackedDesktop: true, // ✅ PC-only stacked
           },
           {
             image: "/images/gallery/gallery2.jpeg",
@@ -126,6 +119,7 @@ export default function Home() {
             title: "Highlights that make choosing effortless.",
             subtitle: "",
             desc: "Short, snackable previews that help you decide in seconds, perfect for busy students.",
+            stackedDesktop: true, // ✅ PC-only stacked
           },
           {
             image: "/images/gallery/gallery3.jpeg",
@@ -154,7 +148,6 @@ export default function Home() {
             title: "Know what's working",
             subtitle: "",
             desc: "See what’s selling fastest, and double down on the dishes that drive revenue.",
-          
           },
           {
             image: "/images/gallery/gallery7.jpeg",
@@ -180,7 +173,6 @@ export default function Home() {
         ]}
       />
 
-      {/* Footer */}
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mt-10 sm:mt-12 border-t border-slate-200 pt-6 pb-10 text-sm text-slate-500">
           © {new Date().getFullYear()} PeerPlates

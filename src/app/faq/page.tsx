@@ -81,10 +81,10 @@ function ChevronDown({ open }: { open: boolean }) {
 }
 
 /**
- * ✅ Scroll fade wrapper:
- * - Fades in when section enters viewport
- * - Fades out when section leaves viewport (down OR up)
- * - Re-fades in when scrolling back
+ * ✅ Scroll fade wrapper (optimized):
+ * - Fades IN once when section enters viewport
+ * - Does NOT fade out when leaving viewport (down OR up)
+ * - This reduces scroll jank / lag
  */
 function ScrollFade({
   children,
@@ -100,17 +100,13 @@ function ScrollFade({
   blur?: number;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const inView = useInView(ref, { amount, margin: "0px 0px -10% 0px" });
+  const inView = useInView(ref, { amount, margin: "0px 0px -10% 0px", once: true });
 
   return (
     <motion.div
       ref={ref}
-      initial={false}
-      animate={
-        inView
-          ? { opacity: 1, y: 0, filter: "blur(0px)" }
-          : { opacity: 0, y, filter: `blur(${blur}px)` }
-      }
+      initial={{ opacity: 0, y, filter: `blur(${blur}px)` }}
+      animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : undefined}
       transition={{ duration: 0.55, ease: easeOut }}
       className={className}
     >
@@ -324,8 +320,7 @@ export default function FAQPage() {
           pointerEvents: headerHidden ? "none" : "auto",
         }}
       >
-<div className="bg-transparent">
-
+        <div className="bg-transparent">
           <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-5 sm:px-6 lg:px-8 py-4">
             <MotionDiv
               initial={{ opacity: 0, y: -10 }}
@@ -596,16 +591,12 @@ export function FAQSection({
       <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Hero header */}
         <ScrollFade className="mx-auto max-w-3xl text-center" amount={0.5} y={18} blur={12}>
-        
-
           <h1 className="mt-6 font-extrabold tracking-tight leading-[0.95] text-[clamp(2.2rem,4.6vw,3.6rem)] text-slate-900">
             {title}{" "}
             <span
               className="bg-clip-text text-transparent"
               style={{ backgroundImage: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})` }}
-            >
-              
-            </span>
+            ></span>
           </h1>
 
           <p className="mt-4 text-slate-600 font-semibold leading-relaxed">{subtitle}</p>
