@@ -259,8 +259,7 @@ export default function LogoFullScreen({
         <div
           className="absolute inset-x-0 bottom-0 h-[10vh] pointer-events-none"
           style={{
-            background:
-              "radial-gradient(140% 90% at 35% 100%, rgba(252,176,64,0.08) 0%, rgba(255,255,255,0) 60%)",
+            background: "radial-gradient(140% 90% at 35% 100%, rgba(252,176,64,0.08) 0%, rgba(255,255,255,0) 60%)",
             opacity: 0.9,
           }}
         />
@@ -390,7 +389,8 @@ export default function LogoFullScreen({
 
               {/* RIGHT: Visual column (PC) */}
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
-                <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(165px,22vh,260px)] pr-[clamp(34px,5vw,120px)]">
+                {/* ✅ changed: move the whole stack DOWN on PC so more of the hero background shows (like phone) */}
+                <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(220px,30vh,360px)] pr-[clamp(34px,5vw,120px)]">
                   <div
                     className="w-full"
                     style={
