@@ -1,10 +1,15 @@
 // src/lib/vendorPriority.ts
 // Vendor priority scoring (0–10) based on actionable, non-guesswork signals.
-// Goals supported:
-// - "Highest quality vendors" (readiness + proof + reliability)
-// - "Closest vendors" (proximity)
+// Updated to match the NEW vendorQuestions keys/options.
 //
-// This file is tolerant to evolving form keys (supports multiple aliases).
+// Scoring buckets:
+// - Compliance readiness: 0..4
+// - Proof (sell history): 0..2
+// - Reliability (portions/week): 0..2
+// - Proximity (postcode area present): 0..1
+// - Social proof (has_food_ig + ig_handle): 0..1
+//
+// Total capped to 10.
 
 export type VendorAnswers = Record<string, unknown>;
 
@@ -12,7 +17,7 @@ export type VendorPriorityBreakdown = {
   complianceScore: number; // 0..4
   proofScore: number; // 0..2
   reliabilityScore: number; // 0..2
-  proximityScore: number; // 0..2
+  proximityScore: number; // 0..1
   socialScore: number; // 0..1
   notes?: string[];
 };
@@ -30,17 +35,13 @@ function asString(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
-function asNumber(v: unknown): number | null {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  const s = String(v ?? "").trim();
-  if (!s) return null;
-  const n = Number(s);
-  return Number.isFinite(n) ? n : null;
-}
-
 function asStringArray(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return v.map((x) => asString(x)).filter(Boolean);
+}
+
+function normalizeLower(s: string) {
+  return s.trim().toLowerCase();
 }
 
 function firstNonEmptyString(answers: VendorAnswers, keys: string[]): string {
@@ -51,24 +52,12 @@ function firstNonEmptyString(answers: VendorAnswers, keys: string[]): string {
   return "";
 }
 
-function firstNumber(answers: VendorAnswers, keys: string[]): number | null {
-  for (const k of keys) {
-    const n = asNumber(answers[k]);
-    if (n !== null) return n;
-  }
-  return null;
-}
-
 function firstStringArray(answers: VendorAnswers, keys: string[]): string[] {
   for (const k of keys) {
     const arr = asStringArray(answers[k]);
     if (arr.length) return arr;
   }
   return [];
-}
-
-function normalizeLower(s: string) {
-  return s.trim().toLowerCase();
 }
 
 function hasInstagramHandle(raw: string): boolean {
@@ -81,86 +70,32 @@ function hasInstagramHandle(raw: string): boolean {
   return s.startsWith("@") || s.includes("instagram.com") || s.length >= 2;
 }
 
-function parseMinutesFromText(raw: string): number | null {
-  const s = normalizeLower(raw);
-  if (!s) return null;
+function portionsTierToMinEstimate(portions: string): number | null {
+  // We only use the exact options you provided.
+  // This is NOT guessing; it’s mapping the selected bucket.
+  const s = portions.trim();
 
-  const m1 = s.match(/(\d{1,3})\s*(minutes|minute|mins|min)\b/);
-  if (m1?.[1]) return clamp(Number(m1[1]), 0, 999);
-
-  const m2 = s.match(/\b(\d{1,3})\b/);
-  if (m2?.[1]) return clamp(Number(m2[1]), 0, 999);
+  if (s === "0") return 0;
+  if (s === "1–5" || s === "1-5") return 1;
+  if (s === "6–10" || s === "6-10") return 6;
+  if (s === "11–20" || s === "11-20") return 11;
+  if (s === "21–40" || s === "21-40") return 21;
+  if (s === "40+") return 40;
 
   return null;
-}
-
-function hasProof(answers: VendorAnswers): boolean {
-  // Handles:
-  // - certificate_upload (string/file name)
-  // - certificate_url (string)
-  // - any field that looks like an uploaded doc URL/path
-  const direct = firstNonEmptyString(answers, [
-    "certificate_url",
-    "certificate_upload",
-    "certificateUpload",
-    "certificate",
-    "food_hygiene_certificate",
-    "hygiene_certificate",
-    "docs_url",
-    "documents_url",
-  ]);
-  if (direct) return true;
-
-  // Sometimes forms store it inside answers as an object/array; we avoid deep guessing.
-  // If you later standardize this, add explicit keys above.
-  return false;
-}
-
-function reliabilitySignal(answers: VendorAnswers): number {
-  // 0..2
-  // We score reliability from *capacity/availability* style answers if present.
-  // If missing, score stays 0 (not guessing).
-
-  const notes: string[] = [];
-
-  const days = firstStringArray(answers, ["availability_days", "days_available", "available_days"]);
-  if (days.length >= 4) return 2;
-  if (days.length >= 2) return 1;
-
-  // Try capacity numbers
-  const capacity = firstNumber(answers, [
-    "weekly_capacity",
-    "meals_per_week",
-    "orders_per_week",
-    "orders_per_day",
-    "meals_per_day",
-    "daily_capacity",
-  ]);
-
-  if (capacity !== null) {
-    if (capacity >= 20) return 2;
-    if (capacity >= 5) return 1;
-  }
-
-  // Try “can you deliver consistently” style booleans/strings
-  const consistent = normalizeLower(
-    firstNonEmptyString(answers, ["can_deliver_consistently", "consistent_supply", "reliability"])
-  );
-  if (consistent) {
-    if (["yes", "true", "1"].includes(consistent)) return 1;
-    if (consistent.includes("yes")) return 1;
-  }
-
-  return 0;
 }
 
 export function vendorPriorityScore(answers: VendorAnswers): VendorPriorityResult {
   const notes: string[] = [];
 
+  // =========================
   // 1) Compliance readiness (0..4)
+  // =========================
   const compliance = [
     ...firstStringArray(answers, ["compliance_readiness", "compliance", "compliance_docs", "complianceChecklist"]),
-  ].map((x) => x.trim()).filter(Boolean);
+  ]
+    .map((x) => x.trim())
+    .filter(Boolean);
 
   const hasNone = compliance.some((x) => {
     const s = normalizeLower(x);
@@ -169,56 +104,61 @@ export function vendorPriorityScore(answers: VendorAnswers): VendorPriorityResul
 
   const complianceCount = hasNone ? 0 : compliance.length;
 
-  // Make this meaningful but not overly dominant:
-  // 1 item = 2, 2 items = 3, 3+ items = 4 (cap)
+  // 1 item = 2, 2 items = 3, 3+ = 4
   let complianceScore = 0;
   if (complianceCount === 1) complianceScore = 2;
   else if (complianceCount === 2) complianceScore = 3;
   else if (complianceCount >= 3) complianceScore = 4;
 
-  if (hasNone) notes.push("Compliance: 'None' selected → 0");
-  else notes.push(`Compliance items: ${complianceCount} → ${complianceScore}`);
+  notes.push(hasNone ? "Compliance: 'None of the above' selected → 0" : `Compliance items: ${complianceCount} → ${complianceScore}`);
 
-  // 2) Proof / documents (0..2)
-  const proofScore = hasProof(answers) ? 2 : 0;
-  notes.push(proofScore ? "Proof: certificate/docs present (+2)" : "Proof: missing (0)");
+  // =========================
+  // 2) Proof (0..2) — now based on "currently_sell"
+  // =========================
+  const currentlySell = normalizeLower(firstNonEmptyString(answers, ["currently_sell"]));
+  // Yes = strong proof they’re already operational
+  const proofScore = currentlySell === "yes" ? 2 : 0;
+  notes.push(proofScore ? "Proof: currently selling food (+2)" : "Proof: not currently selling (0)");
 
-  // 3) Reliability / availability / capacity (0..2)
-  const reliabilityScore = reliabilitySignal(answers);
-  notes.push(`Reliability: ${reliabilityScore}/2`);
+  // =========================
+  // 3) Reliability (0..2) — portions_per_week buckets
+  // =========================
+  const portionsRaw = firstNonEmptyString(answers, ["portions_per_week"]);
+  const portionsMin = portionsTierToMinEstimate(portionsRaw);
 
-  // 4) Proximity (0..2)
-  let mins =
-    firstNumber(answers, ["bus_minutes", "bus_time_minutes", "minutes_to_campus", "campus_bus_minutes", "proximity_minutes"]) ??
-    null;
-
-  if (mins === null) {
-    const campusBusText = firstNonEmptyString(answers, ["campus_bus", "campusBus", "bus_time", "distance_to_campus"]);
-    const parsed = parseMinutesFromText(campusBusText);
-    if (parsed !== null) {
-      mins = parsed;
-      notes.push(`Proximity: parsed minutes (${mins})`);
-    }
+  let reliabilityScore = 0;
+  if (portionsMin !== null) {
+    // Simple, consistent thresholds:
+    // 0 → 0
+    // 1–5 / 6–10 → 1
+    // 11–20 and above → 2
+    if (portionsMin >= 11) reliabilityScore = 2;
+    else if (portionsMin >= 1) reliabilityScore = 1;
   }
 
-  let proximityScore = 0;
-  if (mins !== null) {
-    if (mins <= 15) proximityScore = 2;
-    else if (mins <= 30) proximityScore = 1;
-  }
-  notes.push(`Proximity: ${mins === null ? "missing" : `${mins} min`} → ${proximityScore}/2`);
+  notes.push(
+    portionsMin === null
+      ? "Reliability: portions/week missing (0)"
+      : `Reliability: portions/week '${portionsRaw}' → ${reliabilityScore}/2`
+  );
 
-  // 5) Social proof (0..1) – intentionally small weight
-  const igRaw = firstNonEmptyString(answers, [
-    "instagram_handle",
-    "instagram",
-    "ig",
-    "ig_handle",
-    "instagramHandle",
-    "social_instagram",
-  ]);
-  const socialScore = hasInstagramHandle(igRaw) ? 1 : 0;
-  notes.push(socialScore ? "Social: IG present (+1)" : "Social: no IG (0)");
+  // =========================
+  // 4) Proximity (0..1) — we only have postcode_area now
+  // =========================
+  // Without a campus-minutes question, we can’t do distance scoring.
+  // So we give a small point if postcode_area is provided (it is required in your form).
+  const postcode = firstNonEmptyString(answers, ["postcode_area"]);
+  const proximityScore = postcode ? 1 : 0;
+  notes.push(proximityScore ? `Proximity: postcode area present (${postcode}) (+1)` : "Proximity: postcode area missing (0)");
+
+  // =========================
+  // 5) Social proof (0..1) — has_food_ig + ig_handle
+  // =========================
+  const hasFoodIg = normalizeLower(firstNonEmptyString(answers, ["has_food_ig"]));
+  const igHandle = firstNonEmptyString(answers, ["ig_handle", "instagram_handle", "instagram", "ig"]);
+
+  const socialScore = hasFoodIg === "yes" && hasInstagramHandle(igHandle) ? 1 : 0;
+  notes.push(socialScore ? "Social: food IG provided (+1)" : "Social: no valid food IG (0)");
 
   const total = clamp(complianceScore + proofScore + reliabilityScore + proximityScore + socialScore, 0, 10);
 

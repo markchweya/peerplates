@@ -4,7 +4,7 @@ import { vendorPriorityScore } from "./vendorPriority";
 
 export function vendorPriorityScoreFromAnswers(answers: any): number {
   try {
-    const result = vendorPriorityScore(answers || {});
+    const result = vendorPriorityScore((answers || {}) as Record<string, unknown>);
     return result.total;
   } catch {
     // Never break signup if answers shape is unexpected

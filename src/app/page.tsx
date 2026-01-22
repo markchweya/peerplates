@@ -111,7 +111,7 @@ export default function Home() {
             title: "TikTok-style scroll experience, built for ordering.",
             subtitle: "",
             desc: 'Discover home-cooked meals in short, shoppable videos. Tap “Add to cart” straight from the video.',
-            stackedDesktop: true, // ✅ PC-only stacked
+            stackedDesktop: true,
           },
           {
             image: "/images/gallery/gallery2.jpeg",
@@ -119,7 +119,7 @@ export default function Home() {
             title: "Highlights that make choosing effortless.",
             subtitle: "",
             desc: "Short, snackable previews that help you decide in seconds, perfect for busy students.",
-            stackedDesktop: true, // ✅ PC-only stacked
+            stackedDesktop: true,
           },
           {
             image: "/images/gallery/gallery3.jpeg",
@@ -127,6 +127,7 @@ export default function Home() {
             title: "No back-and-forth. Just orders.",
             subtitle: "",
             desc: "A proper storefront for home-cooked meals where you can browse categories, see prices upfront, and checkout in seconds.",
+            stackedDesktop: true,
           },
           {
             image: "/images/gallery/gallery4.jpeg",
@@ -134,6 +135,7 @@ export default function Home() {
             title: "Grow your community.",
             subtitle: "",
             desc: "Build a loyal following with your own vendor profile. Customers can follow you, view your posts, and stay updated on your collection days and latest drops.",
+            stackedDesktop: true,
           },
           {
             image: "/images/gallery/gallery5.jpeg",
@@ -141,6 +143,7 @@ export default function Home() {
             title: "Eliminate the guesswork — PeerPlates tracks it for you.",
             subtitle: "",
             desc: "Orders, revenue, customer activity, and peak times, all in one clean dashboard.",
+            stackedDesktop: true,
           },
           {
             image: "/images/gallery/gallery6.png",
@@ -148,6 +151,7 @@ export default function Home() {
             title: "Know what's working",
             subtitle: "",
             desc: "See what’s selling fastest, and double down on the dishes that drive revenue.",
+            stackedDesktop: true,
           },
           {
             image: "/images/gallery/gallery7.jpeg",
@@ -155,6 +159,7 @@ export default function Home() {
             title: "Set a cutoff. Stay in control.",
             subtitle: "",
             desc: "Orders close when you say so. Choose how far in advance customers must order, so you’ve got time to prep and don’t get overloaded.",
+            stackedDesktop: true,
           },
           {
             image: "/images/gallery/gallery9.jpeg",
@@ -162,6 +167,7 @@ export default function Home() {
             title: "Your kitchen. Your rules. Set slots. Cap orders. Keep control.",
             subtitle: "",
             desc: "You decide when you’re taking orders and when you’re not. PeerPlates fits around your life, not the other way around.",
+            stackedDesktop: true,
           },
           {
             image: "/images/gallery/gallery10 copy.jpeg",
@@ -169,6 +175,7 @@ export default function Home() {
             title: "Stay organised. Avoid mix-ups.",
             subtitle: "",
             desc: "Filter orders by pickup date so you can track what’s due today, this week, or a specific day, and make sure each order goes to the right customer.",
+            stackedDesktop: true,
           },
         ]}
       />
