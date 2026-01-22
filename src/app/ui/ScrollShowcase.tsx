@@ -18,9 +18,18 @@ export type ShowcaseItem = {
   subtitle: string;
   desc: string;
 
-  // ✅ Only for gallery1 + gallery2
+  // kept for compatibility
   stackedDesktop?: boolean;
 };
+
+function clampStyle(lines: number): React.CSSProperties {
+  return {
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical" as any,
+    WebkitLineClamp: lines as any,
+    overflow: "hidden",
+  };
+}
 
 export default function ScrollShowcase({
   heading,
@@ -54,6 +63,8 @@ export default function ScrollShowcase({
   const snapClass = snap ? "snap-x snap-mandatory scroll-smooth" : "scroll-smooth";
   const trackPadding = "px-4 sm:px-6 lg:px-8";
 
+  const title = (heading || "").trim() ? heading : "App Previews";
+
   const orderedItems = useMemo(() => {
     if (!isRTL) return safeItems;
     return [...safeItems].reverse();
@@ -72,7 +83,7 @@ export default function ScrollShowcase({
   function scrollToIndex(idx: number) {
     const el = cardRefs.current[idx];
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+    el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }
 
   useEffect(() => {
@@ -120,83 +131,87 @@ export default function ScrollShowcase({
         />
       </div>
 
-      <div className={`mx-auto w-full max-w-6xl 2xl:max-w-7xl ${trackPadding} py-8 sm:py-10`}>
-        {/* Header */}
-        <div className="mx-auto max-w-3xl text-center">
-          <h2
-            className="mt-6 font-extrabold tracking-tight leading-[0.98] text-[clamp(2.2rem,4.8vw,3.4rem)]"
-            style={{
-              color: "#B8833A",
-              textShadow: "0 1px 0 rgba(255,255,255,0.92), 0 10px 26px rgba(184,131,58,0.18)",
-            }}
-          >
-            App Previews
-          </h2>
+      <div className={`mx-auto w-full max-w-6xl 2xl:max-w-7xl ${trackPadding} py-10 sm:py-12`}>
+        <div className="min-h-[100svh] flex flex-col justify-center">
+          {/* Header */}
+          <div className="mx-auto max-w-3xl text-center">
+            <h2
+              className="mt-2 font-extrabold tracking-tight leading-[0.98] text-[clamp(2.2rem,4.8vw,3.4rem)]"
+              style={{
+                color: "#B8833A",
+                textShadow: "0 1px 0 rgba(255,255,255,0.92), 0 10px 26px rgba(184,131,58,0.18)",
+              }}
+            >
+              {title}
+            </h2>
 
-          <p className="mt-4 text-base sm:text-lg leading-relaxed text-slate-600 font-semibold">
-            {subheading}
-          </p>
-        </div>
+            <p className="mt-4 text-base sm:text-lg leading-relaxed text-slate-600 font-semibold">
+              {subheading}
+            </p>
+          </div>
 
-        {/* Nav pills */}
-        {orderedNav.length ? (
-          <div className="mt-6 sm:mt-7 flex flex-wrap gap-2 justify-center">
-            {orderedNav.map((n) => {
-              const on = active === n.index;
-              return (
-                <button
-                  key={n.label}
-                  type="button"
-                  onClick={() => scrollToIndex(n.index)}
-                  className={[
-                    "inline-flex items-center justify-center",
-                    "rounded-full px-4 py-2 text-sm font-extrabold",
-                    "border shadow-sm transition hover:-translate-y-[1px]",
-                    on
-                      ? "bg-[#fcb040] text-slate-900 border-[#fcb040]"
-                      : "bg-white/85 text-slate-800 border-slate-200 hover:bg-slate-50",
-                  ].join(" ")}
+          {/* Nav pills */}
+          {orderedNav.length ? (
+            <div className="mt-6 sm:mt-7 flex flex-wrap gap-2 justify-center">
+              {orderedNav.map((n) => {
+                const on = active === n.index;
+                return (
+                  <button
+                    key={n.label}
+                    type="button"
+                    onClick={() => scrollToIndex(n.index)}
+                    className={[
+                      "inline-flex items-center justify-center",
+                      "rounded-full px-4 py-2 text-sm font-extrabold",
+                      "border shadow-sm transition hover:-translate-y-[1px]",
+                      on
+                        ? "bg-[#fcb040] text-slate-900 border-[#fcb040]"
+                        : "bg-white/85 text-slate-800 border-slate-200 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    {n.label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {/* Horizontal scroller */}
+          <div className="mt-6 sm:mt-7">
+            <div
+              ref={scrollerRef}
+              className={[
+                "relative",
+                "flex gap-5 sm:gap-6",
+                "overflow-x-auto overflow-y-visible",
+                "pb-8",
+                snapClass,
+                "[-webkit-overflow-scrolling:touch]",
+                "[--cardw:86vw] sm:[--cardw:520px] lg:[--cardw:560px]",
+                "lg:[scroll-padding-inline:calc((100%_-_var(--cardw))/_2)]",
+                "sm:[scroll-padding-inline:24px] [scroll-padding-inline:16px]",
+              ].join(" ")}
+              style={{ direction: isRTL ? "rtl" : "ltr" }}
+            >
+              {orderedItems.map((it, idx) => (
+                <div
+                  key={`${it.kicker}-${idx}`}
+                  data-index={idx}
+                  ref={(el) => {
+                    cardRefs.current[idx] = el;
+                  }}
+                  className="snap-center shrink-0 w-[86vw] sm:w-[520px] lg:w-[560px] flex"
                 >
-                  {n.label}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
+                  <ShowcaseCard item={it} tilt={tilt} />
+                </div>
+              ))}
+            </div>
 
-        {/* Horizontal scroller */}
-        <div className="mt-6 sm:mt-7">
-          <div
-            ref={scrollerRef}
-            className={[
-              "relative",
-              "flex gap-4 sm:gap-6",
-              "overflow-x-auto overflow-y-visible",
-              "pb-4",
-              snapClass,
-              "[-webkit-overflow-scrolling:touch]",
-              "items-stretch",
-            ].join(" ")}
-            style={{ direction: isRTL ? "rtl" : "ltr" }}
-          >
-            {orderedItems.map((it, idx) => (
-              <div
-                key={`${it.kicker}-${idx}`}
-                data-index={idx}
-                ref={(el) => {
-                  cardRefs.current[idx] = el;
-                }}
-                className="snap-start shrink-0 w-[86vw] sm:w-[520px] lg:w-[560px] self-stretch flex"
-              >
-                <ShowcaseCard item={it} tilt={tilt} />
-              </div>
-            ))}
-          </div>
-
-          {/* Gradient fade edges */}
-          <div className="pointer-events-none relative -mt-4 h-0">
-            <div className="absolute left-0 top-0 h-16 w-10 bg-gradient-to-r from-white to-transparent" />
-            <div className="absolute right-0 top-0 h-16 w-10 bg-gradient-to-l from-white to-transparent" />
+            {/* Gradient fade edges */}
+            <div className="pointer-events-none relative -mt-8 h-0">
+              <div className="absolute left-0 top-0 h-16 w-10 bg-gradient-to-r from-white to-transparent" />
+              <div className="absolute right-0 top-0 h-16 w-10 bg-gradient-to-l from-white to-transparent" />
+            </div>
           </div>
         </div>
       </div>
@@ -216,26 +231,16 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
       }
     : undefined;
 
-  const stacked = !!item.stackedDesktop;
+  // same stacked layout everywhere
+  const sharedW = "w-full lg:max-w-[340px] xl:max-w-[360px]";
 
-  // ✅ “like the example” size: slightly smaller preview on desktop
-  const sharedW = "w-full max-w-[380px]";
-
-  // ✅ light trim to remove beige sides, while keeping full phone UI visible
-  // If you want tighter: change 10% -> 12% / 14%
-  const desktopCropClass = "lg:[clip-path:inset(0_10%_0_10%)]";
+  const imageBG =
+    "linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(252,176,64,0.18) 42%, rgba(138,107,67,0.16) 100%)";
 
   return (
     <motion.div
-      className={[
-        "group relative h-full w-full flex flex-col",
-        stacked
-          ? "bg-transparent border-0 shadow-none overflow-visible"
-          : "overflow-hidden rounded-[34px] border border-slate-200 bg-white/90 backdrop-blur shadow-sm min-h-[520px] sm:min-h-[560px]",
-      ].join(" ")}
-      style={{
-        ...(stacked ? { ...tiltStyle } : { boxShadow: "0 18px 60px rgba(2,6,23,0.08)", ...tiltStyle }),
-      }}
+      className="group relative w-full flex flex-col items-center overflow-visible"
+      style={{ ...tiltStyle }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       initial={{ opacity: 0, y: 14 }}
@@ -243,112 +248,59 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
       viewport={{ once: true, amount: 0.35 }}
       transition={{ duration: 0.5, ease: [0.2, 0.9, 0.2, 1] }}
     >
-      {stacked ? (
-        <>
-          {/* Desktop stacked (gallery1/2) */}
-          <div className="hidden lg:flex flex-col items-center w-full">
-            {/* IMAGE BOX */}
-            <div className={`${sharedW} mx-auto`}>
-              <div className="relative aspect-[9/16] rounded-[30px] overflow-hidden border border-slate-200 bg-white shadow-[0_18px_55px_rgba(2,6,23,0.14)]">
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(252,176,64,0.18) 42%, rgba(138,107,67,0.16) 100%)",
-                  }}
-                />
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className={["relative z-10 h-full w-full object-contain", desktopCropClass].join(" ")}
-                  loading="lazy"
-                  draggable={false}
-                />
-              </div>
-            </div>
+      {/* IMAGE BOX */}
+      <div className={`${sharedW} mx-auto`}>
+        <div className="relative aspect-[9/16] rounded-[30px] overflow-hidden border border-slate-200 bg-white shadow-[0_18px_55px_rgba(2,6,23,0.14)]">
+          <div className="absolute inset-0" style={{ background: imageBG }} />
 
-            {/* TEXT BOX (same width as image) */}
-            <div
-              className={[
-                sharedW,
-                "mx-auto mt-6",
-                "rounded-[30px] border border-slate-200 bg-white px-6 py-6",
-                "shadow-[0_14px_45px_rgba(2,6,23,0.09)]",
-              ].join(" ")}
-            >
-              <div className="text-xs font-extrabold tracking-[0.22em] text-slate-500 uppercase">
-                {item.kicker}
-              </div>
-              <div className="mt-3 text-[18px] sm:text-[20px] font-extrabold text-slate-900 leading-snug">
-                {item.title}
-              </div>
-              <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-                {item.desc}
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile fallback (unchanged) */}
-          <div className="flex lg:hidden flex-col min-h-[520px] sm:min-h-[560px] overflow-hidden rounded-[34px] border border-slate-200 bg-white/90 backdrop-blur shadow-sm">
-            <div className="relative h-[300px] sm:h-[340px] shrink-0 overflow-hidden rounded-t-[34px]">
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(252,176,64,0.18) 42%, rgba(138,107,67,0.16) 100%)",
-                }}
-              />
-              <img
-                src={item.image}
-                alt={item.title}
-                className="relative z-10 h-full w-full object-contain"
-                loading="lazy"
-                draggable={false}
-              />
-            </div>
-
-            <div className="p-5 sm:p-6 flex-1 flex flex-col">
-              <div className="text-xs font-extrabold tracking-[0.22em] text-slate-500 uppercase">
-                {item.kicker}
-              </div>
-              <div className="mt-3 text-[18px] sm:text-[20px] font-extrabold text-slate-900 leading-snug">
-                {item.title}
-              </div>
-              <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-                {item.desc}
-              </div>
-              <div className="mt-auto" />
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Default card (unchanged) */}
-          <div className="relative h-[300px] sm:h-[340px] shrink-0 overflow-hidden rounded-t-[34px]">
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(252,176,64,0.18) 42%, rgba(138,107,67,0.16) 100%)",
-              }}
-            />
+          {/* Padding + object-contain => no side cropping */}
+          <div className="absolute inset-0 p-3 sm:p-4">
             <img
               src={item.image}
               alt={item.title}
-              className="relative z-10 h-full w-full object-contain"
+              className="h-full w-full object-contain"
               loading="lazy"
               draggable={false}
             />
           </div>
+        </div>
+      </div>
 
-          <div className="p-5 sm:p-6 flex-1 flex flex-col">
-            <div className="text-xs font-extrabold tracking-[0.22em] text-slate-500 uppercase">{item.kicker}</div>
-            <div className="mt-3 text-[18px] sm:text-[20px] font-extrabold text-slate-900 leading-snug">{item.title}</div>
-            <div className="mt-3 text-slate-600 font-semibold leading-relaxed">{item.desc}</div>
-            <div className="mt-auto" />
-          </div>
-        </>
-      )}
+      {/* TEXT BOX (fixed sizing + clamped text so all boxes match) */}
+      <div
+        className={[
+          sharedW,
+          "mx-auto mt-5 sm:mt-6",
+          "rounded-[30px] border border-slate-200 bg-white/95 backdrop-blur px-6 py-6",
+          "shadow-[0_14px_45px_rgba(2,6,23,0.09)]",
+          "flex flex-col",
+          // ✅ equalize height across cards
+          "min-h-[220px] sm:min-h-[230px]",
+        ].join(" ")}
+      >
+        <div className="text-xs font-extrabold tracking-[0.22em] text-slate-500 uppercase">
+          {item.kicker}
+        </div>
+
+        <div
+          className="mt-3 text-[18px] sm:text-[20px] font-extrabold text-slate-900 leading-snug break-words"
+          style={clampStyle(2)} // ✅ clamp title
+          title={item.title}
+        >
+          {item.title}
+        </div>
+
+        <div
+          className="mt-3 text-slate-600 font-semibold leading-relaxed break-words"
+          style={clampStyle(3)} // ✅ clamp desc
+          title={item.desc}
+        >
+          {item.desc}
+        </div>
+
+        {/* keeps spacing consistent even if text is shorter */}
+        <div className="mt-auto" />
+      </div>
     </motion.div>
   );
 }
