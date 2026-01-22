@@ -394,17 +394,27 @@ export default function LogoFullScreen({
 
               {/* RIGHT: Visual column (PC) */}
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
-                <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(220px,30vh,360px)] pr-[clamp(34px,5vw,120px)]">
+                {/* ✅ tuned responsiveness for tablets / small laptops without changing layout */}
+                <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(150px,20vh,230px)] md:pt-[clamp(190px,24vh,300px)] lg:pt-[clamp(220px,30vh,360px)] pr-[clamp(34px,5vw,120px)]">
                   <div
-                    className="w-full"
-                    style={
-                      {
-                        "--rightW": "clamp(440px, 36vw, 600px)",
-                        "--cardH": "clamp(190px, 22vh, 260px)",
-                      } as React.CSSProperties
-                    }
+                    className={cn(
+                      "w-full",
+                      "[--rightW:clamp(330px,44vw,460px)]",
+                      "md:[--rightW:clamp(380px,40vw,520px)]",
+                      "lg:[--rightW:clamp(440px,36vw,600px)]",
+                      "[--cardH:clamp(150px,18vh,210px)]",
+                      "md:[--cardH:clamp(170px,20vh,240px)]",
+                      "lg:[--cardH:clamp(190px,22vh,260px)]"
+                    )}
                   >
-                    <div className={cn("ml-auto w-full max-w-[var(--rightW)]", "translate-x-[-clamp(185px,19vw,460px)]")}>
+                    <div
+                      className={cn(
+                        "ml-auto w-full max-w-[var(--rightW)]",
+                        "translate-x-[-clamp(120px,14vw,320px)]",
+                        "md:translate-x-[-clamp(150px,16vw,380px)]",
+                        "lg:translate-x-[-clamp(185px,19vw,460px)]"
+                      )}
+                    >
                       <div className={cn("relative w-full overflow-hidden rounded-[26px]")} style={CARD_SHELL_STYLE}>
                         <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-[0.75px] ring-white/90" />
 
