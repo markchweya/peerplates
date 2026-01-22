@@ -244,7 +244,7 @@ export default function LogoFullScreen({
           style={{ background: "rgba(138,107,67,0.09)" }}
         />
 
-        {/* ✅ BLEND BRIDGE: make the hero fade seamlessly into the next white section */}
+        {/* ✅ BLEND BRIDGE */}
         <div
           className="absolute inset-x-0 bottom-0 h-[28vh] pointer-events-none"
           style={{
@@ -255,7 +255,6 @@ export default function LogoFullScreen({
           }}
         />
 
-        {/* optional warm glow at the bottom for a softer transition */}
         <div
           className="absolute inset-x-0 bottom-0 h-[10vh] pointer-events-none"
           style={{
@@ -291,13 +290,14 @@ export default function LogoFullScreen({
                   "[@media_(max-height:760px)]:-translate-y-6",
                   "[@media_(max-height:640px)]:translate-y-0",
 
-                  // ✅ PHONE STACK WIDTHS (tuned so iPhone 14 text isn't squeezed)
-                  "[--stackW:clamp(150px,42vw,205px)]",
-                  "min-[390px]:[--stackW:clamp(172px,44vw,225px)]",
-                  "min-[414px]:[--stackW:clamp(190px,46vw,250px)]",
+                  // ✅ PHONE STACK WIDTHS (better iPhone14 + other phones)
+                  "[--stackW:clamp(140px,38vw,190px)]",
+                  "min-[375px]:[--stackW:clamp(150px,39vw,200px)]",
+                  "min-[390px]:[--stackW:clamp(156px,39.5vw,208px)]",
+                  "min-[414px]:[--stackW:clamp(165px,40vw,220px)]",
 
                   // Reserve space so text never sits under the stack
-                  "pr-[calc(var(--stackW)+10px)]",
+                  "pr-[calc(var(--stackW)+14px)]",
                   "sm:pr-0",
 
                   "lg:pl-6 xl:pl-8"
@@ -309,14 +309,18 @@ export default function LogoFullScreen({
                     "pointer-events-none absolute sm:hidden",
                     "w-[var(--stackW)]",
 
-                    // keep it tight to the right edge on iPhone 14
-                    "right-[clamp(-10px,-2.6vw,-4px)]",
-                    "min-[390px]:right-[clamp(-16px,-3.4vw,-7px)]",
-                    "min-[414px]:right-[clamp(-22px,-4vw,-10px)]",
+                    // ✅ tuck it to the right edge cleanly (no awkward overlap on iPhone 14)
+                    "right-[clamp(2px,1.6vw,14px)]",
+                    "min-[390px]:right-[clamp(0px,1.4vw,12px)]",
+                    "min-[414px]:right-[clamp(-2px,1.2vw,10px)]",
 
-                    "top-[clamp(98px,12vh,146px)]",
-                    "min-[390px]:top-[clamp(108px,13vh,160px)]",
-                    "min-[414px]:top-[clamp(112px,12.5vh,154px)]"
+                    // ✅ lift it slightly so it doesn't sink into the bottom fade on iPhone 14
+                    "top-[clamp(92px,11.5vh,140px)]",
+                    "min-[390px]:top-[clamp(98px,11.8vh,146px)]",
+                    "min-[414px]:top-[clamp(102px,11.6vh,148px)]",
+
+                    // ✅ short screens: keep it higher + tighter
+                    "[@media_(max-height:720px)]:top-[clamp(76px,9.6vh,118px)]"
                   )}
                   initial={reduceMotion ? false : "hidden"}
                   animate={reduceMotion ? undefined : "show"}
@@ -326,13 +330,14 @@ export default function LogoFullScreen({
                     <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-[0.75px] ring-white/90" />
 
                     <div className="relative w-full rounded-[18px] p-[6px]">
-                      <div className="grid grid-rows-2 gap-[12px]">
-                        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[14px] border border-white/90">
+                      {/* ✅ slightly shorter cards on phone so the stack looks balanced */}
+                      <div className="grid grid-rows-2 gap-[10px]">
+                        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
                           <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
 
-                        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[14px] border border-white/90">
+                        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
                           <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
@@ -389,7 +394,6 @@ export default function LogoFullScreen({
 
               {/* RIGHT: Visual column (PC) */}
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
-                {/* ✅ changed: move the whole stack DOWN on PC so more of the hero background shows (like phone) */}
                 <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(220px,30vh,360px)] pr-[clamp(34px,5vw,120px)]">
                   <div
                     className="w-full"
