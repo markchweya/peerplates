@@ -5,8 +5,8 @@ import LogoFullScreen from "@/app/ui/LogoFullScreen";
 import PeerWorks from "@/app/ui/PeerWorks";
 import ScrollShowcase from "@/app/ui/ScrollShowcase";
 
-import React, { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const BRAND_ORANGE = "#fcb040";
 const BRAND_BROWN = "#8a6b43";
@@ -85,6 +85,356 @@ function EatBetterSection() {
         </div>
       </motion.div>
     </section>
+  );
+}
+
+/* ================= COOKIES (Consent Banner) ================= */
+
+type CookiePrefs = {
+  essential: true; // always true
+  analytics: boolean;
+  marketing: boolean;
+};
+
+const CONSENT_COOKIE = "pp_cookie_consent_v1";
+const CONSENT_DAYS = 180;
+
+function getCookie(name: string) {
+  if (typeof document === "undefined") return null;
+  const parts = document.cookie.split(";").map((p) => p.trim());
+  for (const p of parts) {
+    if (p.startsWith(name + "=")) return decodeURIComponent(p.slice(name.length + 1));
+  }
+  return null;
+}
+
+function setCookie(name: string, value: string, days: number) {
+  if (typeof document === "undefined") return;
+  const maxAge = days * 24 * 60 * 60;
+  // SameSite=Lax keeps things sane for most sites.
+  document.cookie = `${name}=${encodeURIComponent(
+    value
+  )}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
+}
+
+function safeParsePrefs(raw: string | null): CookiePrefs | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<CookiePrefs>;
+    if (typeof parsed !== "object" || !parsed) return null;
+    // essential is always true for our model
+    const prefs: CookiePrefs = {
+      essential: true,
+      analytics: Boolean((parsed as any).analytics),
+      marketing: Boolean((parsed as any).marketing),
+    };
+    return prefs;
+  } catch {
+    return null;
+  }
+}
+
+function CookieConsent() {
+  const [mounted, setMounted] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [prefs, setPrefs] = useState<CookiePrefs>({
+    essential: true,
+    analytics: false,
+    marketing: false,
+  });
+
+  const storedPrefs = useMemo(() => {
+    if (!mounted) return null;
+    return safeParsePrefs(getCookie(CONSENT_COOKIE));
+  }, [mounted]);
+
+  const shouldShow = mounted && !storedPrefs;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // If we already have stored prefs, keep local state in sync
+    if (storedPrefs) setPrefs(storedPrefs);
+  }, [storedPrefs]);
+
+  function persist(next: CookiePrefs) {
+    setPrefs(next);
+    setCookie(CONSENT_COOKIE, JSON.stringify(next), CONSENT_DAYS);
+
+    // ✅ Hook for enabling analytics/marketing AFTER consent:
+    // if (next.analytics) initAnalytics();
+    // if (next.marketing) initMarketingPixels();
+  }
+
+  function acceptAll() {
+    persist({ essential: true, analytics: true, marketing: true });
+    setOpen(false);
+  }
+
+  function rejectNonEssential() {
+    persist({ essential: true, analytics: false, marketing: false });
+    setOpen(false);
+  }
+
+  function saveChoices() {
+    persist({ ...prefs, essential: true });
+    setOpen(false);
+  }
+
+  return (
+    <AnimatePresence>
+      {shouldShow && (
+        <>
+          {/* Banner */}
+          <motion.div
+            initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: 18, filter: "blur(10px)" }}
+            transition={{ duration: 0.35, ease: easeOut }}
+            className="fixed bottom-4 left-0 right-0 z-[70] px-4 sm:px-6"
+          >
+            <div
+              className="mx-auto w-full max-w-3xl rounded-3xl border border-slate-200/70 bg-white/80 backdrop-blur-xl shadow-[0_18px_60px_rgba(0,0,0,0.12)] overflow-hidden"
+              style={{
+                boxShadow:
+                  "0 18px 60px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.5) inset",
+              }}
+            >
+              <div className="p-4 sm:p-5">
+                <div className="flex items-start gap-3">
+                  <div
+                    className="mt-0.5 h-10 w-10 rounded-2xl grid place-items-center"
+                    style={{
+                      background: `linear-gradient(135deg, ${BRAND_ORANGE} 0%, ${BRAND_BROWN} 100%)`,
+                    }}
+                  >
+                    <span className="text-white text-lg font-black">🍪</span>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="text-slate-900 font-extrabold tracking-tight">
+                      Cookies on PeerPlates
+                    </div>
+                    <div className="mt-1 text-[13.5px] leading-snug text-slate-600">
+                      We use essential cookies to make the site work (like security and sessions).
+                      With your OK, we’ll also use analytics to improve the experience and marketing
+                      cookies to show relevant content.
+                    </div>
+
+                    <div className="mt-3 flex flex-col sm:flex-row gap-2 sm:items-center">
+                      <button
+                        onClick={acceptAll}
+                        className="inline-flex items-center justify-center rounded-2xl px-4 py-2.5 font-extrabold text-slate-900 transition hover:-translate-y-[1px]"
+                        style={{
+                          background: BRAND_ORANGE,
+                          boxShadow: "0 10px 24px rgba(252,176,64,0.35)",
+                        }}
+                      >
+                        Accept all
+                      </button>
+
+                      <button
+                        onClick={rejectNonEssential}
+                        className="inline-flex items-center justify-center rounded-2xl px-4 py-2.5 font-extrabold text-slate-900 border border-slate-200 bg-white/80 backdrop-blur transition hover:-translate-y-[1px] hover:bg-slate-50"
+                      >
+                        Reject non-essential
+                      </button>
+
+                      <button
+                        onClick={() => setOpen(true)}
+                        className="inline-flex items-center justify-center rounded-2xl px-4 py-2.5 font-extrabold text-slate-700 border border-transparent bg-transparent transition hover:bg-slate-100/70"
+                      >
+                        Manage
+                      </button>
+
+                      <a
+                        href="/privacy"
+                        className="text-[13px] font-semibold text-slate-500 hover:text-slate-700 underline underline-offset-4 sm:ml-auto"
+                      >
+                        Privacy & cookies
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-[2px] w-full" style={{ background: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})` }} />
+            </div>
+          </motion.div>
+
+          {/* Manage modal */}
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18, ease: easeOut }}
+                className="fixed inset-0 z-[80] bg-black/40 backdrop-blur-sm px-4 py-8 grid place-items-center"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Cookie preferences"
+                onClick={() => setOpen(false)}
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 14, scale: 0.98, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, y: 14, scale: 0.98, filter: "blur(10px)" }}
+                  transition={{ duration: 0.28, ease: easeOut }}
+                  className="w-full max-w-xl rounded-3xl bg-white shadow-[0_30px_80px_rgba(0,0,0,0.35)] overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-5 sm:p-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-slate-900 text-lg font-black tracking-tight">
+                          Cookie preferences
+                        </div>
+                        <div className="mt-1 text-sm text-slate-600">
+                          Choose what you’re comfortable with. Essential cookies are always on.
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setOpen(false)}
+                        className="rounded-2xl px-3 py-2 text-slate-700 font-extrabold bg-slate-100 hover:bg-slate-200 transition"
+                        aria-label="Close"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="mt-5 space-y-3">
+                      {/* Essential */}
+                      <div className="rounded-2xl border border-slate-200 p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="font-extrabold text-slate-900">Essential</div>
+                            <div className="mt-1 text-sm text-slate-600">
+                              Needed for security, page navigation, and core features.
+                            </div>
+                          </div>
+                          <div className="shrink-0 rounded-full px-3 py-1 text-xs font-extrabold bg-slate-100 text-slate-700">
+                            Always on
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Analytics */}
+                      <div className="rounded-2xl border border-slate-200 p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="font-extrabold text-slate-900">Analytics</div>
+                            <div className="mt-1 text-sm text-slate-600">
+                              Helps us understand what’s working so we can improve the experience.
+                            </div>
+                          </div>
+
+                          <label className="shrink-0 inline-flex items-center cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              className="sr-only"
+                              checked={prefs.analytics}
+                              onChange={(e) =>
+                                setPrefs((p) => ({ ...p, analytics: e.target.checked }))
+                              }
+                            />
+                            <span
+                              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                                prefs.analytics ? "bg-slate-900" : "bg-slate-200"
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                                  prefs.analytics ? "translate-x-6" : "translate-x-1"
+                                }`}
+                              />
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Marketing */}
+                      <div className="rounded-2xl border border-slate-200 p-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="font-extrabold text-slate-900">Marketing</div>
+                            <div className="mt-1 text-sm text-slate-600">
+                              Used to personalize content and measure campaign performance.
+                            </div>
+                          </div>
+
+                          <label className="shrink-0 inline-flex items-center cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              className="sr-only"
+                              checked={prefs.marketing}
+                              onChange={(e) =>
+                                setPrefs((p) => ({ ...p, marketing: e.target.checked }))
+                              }
+                            />
+                            <span
+                              className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+                                prefs.marketing ? "bg-slate-900" : "bg-slate-200"
+                              }`}
+                            >
+                              <span
+                                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                                  prefs.marketing ? "translate-x-6" : "translate-x-1"
+                                }`}
+                              />
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 flex flex-col sm:flex-row gap-2">
+                      <button
+                        onClick={rejectNonEssential}
+                        className="inline-flex items-center justify-center rounded-2xl px-4 py-2.5 font-extrabold text-slate-900 border border-slate-200 bg-white hover:bg-slate-50 transition"
+                      >
+                        Reject non-essential
+                      </button>
+
+                      <button
+                        onClick={acceptAll}
+                        className="inline-flex items-center justify-center rounded-2xl px-4 py-2.5 font-extrabold text-slate-900 transition hover:-translate-y-[1px]"
+                        style={{
+                          background: BRAND_ORANGE,
+                          boxShadow: "0 10px 24px rgba(252,176,64,0.35)",
+                        }}
+                      >
+                        Accept all
+                      </button>
+
+                      <button
+                        onClick={saveChoices}
+                        className="inline-flex items-center justify-center rounded-2xl px-4 py-2.5 font-extrabold text-white transition hover:-translate-y-[1px] sm:ml-auto"
+                        style={{
+                          background: BRAND_BROWN,
+                          boxShadow: "0 10px 24px rgba(138,107,67,0.28)",
+                        }}
+                      >
+                        Save choices
+                      </button>
+                    </div>
+
+                    <div className="mt-3 text-xs text-slate-500">
+                      You can update this anytime by clearing cookies in your browser.
+                    </div>
+                  </div>
+
+                  <div className="h-[2px] w-full" style={{ background: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})` }} />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -185,6 +535,9 @@ export default function Home() {
           © {new Date().getFullYear()} PeerPlates
         </div>
       </div>
+
+      {/* ✅ Cookies banner + preferences */}
+      <CookieConsent />
     </main>
   );
 }
