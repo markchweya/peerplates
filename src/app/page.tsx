@@ -5,7 +5,7 @@ import LogoFullScreen from "@/app/ui/LogoFullScreen";
 import PeerWorks from "@/app/ui/PeerWorks";
 import ScrollShowcase from "@/app/ui/ScrollShowcase";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const BRAND_ORANGE = "#fcb040";
@@ -111,7 +111,6 @@ function getCookie(name: string) {
 function setCookie(name: string, value: string, days: number) {
   if (typeof document === "undefined") return;
   const maxAge = days * 24 * 60 * 60;
-  // SameSite=Lax keeps things sane for most sites.
   document.cookie = `${name}=${encodeURIComponent(
     value
   )}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
@@ -121,14 +120,13 @@ function safeParsePrefs(raw: string | null): CookiePrefs | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<CookiePrefs>;
-    if (typeof parsed !== "object" || !parsed) return null;
-    // essential is always true for our model
-    const prefs: CookiePrefs = {
+    if (!parsed || typeof parsed !== "object") return null;
+
+    return {
       essential: true,
       analytics: Boolean((parsed as any).analytics),
       marketing: Boolean((parsed as any).marketing),
     };
-    return prefs;
   } catch {
     return null;
   }
@@ -136,6 +134,11 @@ function safeParsePrefs(raw: string | null): CookiePrefs | null {
 
 function CookieConsent() {
   const [mounted, setMounted] = useState(false);
+
+  // ✅ This state is the source of truth for whether the banner shows
+  const [consent, setConsent] = useState<CookiePrefs | null>(null);
+
+  // UI states
   const [open, setOpen] = useState(false);
   const [prefs, setPrefs] = useState<CookiePrefs>({
     essential: true,
@@ -143,25 +146,23 @@ function CookieConsent() {
     marketing: false,
   });
 
-  const storedPrefs = useMemo(() => {
-    if (!mounted) return null;
-    return safeParsePrefs(getCookie(CONSENT_COOKIE));
-  }, [mounted]);
-
-  const shouldShow = mounted && !storedPrefs;
-
   useEffect(() => {
     setMounted(true);
+    const existing = safeParsePrefs(getCookie(CONSENT_COOKIE));
+    setConsent(existing);
+    if (existing) setPrefs(existing);
   }, []);
 
-  useEffect(() => {
-    // If we already have stored prefs, keep local state in sync
-    if (storedPrefs) setPrefs(storedPrefs);
-  }, [storedPrefs]);
+  const shouldShow = mounted && consent === null;
 
   function persist(next: CookiePrefs) {
-    setPrefs(next);
+    // ✅ Set cookie
     setCookie(CONSENT_COOKIE, JSON.stringify(next), CONSENT_DAYS);
+
+    // ✅ Update UI immediately (this is what your old version didn't do)
+    setConsent(next);
+    setPrefs(next);
+    setOpen(false);
 
     // ✅ Hook for enabling analytics/marketing AFTER consent:
     // if (next.analytics) initAnalytics();
@@ -170,17 +171,14 @@ function CookieConsent() {
 
   function acceptAll() {
     persist({ essential: true, analytics: true, marketing: true });
-    setOpen(false);
   }
 
   function rejectNonEssential() {
     persist({ essential: true, analytics: false, marketing: false });
-    setOpen(false);
   }
 
   function saveChoices() {
     persist({ ...prefs, essential: true });
-    setOpen(false);
   }
 
   return (
@@ -260,7 +258,10 @@ function CookieConsent() {
                 </div>
               </div>
 
-              <div className="h-[2px] w-full" style={{ background: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})` }} />
+              <div
+                className="h-[2px] w-full"
+                style={{ background: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})` }}
+              />
             </div>
           </motion.div>
 
@@ -427,7 +428,10 @@ function CookieConsent() {
                     </div>
                   </div>
 
-                  <div className="h-[2px] w-full" style={{ background: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})` }} />
+                  <div
+                    className="h-[2px] w-full"
+                    style={{ background: `linear-gradient(90deg, ${BRAND_ORANGE}, ${BRAND_BROWN})` }}
+                  />
                 </motion.div>
               </motion.div>
             )}
