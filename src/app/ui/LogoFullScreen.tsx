@@ -362,9 +362,10 @@ export default function LogoFullScreen({
                     <motion.div
                       className={cn(
                         "sm:hidden shrink-0 w-[var(--stackW)]",
-                        // default nudge
+                        // ✅ FIX: cancel the parent "-translate-y-6" (keeps exact design, stops iPhone jump)
+                        "translate-y-6",
+                        // keep your original “nudge down” behavior
                         "translate-y-[clamp(10px,1.8vh,18px)]",
-                        // ✅ small phones: nudge a bit more down
                         "[@media_(max-width:380px)]:translate-y-[clamp(14px,2.4vh,24px)]"
                       )}
                       initial={reduceMotion ? false : "hidden"}
