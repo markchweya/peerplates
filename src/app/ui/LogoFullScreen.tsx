@@ -82,11 +82,9 @@ export default function LogoFullScreen({
   size?: number;
   className?: string;
 }) {
-  const [mounted, setMounted] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
     setReduceMotion(prefersReducedMotion());
   }, []);
 
@@ -124,7 +122,14 @@ export default function LogoFullScreen({
   };
 
   return (
-    <section className={cn("relative isolate h-screen w-screen overflow-hidden", className)}>
+    <section
+      className={cn(
+        "relative isolate w-screen overflow-hidden",
+        // ✅ iOS Safari fix: use 100svh when supported (toolbar-safe), fallback to h-screen
+        "h-screen [@supports(height:100svh)]:h-[100svh]",
+        className
+      )}
+    >
       {/* ================= BACKGROUND ================= */}
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute inset-0">
@@ -258,7 +263,8 @@ export default function LogoFullScreen({
         <div
           className="absolute inset-x-0 bottom-0 h-[10vh] pointer-events-none"
           style={{
-            background: "radial-gradient(140% 90% at 35% 100%, rgba(252,176,64,0.08) 0%, rgba(255,255,255,0) 60%)",
+            background:
+              "radial-gradient(140% 90% at 35% 100%, rgba(252,176,64,0.08) 0%, rgba(255,255,255,0) 60%)",
             opacity: 0.9,
           }}
         />
@@ -269,7 +275,13 @@ export default function LogoFullScreen({
       <div className="h-[84px]" />
 
       {/* ================= CONTENT ================= */}
-      <div className="relative z-10 h-[calc(100%-84px)]">
+      <div
+        className={cn(
+          "relative z-10",
+          // ✅ match the same svh logic here to stop iOS “jump”
+          "h-[calc(100vh-84px)] [@supports(height:100svh)]:h-[calc(100svh-84px)]"
+        )}
+      >
         <div
           className={cn(
             "mx-auto flex h-full w-full max-w-7xl px-6 sm:px-10 sm:pt-0 sm:pb-0",
@@ -309,36 +321,49 @@ export default function LogoFullScreen({
                     "pointer-events-none absolute sm:hidden",
                     "w-[var(--stackW)]",
 
-                    // ✅ tuck it to the right edge cleanly (no awkward overlap on iPhone 14)
+                    // ✅ tuck it to the right edge cleanly
                     "right-[clamp(2px,1.6vw,14px)]",
                     "min-[390px]:right-[clamp(0px,1.4vw,12px)]",
                     "min-[414px]:right-[clamp(-2px,1.2vw,10px)]",
 
-                    // ✅ lift it slightly so it doesn't sink into the bottom fade on iPhone 14
-                    "top-[clamp(92px,11.5vh,140px)]",
-                    "min-[390px]:top-[clamp(98px,11.8vh,146px)]",
-                    "min-[414px]:top-[clamp(102px,11.6vh,148px)]",
+                    // ✅ FIX: push stack DOWN on iPhone 14/15 (and keep safe on short screens)
+                    "top-[clamp(122px,15.8vh,210px)]",
+                    "min-[390px]:top-[clamp(130px,16.2vh,216px)]",
+                    "min-[414px]:top-[clamp(136px,16.4vh,220px)]",
 
-                    // ✅ short screens: keep it higher + tighter
-                    "[@media_(max-height:720px)]:top-[clamp(76px,9.6vh,118px)]"
+                    // short screens: keep it higher + tighter
+                    "[@media_(max-height:720px)]:top-[clamp(92px,12.2vh,160px)]",
+                    "[@media_(max-height:640px)]:top-[clamp(78px,10.6vh,136px)]"
                   )}
                   initial={reduceMotion ? false : "hidden"}
                   animate={reduceMotion ? undefined : "show"}
                   variants={fadeInUp}
                 >
-                  <div className={cn("relative w-full overflow-hidden rounded-[18px]")} style={PHONE_CARD_SHELL_STYLE}>
+                  <div
+                    className={cn("relative w-full overflow-hidden rounded-[18px]")}
+                    style={PHONE_CARD_SHELL_STYLE}
+                  >
                     <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-[0.75px] ring-white/90" />
 
                     <div className="relative w-full rounded-[18px] p-[6px]">
-                      {/* ✅ slightly shorter cards on phone so the stack looks balanced */}
                       <div className="grid grid-rows-2 gap-[10px]">
                         <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
-                          <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
+                          <Image
+                            src="/images/gallery/gallery12.png"
+                            fill
+                            alt=""
+                            className="object-cover object-center"
+                          />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
 
                         <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
-                          <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                          <Image
+                            src="/images/gallery/gallery14.png"
+                            fill
+                            alt=""
+                            className="object-cover object-center"
+                          />
                           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                         </div>
                       </div>
@@ -394,29 +419,48 @@ export default function LogoFullScreen({
 
               {/* RIGHT: Visual column (PC) */}
               <div className="hidden sm:block col-span-12 sm:col-span-6 lg:col-span-7">
-                <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(220px,30vh,360px)] pr-[clamp(34px,5vw,120px)]">
+                <div className="flex h-full w-full items-start justify-end overflow-hidden pt-[clamp(150px,20vh,230px)] md:pt-[clamp(190px,24vh,300px)] lg:pt-[clamp(220px,30vh,360px)] pr-[clamp(34px,5vw,120px)]">
                   <div
-                    className="w-full"
-                    style={
-                      {
-                        "--rightW": "clamp(440px, 36vw, 600px)",
-                        "--cardH": "clamp(190px, 22vh, 260px)",
-                      } as React.CSSProperties
-                    }
+                    className={cn(
+                      "w-full",
+                      "[--rightW:clamp(330px,44vw,460px)]",
+                      "md:[--rightW:clamp(380px,40vw,520px)]",
+                      "lg:[--rightW:clamp(440px,36vw,600px)]",
+                      "[--cardH:clamp(150px,18vh,210px)]",
+                      "md:[--cardH:clamp(170px,20vh,240px)]",
+                      "lg:[--cardH:clamp(190px,22vh,260px)]"
+                    )}
                   >
-                    <div className={cn("ml-auto w-full max-w-[var(--rightW)]", "translate-x-[-clamp(185px,19vw,460px)]")}>
+                    <div
+                      className={cn(
+                        "ml-auto w-full max-w-[var(--rightW)]",
+                        "translate-x-[-clamp(120px,14vw,320px)]",
+                        "md:translate-x-[-clamp(150px,16vw,380px)]",
+                        "lg:translate-x-[-clamp(185px,19vw,460px)]"
+                      )}
+                    >
                       <div className={cn("relative w-full overflow-hidden rounded-[26px]")} style={CARD_SHELL_STYLE}>
                         <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-[0.75px] ring-white/90" />
 
                         <div className="relative w-full rounded-[26px] p-[7px]">
                           <div className="grid grid-rows-2 gap-3">
                             <div className="relative h-[var(--cardH)] w-full overflow-hidden rounded-[20px] border border-white/90">
-                              <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
+                              <Image
+                                src="/images/gallery/gallery12.png"
+                                fill
+                                alt=""
+                                className="object-cover object-center"
+                              />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
                             </div>
 
                             <div className="relative h-[var(--cardH)] w-full overflow-hidden rounded-[20px] border border-white/90">
-                              <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                              <Image
+                                src="/images/gallery/gallery14.png"
+                                fill
+                                alt=""
+                                className="object-cover object-center"
+                              />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
                             </div>
                           </div>
