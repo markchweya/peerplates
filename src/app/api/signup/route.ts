@@ -27,7 +27,7 @@ function supabaseAdmin() {
   return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 }
 
-// Use anon key for sending auth emails
+// Use anon key for sending auth emails (kept for later use in /api/queue-link or similar)
 function supabaseAuthMailer() {
   if (!SUPABASE_URL || !ANON_KEY) {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY");
@@ -120,7 +120,11 @@ function enforceMax3Cuisines(answers: any) {
 }
 
 /**
- * Sends Supabase Auth magic link that redirects to /queue?code=QUEUE_CODE
+ * NOTE:
+ * We are NOT sending any Supabase magic link from /api/signup anymore.
+ * Magic links should only be sent from the "Check Queue" action/endpoint.
+ *
+ * Kept here so the file remains ready if you move it to /api/queue-link.
  */
 async function sendQueueMagicLink(email: string, queueCode: string) {
   const auth = supabaseAuthMailer();
@@ -131,7 +135,7 @@ async function sendQueueMagicLink(email: string, queueCode: string) {
     options: { emailRedirectTo },
   });
 
-  if (error) console.warn("[signup] Supabase magic link send failed:", error.message);
+  if (error) console.warn("[queue-link] Supabase magic link send failed:", error.message);
 }
 
 export async function POST(req: Request) {
@@ -299,7 +303,7 @@ export async function POST(req: Request) {
 
     console.log("[signup] INSERT OK:", data?.id, "ROLE:", data?.role);
 
-    // ✅ Send welcome email for consumer + vendor
+    // ✅ Send welcome email for consumer + vendor (your own emails, not Supabase)
     if (data?.role === "vendor") {
       try {
         console.log("[signup] ABOUT TO SEND VENDOR EMAIL:", data.email);
@@ -340,8 +344,8 @@ export async function POST(req: Request) {
       if (rpcErr) console.error("[signup] Referral award failed:", rpcErr);
     }
 
-    // Send magic link (Supabase Auth)
-    await sendQueueMagicLink(email, data.queue_code);
+    // ❌ IMPORTANT: do NOT send Supabase magic link here anymore.
+    // await sendQueueMagicLink(email, data.queue_code);
 
     return NextResponse.json({
       id: data.id,

@@ -262,7 +262,8 @@ export default function LogoFullScreen({
         <div
           className="absolute inset-x-0 bottom-0 h-[10vh] pointer-events-none"
           style={{
-            background: "radial-gradient(140% 90% at 35% 100%, rgba(252,176,64,0.08) 0%, rgba(255,255,255,0) 60%)",
+            background:
+              "radial-gradient(140% 90% at 35% 100%, rgba(252,176,64,0.08) 0%, rgba(255,255,255,0) 60%)",
             opacity: 0.9,
           }}
         />
@@ -357,32 +358,44 @@ export default function LogoFullScreen({
                       </div>
                     </div>
 
-                    {/* PHONE ONLY: stack (lowered a bit more so bowl is visible) */}
+                    {/* PHONE ONLY: stack (LOWERRRR) */}
                     <motion.div
                       className={cn(
                         "sm:hidden shrink-0 w-[var(--stackW)]",
-                        // ✅ cancels the parent "-translate-y-6" (24px) only for the stack
-                        "relative top-6",
-                        // ✅ slightly LOWER than before
-                        "mt-[clamp(34px,5.2vh,68px)]",
-                        "[@media_(max-width:380px)]:mt-[clamp(38px,5.8vh,78px)]"
+                        // ✅ cancel parent lift + push further down
+                        "relative top-10",
+                        "mt-[clamp(44px,6.6vh,92px)]",
+                        "[@media_(max-width:380px)]:mt-[clamp(50px,7.4vh,104px)]"
                       )}
                       initial={reduceMotion ? false : "hidden"}
                       animate={reduceMotion ? undefined : "show"}
                       variants={fadeInUp}
                     >
-                      <div className={cn("relative w-full overflow-hidden rounded-[18px]")} style={PHONE_CARD_SHELL_STYLE}>
+                      <div
+                        className={cn("relative w-full overflow-hidden rounded-[18px]")}
+                        style={PHONE_CARD_SHELL_STYLE}
+                      >
                         <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-[0.75px] ring-white/90" />
 
                         <div className="relative w-full rounded-[18px] p-[6px]">
                           <div className="grid grid-rows-2 gap-[10px]">
                             <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
-                              <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
+                              <Image
+                                src="/images/gallery/gallery12.png"
+                                fill
+                                alt=""
+                                className="object-cover object-center"
+                              />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                             </div>
 
                             <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
-                              <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                              <Image
+                                src="/images/gallery/gallery14.png"
+                                fill
+                                alt=""
+                                className="object-cover object-center"
+                              />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                             </div>
                           </div>
