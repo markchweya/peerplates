@@ -125,8 +125,8 @@ export default function LogoFullScreen({
     <section
       className={cn(
         "relative isolate w-screen overflow-hidden",
-        // ✅ iOS Safari fix: use 100svh when supported (toolbar-safe), fallback to h-screen
-        "h-screen [@supports(height:100svh)]:h-[100svh]",
+        // ✅ iOS Safari / all phones: prefer dvh, fallback to svh, fallback to vh
+        "h-[100vh] [@supports(height:100svh)]:h-[100svh] [@supports(height:100dvh)]:h-[100dvh]",
         className
       )}
     >
@@ -278,8 +278,8 @@ export default function LogoFullScreen({
       <div
         className={cn(
           "relative z-10",
-          // ✅ match the same svh logic here to stop iOS “jump”
-          "h-[calc(100vh-84px)] [@supports(height:100svh)]:h-[calc(100svh-84px)]"
+          // ✅ match height units so the layout stays consistent on real iPhones
+          "h-[calc(100vh-84px)] [@supports(height:100svh)]:h-[calc(100svh-84px)] [@supports(height:100dvh)]:h-[calc(100dvh-84px)]"
         )}
       >
         <div
@@ -301,77 +301,15 @@ export default function LogoFullScreen({
                   "sm:-translate-y-12 lg:-translate-y-16",
                   "[@media_(max-height:760px)]:-translate-y-6",
                   "[@media_(max-height:640px)]:translate-y-0",
+                  "lg:pl-6 xl:pl-8",
 
-                  // ✅ PHONE STACK WIDTHS (better iPhone14 + other phones)
+                  // stack width var (used by the mobile row)
                   "[--stackW:clamp(140px,38vw,190px)]",
                   "min-[375px]:[--stackW:clamp(150px,39vw,200px)]",
                   "min-[390px]:[--stackW:clamp(156px,39.5vw,208px)]",
-                  "min-[414px]:[--stackW:clamp(165px,40vw,220px)]",
-
-                  // Reserve space so text never sits under the stack
-                  "pr-[calc(var(--stackW)+14px)]",
-                  "sm:pr-0",
-
-                  "lg:pl-6 xl:pl-8"
+                  "min-[414px]:[--stackW:clamp(165px,40vw,220px)]"
                 )}
               >
-                {/* ✅ PHONE ONLY: overlay image stack */}
-                <motion.div
-                  className={cn(
-                    "pointer-events-none absolute sm:hidden",
-                    "w-[var(--stackW)]",
-
-                    // ✅ tuck it to the right edge cleanly
-                    "right-[clamp(2px,1.6vw,14px)]",
-                    "min-[390px]:right-[clamp(0px,1.4vw,12px)]",
-                    "min-[414px]:right-[clamp(-2px,1.2vw,10px)]",
-
-                    // ✅ FIX: push stack DOWN on iPhone 14/15 (and keep safe on short screens)
-                    "top-[clamp(122px,15.8vh,210px)]",
-                    "min-[390px]:top-[clamp(130px,16.2vh,216px)]",
-                    "min-[414px]:top-[clamp(136px,16.4vh,220px)]",
-
-                    // short screens: keep it higher + tighter
-                    "[@media_(max-height:720px)]:top-[clamp(92px,12.2vh,160px)]",
-                    "[@media_(max-height:640px)]:top-[clamp(78px,10.6vh,136px)]"
-                  )}
-                  initial={reduceMotion ? false : "hidden"}
-                  animate={reduceMotion ? undefined : "show"}
-                  variants={fadeInUp}
-                >
-                  <div
-                    className={cn("relative w-full overflow-hidden rounded-[18px]")}
-                    style={PHONE_CARD_SHELL_STYLE}
-                  >
-                    <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-[0.75px] ring-white/90" />
-
-                    <div className="relative w-full rounded-[18px] p-[6px]">
-                      <div className="grid grid-rows-2 gap-[10px]">
-                        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
-                          <Image
-                            src="/images/gallery/gallery12.png"
-                            fill
-                            alt=""
-                            className="object-cover object-center"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
-                        </div>
-
-                        <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
-                          <Image
-                            src="/images/gallery/gallery14.png"
-                            fill
-                            alt=""
-                            className="object-cover object-center"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* TEXT BLOCK */}
                 <div className="max-w-xl">
                   <h1 className="font-black tracking-tight leading-[0.98] text-[clamp(34px,8.8vw,60px)] sm:text-[clamp(54px,4.8vw,76px)]">
                     <span className="block text-slate-900 whitespace-nowrap">Eat better</span>
@@ -382,37 +320,73 @@ export default function LogoFullScreen({
                     </span>
                   </h1>
 
-                  <p className="mt-4 sm:mt-5 text-[clamp(14px,3.4vw,18px)] sm:text-[clamp(16px,1.4vw,20px)] font-semibold text-slate-700 leading-relaxed max-w-[32ch]">
-                    authentic home-cooked meals from trusted cooks and bakers.
-                  </p>
+                  {/* ✅ MOBILE: paragraph + buttons + stack are in-flow (no vh absolute positioning) */}
+                  <div className="mt-4 sm:mt-5 flex items-start gap-4 sm:block">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[clamp(14px,3.4vw,18px)] sm:text-[clamp(16px,1.4vw,20px)] font-semibold text-slate-700 leading-relaxed max-w-[32ch]">
+                        authentic home-cooked meals from trusted cooks and bakers.
+                      </p>
 
-                  <div className="mt-5 sm:mt-6 [@media_(max-height:760px)]:mt-4 flex flex-col gap-3 w-full max-w-[340px] sm:max-w-[420px]">
-                    <Link
-                      href="/join"
-                      className={cn(
-                        "w-full whitespace-nowrap text-center",
-                        "rounded-2xl px-7 py-3.5 font-extrabold",
-                        "bg-[#fcb040]",
-                        "shadow-[0_16px_40px_rgba(252,176,64,0.25)]",
-                        "hover:opacity-95 transition"
-                      )}
-                    >
-                      Join waitlist
-                    </Link>
+                      <div className="mt-5 sm:mt-6 [@media_(max-height:760px)]:mt-4 flex flex-col gap-3 w-full max-w-[340px] sm:max-w-[420px]">
+                        <Link
+                          href="/join"
+                          className={cn(
+                            "w-full whitespace-nowrap text-center",
+                            "rounded-2xl px-7 py-3.5 font-extrabold",
+                            "bg-[#fcb040]",
+                            "shadow-[0_16px_40px_rgba(252,176,64,0.25)]",
+                            "hover:opacity-95 transition"
+                          )}
+                        >
+                          Join waitlist
+                        </Link>
 
-                    <Link
-                      href="/queue"
+                        <Link
+                          href="/queue"
+                          className={cn(
+                            "w-full whitespace-nowrap text-center",
+                            "rounded-2xl px-7 py-3.5 font-extrabold",
+                            "border border-slate-200",
+                            "bg-white/65 backdrop-blur",
+                            "shadow-[0_16px_40px_rgba(2,6,23,0.10)]",
+                            "hover:bg-white/75 transition"
+                          )}
+                        >
+                          Check queue
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* ✅ PHONE ONLY: stack placed next to paragraph/buttons (stable on real iPhones) */}
+                    <motion.div
                       className={cn(
-                        "w-full whitespace-nowrap text-center",
-                        "rounded-2xl px-7 py-3.5 font-extrabold",
-                        "border border-slate-200",
-                        "bg-white/65 backdrop-blur",
-                        "shadow-[0_16px_40px_rgba(2,6,23,0.10)]",
-                        "hover:bg-white/75 transition"
+                        "sm:hidden shrink-0",
+                        "w-[var(--stackW)]",
+                        // tiny nudge for visual match, not dependent on viewport toolbars
+                        "translate-y-[clamp(6px,1.2vh,14px)]"
                       )}
+                      initial={reduceMotion ? false : "hidden"}
+                      animate={reduceMotion ? undefined : "show"}
+                      variants={fadeInUp}
                     >
-                      Check queue
-                    </Link>
+                      <div className={cn("relative w-full overflow-hidden rounded-[18px]")} style={PHONE_CARD_SHELL_STYLE}>
+                        <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-[0.75px] ring-white/90" />
+
+                        <div className="relative w-full rounded-[18px] p-[6px]">
+                          <div className="grid grid-rows-2 gap-[10px]">
+                            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
+                              <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
+                              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
+                            </div>
+
+                            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
+                              <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                              <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
                   </div>
                 </div>
               </div>
@@ -445,22 +419,12 @@ export default function LogoFullScreen({
                         <div className="relative w-full rounded-[26px] p-[7px]">
                           <div className="grid grid-rows-2 gap-3">
                             <div className="relative h-[var(--cardH)] w-full overflow-hidden rounded-[20px] border border-white/90">
-                              <Image
-                                src="/images/gallery/gallery12.png"
-                                fill
-                                alt=""
-                                className="object-cover object-center"
-                              />
+                              <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
                             </div>
 
                             <div className="relative h-[var(--cardH)] w-full overflow-hidden rounded-[20px] border border-white/90">
-                              <Image
-                                src="/images/gallery/gallery14.png"
-                                fill
-                                alt=""
-                                className="object-cover object-center"
-                              />
+                              <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
                             </div>
                           </div>
