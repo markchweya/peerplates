@@ -262,8 +262,7 @@ export default function LogoFullScreen({
         <div
           className="absolute inset-x-0 bottom-0 h-[10vh] pointer-events-none"
           style={{
-            background:
-              "radial-gradient(140% 90% at 35% 100%, rgba(252,176,64,0.08) 0%, rgba(255,255,255,0) 60%)",
+            background: "radial-gradient(140% 90% at 35% 100%, rgba(252,176,64,0.08) 0%, rgba(255,255,255,0) 60%)",
             opacity: 0.9,
           }}
         />
@@ -358,32 +357,46 @@ export default function LogoFullScreen({
                       </div>
                     </div>
 
-                    {/* PHONE ONLY: stack (stable across all devices) */}
+                    {/* PHONE ONLY: stack (lowered so bowl is visible) */}
                     <motion.div
                       className={cn(
                         "sm:hidden shrink-0 w-[var(--stackW)]",
-                        // ✅ FIX: cancel the parent "-translate-y-6" (keeps exact design, stops iPhone jump)
-                        "translate-y-6",
-                        // keep your original “nudge down” behavior
-                        "translate-y-[clamp(10px,1.8vh,18px)]",
-                        "[@media_(max-width:380px)]:translate-y-[clamp(14px,2.4vh,24px)]"
+                        // ✅ cancels the parent "-translate-y-6" (24px) only for the stack
+                        "relative top-6",
+                        // ✅ adds real spacing + pushes stack down across iPhone 14/15/16
+                        "mt-[clamp(18px,3.5vh,42px)]",
+                        // ✅ small phones: a touch more
+                        "[@media_(max-width:380px)]:mt-[clamp(22px,4.2vh,52px)]"
                       )}
                       initial={reduceMotion ? false : "hidden"}
                       animate={reduceMotion ? undefined : "show"}
                       variants={fadeInUp}
                     >
-                      <div className={cn("relative w-full overflow-hidden rounded-[18px]")} style={PHONE_CARD_SHELL_STYLE}>
+                      <div
+                        className={cn("relative w-full overflow-hidden rounded-[18px]")}
+                        style={PHONE_CARD_SHELL_STYLE}
+                      >
                         <div className="pointer-events-none absolute inset-0 rounded-[18px] ring-[0.75px] ring-white/90" />
 
                         <div className="relative w-full rounded-[18px] p-[6px]">
                           <div className="grid grid-rows-2 gap-[10px]">
                             <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
-                              <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
+                              <Image
+                                src="/images/gallery/gallery12.png"
+                                fill
+                                alt=""
+                                className="object-cover object-center"
+                              />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                             </div>
 
                             <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[14px] border border-white/90">
-                              <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                              <Image
+                                src="/images/gallery/gallery14.png"
+                                fill
+                                alt=""
+                                className="object-cover object-center"
+                              />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/24" />
                             </div>
                           </div>
@@ -416,18 +429,31 @@ export default function LogoFullScreen({
                         "lg:translate-x-[-clamp(185px,19vw,460px)]"
                       )}
                     >
-                      <div className={cn("relative w-full overflow-hidden rounded-[26px]")} style={CARD_SHELL_STYLE}>
+                      <div
+                        className={cn("relative w-full overflow-hidden rounded-[26px]")}
+                        style={CARD_SHELL_STYLE}
+                      >
                         <div className="pointer-events-none absolute inset-0 rounded-[26px] ring-[0.75px] ring-white/90" />
 
                         <div className="relative w-full rounded-[26px] p-[7px]">
                           <div className="grid grid-rows-2 gap-3">
                             <div className="relative h-[var(--cardH)] w-full overflow-hidden rounded-[20px] border border-white/90">
-                              <Image src="/images/gallery/gallery12.png" fill alt="" className="object-cover object-center" />
+                              <Image
+                                src="/images/gallery/gallery12.png"
+                                fill
+                                alt=""
+                                className="object-cover object-center"
+                              />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
                             </div>
 
                             <div className="relative h-[var(--cardH)] w-full overflow-hidden rounded-[20px] border border-white/90">
-                              <Image src="/images/gallery/gallery14.png" fill alt="" className="object-cover object-center" />
+                              <Image
+                                src="/images/gallery/gallery14.png"
+                                fill
+                                alt=""
+                                className="object-cover object-center"
+                              />
                               <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/26" />
                             </div>
                           </div>
