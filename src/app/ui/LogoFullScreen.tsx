@@ -249,7 +249,6 @@ export default function LogoFullScreen({
           style={{ background: "rgba(138,107,67,0.09)" }}
         />
 
-        {/* ✅ BLEND BRIDGE */}
         <div
           className="absolute inset-x-0 bottom-0 h-[28vh] pointer-events-none"
           style={{
@@ -278,7 +277,6 @@ export default function LogoFullScreen({
       <div
         className={cn(
           "relative z-10",
-          // ✅ match height units so the layout stays consistent on real iPhones
           "h-[calc(100vh-84px)] [@supports(height:100svh)]:h-[calc(100svh-84px)] [@supports(height:100dvh)]:h-[calc(100dvh-84px)]"
         )}
       >
@@ -303,11 +301,14 @@ export default function LogoFullScreen({
                   "[@media_(max-height:640px)]:translate-y-0",
                   "lg:pl-6 xl:pl-8",
 
-                  // stack width var (used by the mobile row)
+                  // default phones (iPhone 14/15/16 etc.)
                   "[--stackW:clamp(140px,38vw,190px)]",
                   "min-[375px]:[--stackW:clamp(150px,39vw,200px)]",
                   "min-[390px]:[--stackW:clamp(156px,39.5vw,208px)]",
-                  "min-[414px]:[--stackW:clamp(165px,40vw,220px)]"
+                  "min-[414px]:[--stackW:clamp(165px,40vw,220px)]",
+
+                  // ✅ SMALL PHONES (Galaxy S8+, older Androids)
+                  "[@media_(max-width:380px)]:[--stackW:clamp(118px,35vw,160px)]"
                 )}
               >
                 <div className="max-w-xl">
@@ -320,7 +321,7 @@ export default function LogoFullScreen({
                     </span>
                   </h1>
 
-                  {/* ✅ MOBILE: paragraph + buttons + stack are in-flow (no vh absolute positioning) */}
+                  {/* MOBILE: paragraph + buttons + stack in-flow */}
                   <div className="mt-4 sm:mt-5 flex items-start gap-4 sm:block">
                     <div className="min-w-0 flex-1">
                       <p className="text-[clamp(14px,3.4vw,18px)] sm:text-[clamp(16px,1.4vw,20px)] font-semibold text-slate-700 leading-relaxed max-w-[32ch]">
@@ -357,13 +358,14 @@ export default function LogoFullScreen({
                       </div>
                     </div>
 
-                    {/* ✅ PHONE ONLY: stack placed next to paragraph/buttons (stable on real iPhones) */}
+                    {/* PHONE ONLY: stack (stable across all devices) */}
                     <motion.div
                       className={cn(
-                        "sm:hidden shrink-0",
-                        "w-[var(--stackW)]",
-                        // tiny nudge for visual match, not dependent on viewport toolbars
-                        "translate-y-[clamp(6px,1.2vh,14px)]"
+                        "sm:hidden shrink-0 w-[var(--stackW)]",
+                        // default nudge
+                        "translate-y-[clamp(10px,1.8vh,18px)]",
+                        // ✅ small phones: nudge a bit more down
+                        "[@media_(max-width:380px)]:translate-y-[clamp(14px,2.4vh,24px)]"
                       )}
                       initial={reduceMotion ? false : "hidden"}
                       animate={reduceMotion ? undefined : "show"}
