@@ -76,7 +76,7 @@ export const vendorQuestions = [
     required: true,
     type: "text",
     helper:
-      "Postcode area only — not your full address. This helps us understand proximity to campuses and prioritise nearby vendors.",
+      "Postcode area only — not your full address. This helps us understand proximity to campuses.",
   },
 
   {
