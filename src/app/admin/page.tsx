@@ -278,7 +278,8 @@ export default function AdminPage() {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [rows, HIDE_ANSWER_KEYS]);
 
-  const tableColCount = 10 /* fixed */ + answerKeys.length + 1 /* Action */;
+  // ✅ +1 for the new "#" column
+  const tableColCount = 11 /* fixed incl # */ + answerKeys.length + 1 /* Action */;
 
   const queryString = useMemo(() => {
     const sp = new URLSearchParams();
@@ -670,6 +671,9 @@ export default function AdminPage() {
             <table className="w-full text-sm table-auto min-w-max">
               <thead className="bg-black/5 text-black/80 sticky top-0 z-10">
                 <tr>
+                  {/* ✅ Number column */}
+                  <th className="p-3 text-left whitespace-nowrap">#</th>
+
                   <th className="p-3 text-left whitespace-nowrap">Role</th>
                   <th className="p-3 text-left whitespace-nowrap">Name</th>
                   <th className="p-3 text-left whitespace-nowrap">Email</th>
@@ -695,18 +699,24 @@ export default function AdminPage() {
               </thead>
 
               <tbody className="[&>tr:nth-child(even)]:bg-black/[0.02]">
-                {rows.map((r) => {
+                {rows.map((r, i) => {
                   const points = r.referral_points ?? 0;
                   const count = r.referrals_count ?? 0;
 
                   const pc = safeStr(r.postcode_area || "").trim();
                   const igDisplay = extractIgHandle(r);
 
+                  // ✅ 1-based index across pagination
+                  const idx = offset + i + 1;
+
                   return (
                     <tr
                       key={r.id}
                       className="border-t border-black/10 hover:bg-[rgba(252,176,64,0.12)] transition"
                     >
+                      {/* ✅ Number cell */}
+                      <td className="p-3 font-semibold text-black/70 whitespace-nowrap">{idx}</td>
+
                       <td className="p-3 font-semibold whitespace-nowrap">{r.role}</td>
                       <td className="p-3 font-semibold whitespace-nowrap" title={r.full_name}>
                         {r.full_name}
