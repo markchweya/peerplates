@@ -9,6 +9,13 @@ export const consumerQuestions = [
     options: ["Yes", "No"],
   },
 
+  {
+    key: "university",
+    label: "Which university?",
+    required: false,
+    type: "text" as const,
+  },
+
   // Top 3 cuisines (multi-select, max 3)
   {
     key: "top_cuisines",

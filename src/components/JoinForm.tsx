@@ -145,6 +145,7 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
   };
 
   // --- Conditional logic ---
+  const isStudentYes = String(answers["is_student"] || "").toLowerCase() === "yes";
   const hasFoodIgYes = String(answers["has_food_ig"] || "").toLowerCase() === "yes";
 
   const isRequired = (q: Question) => {
@@ -156,11 +157,21 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
     return false;
   };
 
+  // Hide “university” unless student === Yes
   // Hide “ig_handle” unless has_food_ig === Yes
   const shouldHideQuestion = (q: Question) => {
+    if (q.key === "university") return !isStudentYes;
     if (q.key === "ig_handle") return !hasFoodIgYes;
     return false;
   };
+
+  // If we hide university, clear it so it doesn’t submit stale values
+  useEffect(() => {
+    if (!isStudentYes) {
+      setAnswers((prev) => ({ ...prev, university: "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStudentYes]);
 
   // If IG is No, clear handle (prevents stale submission)
   useEffect(() => {
@@ -482,6 +493,9 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                 if (t === "checkboxes") {
                   const arr = Array.isArray(val) ? val : [];
                   const opts = q.options || [];
+                  const otherKey = `${q.key}_other`;
+                  const otherSelected = arr.includes("Other");
+
                   return (
                     <div key={q.key} className="grid gap-2">
                       <label className="text-sm font-semibold">
@@ -525,6 +539,17 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                             </button>
                           );
                         })}
+
+                        {otherSelected ? (
+                          <input
+                            type="text"
+                            value={String(answers[otherKey] ?? "")}
+                            onChange={(e) => setAnswer(otherKey, e.target.value)}
+                            placeholder="Please specify..."
+                            className={inputBase}
+                          />
+                        ) : null}
+
                         <div className="text-xs text-slate-900/60">You can select multiple options.</div>
                       </div>
 
