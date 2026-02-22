@@ -593,7 +593,7 @@ export default function MissionPage() {
                   A community-driven marketplace for home cooks &amp; bakers.
                 </div>
                 <div className="mt-3 text-slate-600 font-semibold leading-relaxed">
-                  Independent vendors sell authentic, affordable meals to nearby customers, built for speed, clarity,
+                  Independent partner cooks sell authentic, affordable meals to nearby customers, built for speed, clarity,
                   and trust.
                 </div>
               </div>
@@ -608,7 +608,7 @@ export default function MissionPage() {
           kicker=""
           title="Our mission is"
           highlight="two-sided."
-          body="We’re building a platform that works for both sides of the marketplace; vendors and customers, with the same level of care."
+          body="We’re building a platform that works for both sides of the marketplace; partner cooks and customers, with the same level of care."
         >
           <div className="grid gap-6 md:grid-cols-2 items-stretch">
             <ScrollFade>
@@ -625,7 +625,7 @@ export default function MissionPage() {
                     <ChefHatIcon className="h-7 w-7" style={{ color: BRAND_ORANGE }} />
                   </div>
                   <div className="text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
-                    For vendors
+                    For Partner Cooks
                   </div>
                 </div>
                 <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
