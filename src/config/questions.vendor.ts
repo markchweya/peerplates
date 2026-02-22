@@ -31,8 +31,7 @@ export const vendorQuestions = [
     key: "university",
     label: "Which university?",
     required: true,
-    type: "select",
-    options: ["University of Nottingham (UoN)", "Nottingham Trent University (NTU)", "Other"],
+    type: "text",
   },
   {
     key: "currently_sell",
@@ -65,18 +64,16 @@ export const vendorQuestions = [
       "Cakes",
       "Desserts",
       "Other",
-      "None of the above",
     ],
   },
 
   // Postcode area
   {
     key: "postcode_area",
-    label: "What’s your postcode area? (e.g., NG1, NG7)",
+    label: "What’s your postcode area?",
     required: true,
     type: "text",
-    helper:
-      "Postcode area only — not your full address. This helps us understand proximity to campuses.",
+
   },
 
   {
@@ -85,7 +82,7 @@ export const vendorQuestions = [
     required: true,
     type: "checkboxes",
     options: [
-      "Registered with Nottingham City Council",
+      "Registered with your Local Council",
       "Level 2 Hygiene Certificate",
       "Food Safety Plan",
       "Already inspected",

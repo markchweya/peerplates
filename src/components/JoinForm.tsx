@@ -493,6 +493,9 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                 if (t === "checkboxes") {
                   const arr = Array.isArray(val) ? val : [];
                   const opts = q.options || [];
+                  const otherKey = `${q.key}_other`;
+                  const otherSelected = arr.includes("Other");
+
                   return (
                     <div key={q.key} className="grid gap-2">
                       <label className="text-sm font-semibold">
@@ -536,6 +539,17 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
                             </button>
                           );
                         })}
+
+                        {otherSelected ? (
+                          <input
+                            type="text"
+                            value={String(answers[otherKey] ?? "")}
+                            onChange={(e) => setAnswer(otherKey, e.target.value)}
+                            placeholder="Please specify..."
+                            className={inputBase}
+                          />
+                        ) : null}
+
                         <div className="text-xs text-slate-900/60">You can select multiple options.</div>
                       </div>
 

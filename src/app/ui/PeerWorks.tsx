@@ -67,10 +67,10 @@ export default function PeerWorks() {
         {/* Steps */}
         <div className="mt-12 grid gap-4">
           {[
-            { n: "1", t: "Pick your role", d: "Join as a consumer or vendor." },
+            { n: "1", t: "Pick your role", d: "Join as a consumer or partner cook." },
             { n: "2", t: "Answer a few questions", d: "Only complete entries count." },
             { n: "3", t: "Get your link", d: "Share it to move up the waitlist." },
-            { n: "4", t: "Safety first", d: "Vendors follow UK hygiene rules." },
+            { n: "4", t: "Safety first", d: "Partner Cooks follow UK hygiene rules." },
           ].map((s, i) => (
             <motion.div
               key={s.n}

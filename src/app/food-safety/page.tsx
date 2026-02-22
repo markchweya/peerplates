@@ -474,7 +474,7 @@ export default function FoodSafetyPage() {
         kicker=""
         title="Food safety comes"
         highlight="first."
-        body="Food safety isn’t optional on PeerPlates — it’s the baseline. Customers can trust every order comes from a vendor who meets clear UK health & safety requirements."
+        body="Food safety isn’t optional on PeerPlates — it’s the baseline. Customers can trust every order comes from a Partner Cook who meets clear UK health & safety requirements."
       >
         <div className="grid gap-6 lg:grid-cols-2">
           {/* ✅ Vision-style tinted container */}
@@ -491,7 +491,7 @@ export default function FoodSafetyPage() {
 
             <div className="text-sm font-extrabold text-slate-500">Before selling on PeerPlates</div>
             <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
-              Every vendor must:
+              Every Partner Cook must:
             </div>
 
             <ul className="mt-4 space-y-3 text-slate-600 font-semibold">
@@ -522,11 +522,11 @@ export default function FoodSafetyPage() {
 
             <div className="text-sm font-extrabold text-slate-500">Ongoing support & standards</div>
             <div className="mt-2 text-lg font-extrabold" style={{ color: BRAND_BROWN }}>
-              Standards stay high as vendors scale.
+              Standards stay high as Partner Cooks scale.
             </div>
 
             <div className="mt-4 text-slate-600 font-semibold leading-relaxed">
-              Our team works closely with vendors as they grow — with priority onboarding, practical guidance, and clear
+              Our team works closely with partner cooks as they grow — with priority onboarding, practical guidance, and clear
               resources on best-practice food safety, so quality remains consistent as businesses expand.
             </div>
 

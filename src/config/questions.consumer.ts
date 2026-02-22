@@ -9,25 +9,11 @@ export const consumerQuestions = [
     options: ["Yes", "No"],
   },
 
-  /**
-   * NOTE:
-   * - Spec: university is required
-   * - Logic: only meaningful when is_student === "Yes"
-   *
-   * We set required: false here and enforce conditional-required in JoinForm.tsx:
-   * - if is_student === "Yes" => university required and visible
-   * - if is_student === "No"  => university hidden and not required
-   */
   {
     key: "university",
     label: "Which university?",
     required: false,
-    type: "select" as const,
-    options: [
-      "University of Nottingham (UoN)",
-      "Nottingham Trent University (NTU)",
-      "Other",
-    ],
+    type: "text" as const,
   },
 
   // Top 3 cuisines (multi-select, max 3)
@@ -92,35 +78,19 @@ export const consumerQuestions = [
   // Budget per meal (pickup)
   {
     key: "budget_per_meal",
-    label: "Typical budget per meal (pickup)",
+    label: "Typical budget per meal",
     required: true,
     type: "select" as const,
-    options: ["£3–£5", "£5–£7", "£7–£10", "£10 - £15", "£15+"],
-  },
-
-  // Travel by bus
-  {
-    key: "bus_travel_time",
-    label: "Furthest you’d realistically travel by bus for pickup (one-way)",
-    required: true,
-    type: "select" as const,
-    options: [
-      "5–10 minutes",
-      "10–20 minutes",
-      "20–30 minutes",
-      "30–40 minutes",
-      "40+ minutes",
-    ],
+    options: ["£7–£10", "£15+"],
   },
 
   // Postcode area
   {
     key: "postcode_area",
-    label: "What’s your postcode area? (e.g., NG1, NG7)",
+    label: "What’s your postcode area?",
     required: true,
     type: "text" as const,
-    helper:
-      "Postcode area only — not your full address. This helps us understand proximity to campuses and prioritise nearby vendors.",
+
   },
 
   // Attribution
@@ -129,6 +99,6 @@ export const consumerQuestions = [
     label: "How did you hear about PeerPlates?",
     required: true,
     type: "select" as const,
-    options: ["TikTok", "Instagram", "Friend", "Poster / QR code", "Vendor", "Other"],
+    options: ["TikTok", "Instagram", "Friend", "Poster / QR code", "Other"],
   },
 ];
