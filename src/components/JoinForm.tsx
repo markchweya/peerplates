@@ -145,7 +145,6 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
   };
 
   // --- Conditional logic ---
-  const isStudentYes = String(answers["is_student"] || "").toLowerCase() === "yes";
   const hasFoodIgYes = String(answers["has_food_ig"] || "").toLowerCase() === "yes";
 
   const isRequired = (q: Question) => {
@@ -157,21 +156,11 @@ export default function JoinForm({ role, title, subtitle, questions }: Props) {
     return false;
   };
 
-  // Hide “university” unless student === Yes
   // Hide “ig_handle” unless has_food_ig === Yes
   const shouldHideQuestion = (q: Question) => {
-    if (q.key === "university") return !isStudentYes;
     if (q.key === "ig_handle") return !hasFoodIgYes;
     return false;
   };
-
-  // If we hide university, clear it so it doesn’t submit stale values
-  useEffect(() => {
-    if (!isStudentYes) {
-      setAnswers((prev) => ({ ...prev, university: "" }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isStudentYes]);
 
   // If IG is No, clear handle (prevents stale submission)
   useEffect(() => {
