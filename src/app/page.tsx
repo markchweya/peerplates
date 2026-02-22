@@ -488,7 +488,7 @@ export default function Home() {
             kicker: "Partner Cook profiles",
             title: "Grow your community.",
             subtitle: "",
-            desc: "Build a loyal following with your own vendor profile. Customers can follow you, view your posts, and stay updated on your collection days and latest drops.",
+            desc: "Build a loyal following with your own Partner Cook profile. Customers can follow you, view your posts, and stay updated on your collection days and latest drops.",
             stackedDesktop: true,
           },
           {
