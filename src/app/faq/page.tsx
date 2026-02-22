@@ -507,7 +507,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 export function FAQSection({
   label = "",
   title = "Frequently asked questions",
-  subtitle = "Quick answers for vendors and home cooks.",
+  subtitle = "Quick answers for Partner Cooks and home cooks.",
 }: {
   label?: string;
   title?: string;
