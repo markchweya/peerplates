@@ -494,7 +494,7 @@ export default function JoinClient({ referral }: { referral: string }) {
           </h1>
 
           <p className="mt-4 max-w-2xl text-slate-900/70 font-semibold leading-relaxed">
-            Consumers move up by referrals. Vendors are reviewed via questionnaire — built for safety, trust, and real
+            Consumers move up by referrals. Partner Cooks are reviewed via questionnaire — built for safety, trust, and real
             home-cooked food.
           </p>
 
@@ -532,7 +532,7 @@ export default function JoinClient({ referral }: { referral: string }) {
                   <ChefHatIcon className="h-7 w-7 text-slate-900" />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xl font-extrabold">Vendor</div>
+                  <div className="text-xl font-extrabold">Partner Cook</div>
                   <div className="mt-1 text-slate-900/70 font-semibold"></div>
                 </div>
               </div>
