@@ -485,7 +485,7 @@ export default function Home() {
           },
           {
             image: "/images/gallery/gallery4.jpeg",
-            kicker: "Vendor profiles",
+            kicker: "Partner Cook profiles",
             title: "Grow your community.",
             subtitle: "",
             desc: "Build a loyal following with your own vendor profile. Customers can follow you, view your posts, and stay updated on your collection days and latest drops.",
