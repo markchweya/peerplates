@@ -335,5 +335,50 @@ to anon, authenticated, service_role;
 -- Helpful when you changed schema and PostgREST is caching
 select pg_notify('pgrst', 'reload schema');
 
--- 11) Optional RLS (DO NOT enable unless you’re ready to write policies)
--- alter table public.waitlist_entries enable row level security;
+
+-- =====================================================
+-- 11) ROW LEVEL SECURITY (Fix Supabase RLS Warning)
+-- =====================================================
+
+-- Enable RLS
+alter table public.waitlist_entries
+enable row level security;
+
+-- -----------------------------------------------------
+-- POLICY: Allow public (anon) to insert waitlist rows
+-- -----------------------------------------------------
+create policy "Public can insert waitlist entries"
+on public.waitlist_entries
+for insert
+to anon
+with check (true);
+
+-- -----------------------------------------------------
+-- POLICY: Allow authenticated users to insert
+-- -----------------------------------------------------
+create policy "Authenticated can insert waitlist entries"
+on public.waitlist_entries
+for insert
+to authenticated
+with check (true);
+
+-- -----------------------------------------------------
+-- (OPTIONAL) If you want authenticated users to read all
+-- Remove this if not needed
+-- -----------------------------------------------------
+-- create policy "Authenticated can read waitlist"
+-- on public.waitlist_entries
+-- for select
+-- to authenticated
+-- using (true);
+
+-- -----------------------------------------------------
+-- IMPORTANT: Do NOT allow anon select/update/delete
+-- -----------------------------------------------------
+
+-- (Optional hardening)
+revoke update, delete on public.waitlist_entries from anon;
+revoke update, delete on public.waitlist_entries from authenticated;
+
+-- Reload PostgREST schema cache
+select pg_notify('pgrst', 'reload schema');
