@@ -534,11 +534,7 @@ export default function Home() {
         ]}
       />
 
-      <div className="mx-auto w-full max-w-6xl 2xl:max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mt-10 sm:mt-12 border-t border-slate-200 pt-6 pb-10 text-sm text-slate-500">
-          © {new Date().getFullYear()} PeerPlates
-        </div>
-      </div>
+
 
       {/* ✅ Cookies banner + preferences */}
       <CookieConsent />
