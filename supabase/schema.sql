@@ -30,6 +30,8 @@ create table if not exists public.waitlist_entries (
   top_cuisines text[] not null default '{}'::text[],
   delivery_area text,
   dietary_preferences text[] not null default '{}'::text[],
+  -- Partner cooks: "other / please specify" free text
+  partner_other_specify text,
 
   -- Referral system
   referral_code text unique,
@@ -100,6 +102,7 @@ alter table public.waitlist_entries
   add column if not exists top_cuisines text[] not null default '{}'::text[],
   add column if not exists delivery_area text,
   add column if not exists dietary_preferences text[] not null default '{}'::text[],
+  add column if not exists partner_other_specify text,
 
   -- queue_code (safe)
   add column if not exists queue_code text;
@@ -261,6 +264,20 @@ begin
   else
     new.dietary_preferences := '{}'::text[];
   end if;
+
+  -- partner_other_specify (free text from "Other, please specify")
+  new.partner_other_specify :=
+    nullif(
+      trim(
+        coalesce(
+          v->>'partner_other_specify',
+          v->>'other_specify',
+          v->>'other',
+          ''
+        )
+      ),
+      ''
+    );
 
   return new;
 end;

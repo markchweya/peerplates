@@ -511,7 +511,7 @@ export default function PrivacyPage() {
                     "Name and email",
                     "Student status and (if applicable) university",
                     "Food preferences (e.g., top cuisines, dietary preferences, what you want from PeerPlates)",
-                    "Vendor details (e.g., what you sell/would like to sell, closest student hub, travel time by bus, postcode area (optional), readiness/compliance tick-boxes, weekly portions, typical price range, and whether you currently sell)",
+                    "Partner cook details (e.g., what you sell/would like to sell, closest student hub, travel time by bus, postcode area (optional), readiness/compliance tick-boxes, weekly portions, typical price range, and whether you currently sell)",
                   ]}
                 />
               </div>
