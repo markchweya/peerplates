@@ -136,12 +136,12 @@ create unique index if not exists waitlist_entries_email_lower_uniq
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
-as $$
+as $function$
 begin
   new.updated_at = now();
   return new;
 end;
-$$;
+$function$;
 
 drop trigger if exists trg_waitlist_set_updated_at on public.waitlist_entries;
 create trigger trg_waitlist_set_updated_at
@@ -156,7 +156,7 @@ create or replace function public.increment_referral_stats(
 returns void
 language plpgsql
 security definer
-as $$
+as $function$
 begin
   update public.waitlist_entries
   set
@@ -165,7 +165,7 @@ begin
   where id = p_referrer_id
     and role = 'consumer';
 end;
-$$;
+$function$;
 
 -- 7) Grants
 grant usage on schema public to anon, authenticated, service_role;
