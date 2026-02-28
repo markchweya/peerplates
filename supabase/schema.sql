@@ -445,18 +445,4 @@ revoke update, delete on public.waitlist_entries from anon;
 revoke update, delete on public.waitlist_entries from authenticated;
 
 -- Reload PostgREST schema cache
-n public.waitlist_entries
--- for select
--- to authenticated
--- using (true);
-
--- -----------------------------------------------------
--- IMPORTANT: Do NOT allow anon select/update/delete
--- -----------------------------------------------------
-
--- (Optional hardening)
-revoke update, delete on public.waitlist_entries from anon;
-revoke update, delete on public.waitlist_entries from authenticated;
-
--- Reload PostgREST schema cache
 select pg_notify('pgrst', 'reload schema');
