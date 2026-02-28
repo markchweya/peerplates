@@ -169,7 +169,9 @@ create unique index if not exists waitlist_entries_email_lower_uniq
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
-as $$
+security definer
+set search_path = public
+as $
 begin
   new.updated_at = now();
   return new;
@@ -185,7 +187,9 @@ for each row execute function public.set_updated_at();
 create or replace function public.sync_waitlist_extracted_columns()
 returns trigger
 language plpgsql
-as $$
+security definer
+set search_path = public
+as $
 declare
   v jsonb;
   ig_yes text;
@@ -296,7 +300,8 @@ create or replace function public.increment_referral_stats(
 returns void
 language plpgsql
 security definer
-as $$
+set search_path = public
+as $
 begin
   update public.waitlist_entries
   set
@@ -337,7 +342,64 @@ select pg_notify('pgrst', 'reload schema');
 
 
 -- =====================================================
--- 11) ROW LEVEL SECURITY (Fix Supabase RLS Warning)
+-- 11) ZERO-TRUST ROW LEVEL SECURITY (HARDENED)
+
+-- Add ownership column (required for zero-trust model)
+alter table public.waitlist_entries
+  add column if not exists user_id uuid;
+
+-- Enable RLS
+alter table public.waitlist_entries enable row level security;
+
+-- Remove any existing insert policies
+drop policy if exists "Public can insert waitlist entries" on public.waitlist_entries;
+drop policy if exists "Authenticated can insert waitlist entries" on public.waitlist_entries;
+
+-- Remove broad grants
+revoke insert on public.waitlist_entries from anon;
+
+-- INSERT: Only authenticated users inserting their own row
+create policy "Users can insert own waitlist row"
+on public.waitlist_entries
+for insert
+ to authenticated
+with check (
+  auth.uid() is not null
+  and user_id = auth.uid()
+  and accepted_privacy = true
+);
+
+-- SELECT: Users can only read their own row
+create policy "Users can read own waitlist row"
+on public.waitlist_entries
+for select
+ to authenticated
+using (user_id = auth.uid());
+
+-- UPDATE: Users can update only their own row
+create policy "Users can update own waitlist row"
+on public.waitlist_entries
+for update
+ to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+-- DELETE: Optional strict self-delete only
+create policy "Users can delete own waitlist row"
+on public.waitlist_entries
+for delete
+ to authenticated
+using (user_id = auth.uid());
+
+-- Lock referral RPC to service_role only
+revoke execute on function public.increment_referral_stats(uuid, integer)
+from anon, authenticated;
+
+grant execute on function public.increment_referral_stats(uuid, integer)
+to service_role;
+
+-- Reload PostgREST schema cache
+select pg_notify('pgrst', 'reload schema');
 -- =====================================================
 
 -- Enable RLS
@@ -350,17 +412,19 @@ enable row level security;
 create policy "Public can insert waitlist entries"
 on public.waitlist_entries
 for insert
-to anon
-with check (true);
+to anon, authenticated
+with check (
+  email is not null
+  and role in ('consumer','vendor')
+  and accepted_privacy = true
+);
 
 -- -----------------------------------------------------
 -- POLICY: Allow authenticated users to insert
 -- -----------------------------------------------------
-create policy "Authenticated can insert waitlist entries"
-on public.waitlist_entries
-for insert
-to authenticated
-with check (true);
+-- Authenticated handled by shared insert policy above
+-- (separate permissive policy removed for security)
+
 
 -- -----------------------------------------------------
 -- (OPTIONAL) If you want authenticated users to read all
