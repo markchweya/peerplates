@@ -32,6 +32,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         suppressHydrationWarning
       >
         {children}
+        <footer className="mt-20 border-t border-slate-200 py-8">
+          <div className="flex items-center justify-between px-6 text-sm text-slate-500">
+            <span>
+              © 2026 <span className="font-semibold text-slate-900">PeerPlates</span>
+            </span>
+            <span>
+              Built by 
+              <a
+                href="https://olkeri.space"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-slate-900 hover:text-slate-700 transition"
+              >
+                olkeri.space
+              </a>
+            </span>
+          </div>
+        </footer>
       </body>
     </html>
   );
