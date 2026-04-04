@@ -274,8 +274,8 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
           "rounded-[30px] border border-slate-200 bg-white/95 backdrop-blur px-6 py-6",
           "shadow-[0_14px_45px_rgba(2,6,23,0.09)]",
           "flex flex-col",
-          // ✅ equalize height across cards
-          "min-h-[220px] sm:min-h-[230px]",
+          // ✅ equalize height across cards while staying compact
+          "min-h-[240px] sm:min-h-[250px]", 
         ].join(" ")}
       >
         <div className="text-xs font-extrabold tracking-[0.22em] text-slate-500 uppercase">
@@ -292,7 +292,6 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
 
         <div
           className="mt-3 text-slate-600 font-semibold leading-relaxed break-words"
-          style={clampStyle(3)} // ✅ clamp desc
           title={item.desc}
         >
           {item.desc}
