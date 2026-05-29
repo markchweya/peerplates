@@ -1,6 +1,7 @@
 // src/app/ui/ScrollShowcase.tsx
 "use client";
 
+import Image from "next/image";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
@@ -25,8 +26,8 @@ export type ShowcaseItem = {
 function clampStyle(lines: number): React.CSSProperties {
   return {
     display: "-webkit-box",
-    WebkitBoxOrient: "vertical" as any,
-    WebkitLineClamp: lines as any,
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: lines,
     overflow: "hidden",
   };
 }
@@ -48,7 +49,9 @@ export default function ScrollShowcase({
   nav?: ShowcaseNavItem[];
   items?: ShowcaseItem[];
 }) {
-  const safeItems = Array.isArray(items) ? items : [];
+  const safeItems = useMemo(() => {
+    return Array.isArray(items) ? items : [];
+  }, [items]);
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const cardRefs = useRef<Array<HTMLDivElement | null>>([]);
@@ -121,14 +124,6 @@ export default function ScrollShowcase({
       {/* Subtle background glow */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50/60 to-white" />
-        <div
-          className="absolute -left-44 top-10 h-[520px] w-[520px] rounded-full blur-3xl opacity-20"
-          style={{ background: "rgba(138,107,67,0.22)" }}
-        />
-        <div
-          className="absolute -right-44 bottom-[-140px] h-[560px] w-[560px] rounded-full blur-3xl opacity-20"
-          style={{ background: "rgba(252,176,64,0.28)" }}
-        />
       </div>
 
       <div className={`mx-auto w-full max-w-6xl 2xl:max-w-7xl ${trackPadding} py-10 sm:py-12`}>
@@ -162,7 +157,7 @@ export default function ScrollShowcase({
                     onClick={() => scrollToIndex(n.index)}
                     className={[
                       "inline-flex items-center justify-center",
-                      "rounded-full px-4 py-2 text-sm font-extrabold",
+                      "rounded-lg px-4 py-2 text-sm font-extrabold",
                       "border shadow-sm transition hover:-translate-y-[1px]",
                       on
                         ? "bg-[#fcb040] text-slate-900 border-[#fcb040]"
@@ -250,14 +245,16 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
     >
       {/* IMAGE BOX */}
       <div className={`${sharedW} mx-auto`}>
-        <div className="relative aspect-[9/16] rounded-[30px] overflow-hidden border border-slate-200 bg-white shadow-[0_18px_55px_rgba(2,6,23,0.14)]">
+        <div className="relative aspect-[9/16] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_18px_55px_rgba(2,6,23,0.12)]">
           <div className="absolute inset-0" style={{ background: imageBG }} />
 
           {/* Padding + object-contain => no side cropping */}
           <div className="absolute inset-0 p-3 sm:p-4">
-            <img
+            <Image
               src={item.image}
               alt={item.title}
+              fill
+              sizes="(min-width: 1024px) 360px, (min-width: 640px) 340px, 86vw"
               className="h-full w-full object-contain"
               loading="lazy"
               draggable={false}
@@ -271,7 +268,7 @@ function ShowcaseCard({ item, tilt }: { item: ShowcaseItem; tilt: boolean }) {
         className={[
           sharedW,
           "mx-auto mt-5 sm:mt-6",
-          "rounded-[30px] border border-slate-200 bg-white/95 backdrop-blur px-6 py-6",
+          "rounded-lg border border-slate-200 bg-white/95 backdrop-blur px-6 py-6",
           "shadow-[0_14px_45px_rgba(2,6,23,0.09)]",
           "flex flex-col",
           // ✅ equalize height across cards while staying compact
