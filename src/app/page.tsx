@@ -174,22 +174,23 @@ function PremiumHero() {
         />
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] h-32 overflow-hidden sm:h-40">
-        <div
-          className="absolute -bottom-24 -left-[18%] h-48 w-[136%] bg-white sm:-bottom-32 sm:h-64"
-          style={{
-            borderRadius: "50% 50% 0 0 / 64% 58% 0 0",
-            transform: "rotate(-1.4deg)",
-          }}
-        />
-
-        <div
-          className="absolute -bottom-14 right-[-12%] h-28 w-[56%] bg-[#fff8ed] opacity-95 sm:h-36"
-          style={{
-            borderRadius: "50% 50% 0 0 / 76% 72% 0 0",
-            transform: "rotate(-5deg)",
-          }}
-        />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] h-28 overflow-hidden sm:h-36">
+        <svg
+          aria-hidden="true"
+          className="absolute inset-x-0 bottom-0 h-full w-full"
+          preserveAspectRatio="none"
+          viewBox="0 0 1440 180"
+        >
+          <path
+            d="M0 118C172 74 313 63 477 93C655 126 738 130 902 91C1095 45 1251 54 1440 92V180H0V118Z"
+            fill="#ffffff"
+          />
+          <path
+            d="M790 144C908 98 1026 86 1149 108C1267 129 1357 127 1440 108V180H790V144Z"
+            fill="#fff8ed"
+            opacity="0.92"
+          />
+        </svg>
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-[92svh] w-full max-w-7xl items-end px-5 pb-28 pt-28 sm:px-8 sm:pb-32 lg:px-10">
