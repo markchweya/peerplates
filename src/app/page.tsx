@@ -174,7 +174,25 @@ function PremiumHero() {
         />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[92svh] w-full max-w-7xl items-end px-5 pb-12 pt-28 sm:px-8 sm:pb-16 lg:px-10">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[4] h-32 overflow-hidden sm:h-40">
+        <div
+          className="absolute -bottom-24 -left-[18%] h-48 w-[136%] bg-white sm:-bottom-32 sm:h-64"
+          style={{
+            borderRadius: "50% 50% 0 0 / 64% 58% 0 0",
+            transform: "rotate(-1.4deg)",
+          }}
+        />
+
+        <div
+          className="absolute -bottom-14 right-[-12%] h-28 w-[56%] bg-[#fff8ed] opacity-95 sm:h-36"
+          style={{
+            borderRadius: "50% 50% 0 0 / 76% 72% 0 0",
+            transform: "rotate(-5deg)",
+          }}
+        />
+      </div>
+
+      <div className="relative z-10 mx-auto flex min-h-[92svh] w-full max-w-7xl items-end px-5 pb-28 pt-28 sm:px-8 sm:pb-32 lg:px-10">
         <div className="grid w-full gap-10">
           <motion.div
             initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
@@ -211,7 +229,6 @@ function PremiumHero() {
               </Link>
             </div>
           </motion.div>
-
         </div>
       </div>
     </section>
